@@ -136,8 +136,8 @@ fn main() {
         "p_spec.c",
         // Switch actions
         "p_switch.c",
-        // Teleporter
-        "p_telept.c",
+        // Teleporter — ported to Rust (room/src/doom/p_telept.rs)
+        // "p_telept.c",
         // Thinker / object tick — ported to Rust (room/src/doom/p_tick.rs)
         // "p_tick.c",
         // Player movement

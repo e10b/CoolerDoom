@@ -404,6 +404,24 @@ pub extern "C" fn P_SpawnGlowingLight(sector: *mut sector_t) {
     }
 }
 
+/// Anchor function referenced from `doomgeneric_Create` to ensure all
+/// `#[no_mangle]` light functions survive link-time dead-code elimination.
+#[no_mangle]
+pub unsafe extern "C" fn P_Lights_Link_Anchor() {
+    // Force the linker to include every exported symbol from this module.
+    let _ = T_FireFlicker as usize;
+    let _ = T_LightFlash as usize;
+    let _ = T_StrobeFlash as usize;
+    let _ = T_Glow as usize;
+    let _ = P_SpawnFireFlicker as usize;
+    let _ = P_SpawnLightFlash as usize;
+    let _ = P_SpawnStrobeFlash as usize;
+    let _ = EV_StartLightStrobing as usize;
+    let _ = EV_TurnTagLightsOff as usize;
+    let _ = EV_LightTurnOn as usize;
+    let _ = P_SpawnGlowingLight as usize;
+}
+
 // ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]

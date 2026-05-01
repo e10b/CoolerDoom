@@ -31,6 +31,7 @@ pub mod m_misc;
 pub mod m_random;
 pub mod memio;
 pub mod p_lights;
+pub mod p_telept;
 pub mod p_tick;
 pub mod r_sky;
 pub mod s_sound;

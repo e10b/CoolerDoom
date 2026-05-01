@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 39 |
-| Total remaining LoC | 38,043 |
-| Already ported LoC | ~7,304 (est.) |
-| Port completeness | ~16% (by line count) |
+| Remaining C modules | 36 |
+| Total remaining LoC | 37,007 |
+| Already ported LoC | ~8,340 (est.) |
+| Port completeness | ~18% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -23,16 +23,13 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 _All modules in this bucket have been ported._
 
-### Small — 100–350 LoC (4 files, 1,572 LoC)
+### Small — 100–350 LoC (1 file, 350 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `p_telept.c` | 133 | Game logic | Teleporter action specials |
-| `st_lib.c` | 284 | HUD | Status bar widget library |
-| `p_lights.c` | 350 | Game logic | Lighting sector effects |
 | `p_sight.c` | 350 | Game logic | Line-of-sight checks |
 
-**Recently ported**: `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC).
+**Recently ported**: `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC).
 
 ### Medium-Small — 350–550 LoC (6 files, 2,701 LoC)
 
@@ -96,8 +93,8 @@ _All modules in this bucket have been ported._
 
 ## Recommended Porting Order
 
-1. **Quick wins** — Port `p_telept.c`, `p_lights.c`, `p_sight.c` (all ≤ 350 LoC).
-2. **Self-contained modules** — `st_lib.c`, `r_plane.c`, `r_bsp.c`, `p_user.c`.
+1. **Quick wins** — Only `p_sight.c` remains in Small tier (needs geometry struct mirrors).
+2. **Self-contained modules** — `p_user.c`, `r_plane.c`, `r_bsp.c`.
 3. **Building blocks** — `z_zone.c` (memory), `w_wad.c` (WAD), `v_video.c` (video), `i_system.c` (platform).
 4. **Renderer pipeline** — `r_data.c`, `r_draw.c`, `r_segs.c`, `r_things.c`, `r_main.c`.
 5. **Game logic** — Start with smaller `p_*` modules, work up to `p_map.c`, `p_mobj.c`, `p_spec.c`.
