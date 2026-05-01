@@ -266,23 +266,38 @@ const sfx_radio: c_int = 108;
 
 // MF_* flag constants
 
+// Mobj flag bit values. These MUST match `p_mobj.h`'s `mobjflag_t` enum
+// exactly: `info.rs` initialises `mobjinfo[].flags` using these constants,
+// and the C simulation code (`p_map.c`, `p_enemy.c`, `p_inter.c`, ...) tests
+// those stored bits against the `p_mobj.h` values. A mismatch silently
+// corrupts every `flags & MF_*` check in the game.
 const MF_SPECIAL: c_int = 0x00000001;
 const MF_SOLID: c_int = 0x00000002;
 const MF_SHOOTABLE: c_int = 0x00000004;
 const MF_NOSECTOR: c_int = 0x00000008;
 const MF_NOBLOCKMAP: c_int = 0x00000010;
-const MF_DROPOFF: c_int = 0x00000020;
-const MF_PICKUP: c_int = 0x00000040;
-const MF_NOCLIP: c_int = 0x00000080;
+const MF_AMBUSH: c_int = 0x00000020;
+const MF_JUSTHIT: c_int = 0x00000040;
+const MF_JUSTATTACKED: c_int = 0x00000080;
 const MF_SPAWNCEILING: c_int = 0x00000100;
 const MF_NOGRAVITY: c_int = 0x00000200;
-const MF_NOBLOOD: c_int = 0x00000400;
-const MF_FLOAT: c_int = 0x00000800;
-const MF_SHADOW: c_int = 0x00001000;
-const MF_MISSILE: c_int = 0x00002000;
-const MF_NOTDMATCH: c_int = 0x00004000;
-const MF_COUNTKILL: c_int = 0x00008000;
-const MF_COUNTITEM: c_int = 0x00010000;
+const MF_DROPOFF: c_int = 0x00000400;
+const MF_PICKUP: c_int = 0x00000800;
+const MF_NOCLIP: c_int = 0x00001000;
+const MF_SLIDE: c_int = 0x00002000;
+const MF_FLOAT: c_int = 0x00004000;
+const MF_TELEPORT: c_int = 0x00008000;
+const MF_MISSILE: c_int = 0x00010000;
+const MF_DROPPED: c_int = 0x00020000;
+const MF_SHADOW: c_int = 0x00040000;
+const MF_NOBLOOD: c_int = 0x00080000;
+const MF_CORPSE: c_int = 0x00100000;
+const MF_INFLOAT: c_int = 0x00200000;
+const MF_COUNTKILL: c_int = 0x00400000;
+const MF_COUNTITEM: c_int = 0x00800000;
+const MF_SKULLFLY: c_int = 0x01000000;
+const MF_NOTDMATCH: c_int = 0x02000000;
+const MF_TRANSLATION: c_int = 0x0c000000;
 
 #[repr(C)]
 pub struct State {
