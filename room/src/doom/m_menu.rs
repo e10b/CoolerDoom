@@ -9,8 +9,8 @@ use std::ptr;
 
 use super::d_event::event_t;
 use super::d_mode;
-use super::doomstat::{gamemission, gamemode, gameversion};
 use super::d_player::M_Menu_SetPlayerMessage;
+use super::doomstat::{gamemission, gamemode, gameversion};
 use super::m_misc::m_snprintf_clamp;
 
 fn logical_gamemission() -> c_int {
@@ -36,8 +36,8 @@ const HU_FONTSIZE: usize = (HU_FONTEND - HU_FONTSTART + 1) as usize;
 
 const SAVESTRINGSIZE: usize = 24;
 const MAXPLAYERS: usize = 4;
-const SCREENWIDTH: c_int = 640;
-const SCREENHEIGHT: c_int = 400;
+const SCREENWIDTH: c_int = 320;
+const SCREENHEIGHT: c_int = 200;
 
 const EV_KEYDOWN: c_int = 0;
 const EV_KEYUP: c_int = 1;

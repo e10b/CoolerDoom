@@ -17,51 +17,19 @@ const am_noammo: c_int = 5;
 // ---------------------------------------------------------------------------
 // State index constants (from info.h statenum_t enum)
 // ---------------------------------------------------------------------------
+//
+// Re-use the same build-script-generated constants that `info.rs` consumes,
+// so the weapon state indices cannot drift out of sync with the real
+// `statenum_t` enum in `vendor/doomgeneric/info.h`.
+//
+// (Previously these were hand-typed and were silently off-by-one from
+// S_DSGUNFLASH1 onward because the S_DSNR1/S_DSNR2 super-shotgun reload
+// states were missed, which caused wp_missile / wp_chainsaw / wp_plasma /
+// wp_bfg to point at the wrong animation slots. Raising one of those weapons
+// ran A_Lower instead of A_Raise, eventually driving readyweapon to
+// wp_nochange (= NUMWEAPONS) and segfaulting on weaponinfo[9].)
 
-const S_NULL: c_int = 0;
-const S_PUNCH: c_int = 2;
-const S_PUNCHDOWN: c_int = 3;
-const S_PUNCHUP: c_int = 4;
-const S_PUNCH1: c_int = 5;
-const S_PISTOL: c_int = 10;
-const S_PISTOLDOWN: c_int = 11;
-const S_PISTOLUP: c_int = 12;
-const S_PISTOL1: c_int = 13;
-const S_PISTOLFLASH: c_int = 17;
-const S_SGUN: c_int = 18;
-const S_SGUNDOWN: c_int = 19;
-const S_SGUNUP: c_int = 20;
-const S_SGUN1: c_int = 21;
-const S_SGUNFLASH1: c_int = 30;
-const S_DSGUN: c_int = 32;
-const S_DSGUNDOWN: c_int = 33;
-const S_DSGUNUP: c_int = 34;
-const S_DSGUN1: c_int = 35;
-const S_DSGUNFLASH1: c_int = 46;
-const S_CHAIN: c_int = 48;
-const S_CHAINDOWN: c_int = 49;
-const S_CHAINUP: c_int = 50;
-const S_CHAIN1: c_int = 51;
-const S_CHAINFLASH1: c_int = 54;
-const S_MISSILE: c_int = 56;
-const S_MISSILEDOWN: c_int = 57;
-const S_MISSILEUP: c_int = 58;
-const S_MISSILE1: c_int = 59;
-const S_MISSILEFLASH1: c_int = 62;
-const S_SAW: c_int = 66;
-const S_SAWDOWN: c_int = 68;
-const S_SAWUP: c_int = 69;
-const S_SAW1: c_int = 70;
-const S_PLASMA: c_int = 73;
-const S_PLASMADOWN: c_int = 74;
-const S_PLASMAUP: c_int = 75;
-const S_PLASMA1: c_int = 76;
-const S_PLASMAFLASH1: c_int = 78;
-const S_BFG: c_int = 80;
-const S_BFGDOWN: c_int = 81;
-const S_BFGUP: c_int = 82;
-const S_BFG1: c_int = 83;
-const S_BFGFLASH1: c_int = 87;
+include!(concat!(env!("OUT_DIR"), "/statenum.rs"));
 
 // ---------------------------------------------------------------------------
 // Weapon info table

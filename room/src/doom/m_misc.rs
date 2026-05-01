@@ -350,9 +350,7 @@ pub extern "C" fn M_StringJoinA(strs: *const *const c_char) -> *mut c_char {
 
         let result = malloc(result_len) as *mut c_char;
         if result.is_null() {
-            I_Error(
-                b"M_StringJoinA: Failed to allocate new string\0".as_ptr() as *const c_char,
-            );
+            I_Error(b"M_StringJoinA: Failed to allocate new string\0".as_ptr() as *const c_char);
             return std::ptr::null_mut();
         }
 
@@ -376,7 +374,9 @@ pub extern "C" fn M_snprintf_clamp(buf: *mut c_char, len: usize, result: c_int) 
         return 0;
     }
     if result < 0 || result >= len as c_int {
-        unsafe { *buf.add(len - 1) = 0; }
+        unsafe {
+            *buf.add(len - 1) = 0;
+        }
         (len as c_int) - 1
     } else {
         result
@@ -388,7 +388,9 @@ pub(crate) fn m_snprintf_clamp(buf: *mut c_char, len: usize, result: c_int) -> c
         return 0;
     }
     if result < 0 || result >= len as c_int {
-        unsafe { *buf.add(len - 1) = 0; }
+        unsafe {
+            *buf.add(len - 1) = 0;
+        }
         (len as c_int) - 1
     } else {
         result
@@ -409,11 +411,8 @@ pub extern "C" fn M_DefaultConfigDir() -> *const c_char {
         }
         let xdg = getenv(b"XDG_CONFIG_HOME\0".as_ptr() as *const c_char);
         if !xdg.is_null() {
-            let strs: [*const c_char; 3] = [
-                xdg,
-                b"/doom\0".as_ptr() as *const c_char,
-                std::ptr::null(),
-            ];
+            let strs: [*const c_char; 3] =
+                [xdg, b"/doom\0".as_ptr() as *const c_char, std::ptr::null()];
             return M_StringJoinA(strs.as_ptr());
         }
         let strs: [*const c_char; 3] = [
