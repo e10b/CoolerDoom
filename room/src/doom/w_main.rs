@@ -25,10 +25,7 @@ pub extern "C" fn W_ParseCommandLine() -> boolean {
             modifiedgame = 1;
             while idx < myargc && **myargv.offset(idx as isize) != b'-' as c_char {
                 let filename = D_TryFindWADByName(*myargv.offset(idx as isize));
-                printf(
-                    b" adding %s\n\0".as_ptr() as *const c_char,
-                    filename,
-                );
+                printf(b" adding %s\n\0".as_ptr() as *const c_char, filename);
                 W_AddFile(filename);
                 idx += 1;
             }

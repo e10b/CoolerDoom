@@ -80,6 +80,19 @@ pub const KEY_RALT: u8 = 0x80 + 0x38;
 /// Left alt key (same value as right alt in Doom).
 pub const KEY_LALT: u8 = KEY_RALT;
 
+/// Home key.
+pub const KEY_HOME: u8 = 0x80 + 0x47;
+/// End key.
+pub const KEY_END: u8 = 0x80 + 0x4f;
+/// Page-up key.
+pub const KEY_PGUP: u8 = 0x80 + 0x49;
+/// Page-down key.
+pub const KEY_PGDN: u8 = 0x80 + 0x51;
+/// Insert key.
+pub const KEY_INS: u8 = 0x80 + 0x52;
+/// Delete key.
+pub const KEY_DEL: u8 = 0x80 + 0x53;
+
 /// Convert a winit [`KeyCode`] into the corresponding Doom key byte.
 ///
 /// Returns `None` if the key has no Doom equivalent and should be ignored.

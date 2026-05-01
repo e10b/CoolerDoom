@@ -3,55 +3,62 @@
 use std::ffi::{c_char, c_int, c_void};
 use std::os::raw::c_uint;
 
+use crate::platform::keys::{
+    KEY_BACKSPACE, KEY_DEL, KEY_DOWNARROW, KEY_END, KEY_ENTER, KEY_EQUALS, KEY_ESCAPE, KEY_F1,
+    KEY_F10, KEY_F11, KEY_F12, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9,
+    KEY_HOME, KEY_INS, KEY_LEFTARROW, KEY_MINUS, KEY_PAUSE, KEY_PGDN, KEY_PGUP, KEY_RALT,
+    KEY_RIGHTARROW, KEY_RSHIFT, KEY_STRAFE_L, KEY_STRAFE_R, KEY_TAB, KEY_UPARROW, KEY_USE,
+};
+
 //
 // Keyboard controls
 //
 
 #[no_mangle]
-pub static mut key_right: c_int = 205; // KEY_RIGHTARROW
+pub static mut key_right: c_int = KEY_RIGHTARROW as c_int;
 #[no_mangle]
-pub static mut key_left: c_int = 203; // KEY_LEFTARROW
+pub static mut key_left: c_int = KEY_LEFTARROW as c_int;
 #[no_mangle]
-pub static mut key_up: c_int = 200; // KEY_UPARROW
+pub static mut key_up: c_int = KEY_UPARROW as c_int;
 #[no_mangle]
-pub static mut key_down: c_int = 208; // KEY_DOWNARROW
+pub static mut key_down: c_int = KEY_DOWNARROW as c_int;
 #[no_mangle]
-pub static mut key_strafeleft: c_int = b',' as c_int;
+pub static mut key_strafeleft: c_int = KEY_STRAFE_L as c_int;
 #[no_mangle]
-pub static mut key_straferight: c_int = b'.' as c_int;
+pub static mut key_straferight: c_int = KEY_STRAFE_R as c_int;
 #[no_mangle]
-pub static mut key_fire: c_int = b'/' as c_int;
+pub static mut key_fire: c_int = crate::platform::keys::KEY_FIRE as c_int;
 #[no_mangle]
-pub static mut key_use: c_int = b' ' as c_int;
+pub static mut key_use: c_int = KEY_USE as c_int;
 #[no_mangle]
-pub static mut key_strafe: c_int = 164; // KEY_RALT
+pub static mut key_strafe: c_int = KEY_RALT as c_int;
 #[no_mangle]
-pub static mut key_speed: c_int = 161; // KEY_RSHIFT
+pub static mut key_speed: c_int = KEY_RSHIFT as c_int;
 
 //
 // Heretic keyboard controls
 //
 
 #[no_mangle]
-pub static mut key_flyup: c_int = 201; // KEY_PGUP
+pub static mut key_flyup: c_int = KEY_PGUP as c_int;
 #[no_mangle]
-pub static mut key_flydown: c_int = 210; // KEY_INS
+pub static mut key_flydown: c_int = KEY_INS as c_int;
 #[no_mangle]
-pub static mut key_flycenter: c_int = 199; // KEY_HOME
+pub static mut key_flycenter: c_int = KEY_HOME as c_int;
 
 #[no_mangle]
-pub static mut key_lookup: c_int = 209; // KEY_PGDN
+pub static mut key_lookup: c_int = KEY_PGDN as c_int;
 #[no_mangle]
-pub static mut key_lookdown: c_int = 207; // KEY_DEL
+pub static mut key_lookdown: c_int = KEY_DEL as c_int;
 #[no_mangle]
-pub static mut key_lookcenter: c_int = 206; // KEY_END
+pub static mut key_lookcenter: c_int = KEY_END as c_int;
 
 #[no_mangle]
 pub static mut key_invleft: c_int = b'[' as c_int;
 #[no_mangle]
 pub static mut key_invright: c_int = b']' as c_int;
 #[no_mangle]
-pub static mut key_useartifact: c_int = b'\r' as c_int; // KEY_ENTER
+pub static mut key_useartifact: c_int = KEY_ENTER as c_int;
 
 //
 // Hexen key controls
@@ -61,7 +68,7 @@ pub static mut key_useartifact: c_int = b'\r' as c_int; // KEY_ENTER
 pub static mut key_jump: c_int = b'/' as c_int;
 
 #[no_mangle]
-pub static mut key_arti_all: c_int = 14; // KEY_BACKSPACE
+pub static mut key_arti_all: c_int = KEY_BACKSPACE as c_int;
 #[no_mangle]
 pub static mut key_arti_health: c_int = b'\\' as c_int;
 #[no_mangle]
@@ -92,13 +99,13 @@ pub static mut key_invpop: c_int = b'z' as c_int;
 #[no_mangle]
 pub static mut key_invkey: c_int = b'k' as c_int;
 #[no_mangle]
-pub static mut key_invhome: c_int = 199; // KEY_HOME
+pub static mut key_invhome: c_int = KEY_HOME as c_int;
 #[no_mangle]
-pub static mut key_invend: c_int = 206; // KEY_END
+pub static mut key_invend: c_int = KEY_END as c_int;
 #[no_mangle]
-pub static mut key_invuse: c_int = b'\r' as c_int; // KEY_ENTER
+pub static mut key_invuse: c_int = KEY_ENTER as c_int;
 #[no_mangle]
-pub static mut key_invdrop: c_int = 14; // KEY_BACKSPACE
+pub static mut key_invdrop: c_int = KEY_BACKSPACE as c_int;
 
 //
 // Mouse controls
@@ -129,13 +136,13 @@ pub static mut mousebprevweapon: c_int = -1;
 pub static mut mousebnextweapon: c_int = -1;
 
 #[no_mangle]
-pub static mut key_message_refresh: c_int = b'\r' as c_int; // KEY_ENTER
+pub static mut key_message_refresh: c_int = KEY_ENTER as c_int;
 #[no_mangle]
-pub static mut key_pause: c_int = 119; // KEY_PAUSE
+pub static mut key_pause: c_int = KEY_PAUSE as c_int;
 #[no_mangle]
 pub static mut key_demo_quit: c_int = b'q' as c_int;
 #[no_mangle]
-pub static mut key_spy: c_int = 123; // KEY_F12
+pub static mut key_spy: c_int = KEY_F12 as c_int;
 
 // Multiplayer chat keys:
 
@@ -170,19 +177,19 @@ pub static mut key_nextweapon: c_int = 0;
 // Map control keys:
 
 #[no_mangle]
-pub static mut key_map_north: c_int = 200; // KEY_UPARROW
+pub static mut key_map_north: c_int = KEY_UPARROW as c_int;
 #[no_mangle]
-pub static mut key_map_south: c_int = 208; // KEY_DOWNARROW
+pub static mut key_map_south: c_int = KEY_DOWNARROW as c_int;
 #[no_mangle]
-pub static mut key_map_east: c_int = 205; // KEY_RIGHTARROW
+pub static mut key_map_east: c_int = KEY_RIGHTARROW as c_int;
 #[no_mangle]
-pub static mut key_map_west: c_int = 203; // KEY_LEFTARROW
+pub static mut key_map_west: c_int = KEY_LEFTARROW as c_int;
 #[no_mangle]
 pub static mut key_map_zoomin: c_int = b'=' as c_int;
 #[no_mangle]
 pub static mut key_map_zoomout: c_int = b'-' as c_int;
 #[no_mangle]
-pub static mut key_map_toggle: c_int = 15; // KEY_TAB
+pub static mut key_map_toggle: c_int = KEY_TAB as c_int;
 #[no_mangle]
 pub static mut key_map_maxzoom: c_int = b'0' as c_int;
 #[no_mangle]
@@ -197,51 +204,51 @@ pub static mut key_map_clearmark: c_int = b'c' as c_int;
 // menu keys:
 
 #[no_mangle]
-pub static mut key_menu_activate: c_int = 27; // KEY_ESCAPE
+pub static mut key_menu_activate: c_int = KEY_ESCAPE as c_int;
 #[no_mangle]
-pub static mut key_menu_up: c_int = 200; // KEY_UPARROW
+pub static mut key_menu_up: c_int = KEY_UPARROW as c_int;
 #[no_mangle]
-pub static mut key_menu_down: c_int = 208; // KEY_DOWNARROW
+pub static mut key_menu_down: c_int = KEY_DOWNARROW as c_int;
 #[no_mangle]
-pub static mut key_menu_left: c_int = 203; // KEY_LEFTARROW
+pub static mut key_menu_left: c_int = KEY_LEFTARROW as c_int;
 #[no_mangle]
-pub static mut key_menu_right: c_int = 205; // KEY_RIGHTARROW
+pub static mut key_menu_right: c_int = KEY_RIGHTARROW as c_int;
 #[no_mangle]
-pub static mut key_menu_back: c_int = 14; // KEY_BACKSPACE
+pub static mut key_menu_back: c_int = KEY_BACKSPACE as c_int;
 #[no_mangle]
-pub static mut key_menu_forward: c_int = b'\r' as c_int; // KEY_ENTER
+pub static mut key_menu_forward: c_int = KEY_ENTER as c_int;
 #[no_mangle]
 pub static mut key_menu_confirm: c_int = b'y' as c_int;
 #[no_mangle]
 pub static mut key_menu_abort: c_int = b'n' as c_int;
 
 #[no_mangle]
-pub static mut key_menu_help: c_int = 112; // KEY_F1
+pub static mut key_menu_help: c_int = KEY_F1 as c_int;
 #[no_mangle]
-pub static mut key_menu_save: c_int = 113; // KEY_F2
+pub static mut key_menu_save: c_int = KEY_F2 as c_int;
 #[no_mangle]
-pub static mut key_menu_load: c_int = 114; // KEY_F3
+pub static mut key_menu_load: c_int = KEY_F3 as c_int;
 #[no_mangle]
-pub static mut key_menu_volume: c_int = 115; // KEY_F4
+pub static mut key_menu_volume: c_int = KEY_F4 as c_int;
 #[no_mangle]
-pub static mut key_menu_detail: c_int = 116; // KEY_F5
+pub static mut key_menu_detail: c_int = KEY_F5 as c_int;
 #[no_mangle]
-pub static mut key_menu_qsave: c_int = 117; // KEY_F6
+pub static mut key_menu_qsave: c_int = KEY_F6 as c_int;
 #[no_mangle]
-pub static mut key_menu_endgame: c_int = 118; // KEY_F7
+pub static mut key_menu_endgame: c_int = KEY_F7 as c_int;
 #[no_mangle]
-pub static mut key_menu_messages: c_int = 119; // KEY_F8
+pub static mut key_menu_messages: c_int = KEY_F8 as c_int;
 #[no_mangle]
-pub static mut key_menu_qload: c_int = 120; // KEY_F9
+pub static mut key_menu_qload: c_int = KEY_F9 as c_int;
 #[no_mangle]
-pub static mut key_menu_quit: c_int = 121; // KEY_F10
+pub static mut key_menu_quit: c_int = KEY_F10 as c_int;
 #[no_mangle]
-pub static mut key_menu_gamma: c_int = 122; // KEY_F11
+pub static mut key_menu_gamma: c_int = KEY_F11 as c_int;
 
 #[no_mangle]
-pub static mut key_menu_incscreen: c_int = b'=' as c_int; // KEY_EQUALS
+pub static mut key_menu_incscreen: c_int = KEY_EQUALS as c_int;
 #[no_mangle]
-pub static mut key_menu_decscreen: c_int = 165; // KEY_MINUS
+pub static mut key_menu_decscreen: c_int = KEY_MINUS as c_int;
 #[no_mangle]
 pub static mut key_menu_screenshot: c_int = 0;
 

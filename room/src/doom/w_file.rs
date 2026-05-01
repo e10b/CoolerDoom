@@ -3,7 +3,7 @@
 use std::ffi::{c_char, c_int, c_long, c_uint, c_void};
 use std::ptr;
 
-use libc::{FILE, fclose, fopen, fread, fseek, SEEK_SET};
+use libc::{fclose, fopen, fread, fseek, FILE, SEEK_SET};
 
 #[repr(C)]
 pub struct wad_file_class_t {
