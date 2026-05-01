@@ -5,7 +5,9 @@
 //! remaining C code resolves them at final link time.
 
 pub mod d_event;
+pub mod d_items;
 pub mod d_mode;
+pub mod doomgeneric;
 pub mod doomstat;
 pub mod dstrings;
 pub mod dummy;

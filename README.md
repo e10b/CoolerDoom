@@ -95,7 +95,7 @@ A box is ticked when the `.c` file has been removed from
 ### Engine core / game loop
 
 - [x] `d_event.c`
-- [ ] `d_items.c`
+- [x] `d_items.c`
 - [ ] `d_iwad.c`
 - [ ] `d_loop.c`
 - [ ] `d_main.c`
@@ -105,7 +105,7 @@ A box is ticked when the `.c` file has been removed from
 - [x] `doomstat.c`
 - [x] `dstrings.c`
 - [x] `dummy.c`
-- [ ] `doomgeneric.c`
+- [x] `doomgeneric.c`
 
 ### Game logic (`g_*`, `p_*`)
 

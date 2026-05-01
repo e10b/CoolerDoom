@@ -49,8 +49,8 @@ fn main() {
         // dstrings — ported to Rust (room/src/doom/dstrings.rs)
         // Events — ported to Rust (room/src/doom/d_event.rs)
         // "d_event.c",
-        // Items
-        "d_items.c",
+        // Items — ported to Rust (room/src/doom/d_items.rs)
+        // "d_items.c",
         // IWAD loading
         "d_iwad.c",
         // Main game loop
@@ -192,8 +192,8 @@ fn main() {
         "i_input.c",
         // Video output (calls DG_DrawFrame, DG_Init)
         "i_video.c",
-        // doomgeneric glue (allocates DG_ScreenBuffer, calls DG_Init)
-        "doomgeneric.c",
+        // doomgeneric glue — ported to Rust (room/src/doom/doomgeneric.rs)
+        // "doomgeneric.c",
     ];
 
     let mut build = cc::Build::new();
