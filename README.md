@@ -151,21 +151,21 @@ A box is ticked when the `.c` file has been removed from
 - [ ] `f_finale.c`
 - [ ] `f_wipe.c`
 - [ ] `wi_stuff.c`
-- [ ] `statdump.c`
+- [x] `statdump.c`
 
 ### Menu / misc / math
 
-- [ ] `m_argv.c`
+- [x] `m_argv.c`
 - [x] `m_bbox.c`
 - [x] `m_cheat.c`
 - [ ] `m_config.c`
-- [ ] `m_controls.c`
+- [x] `m_controls.c`
 - [x] `m_fixed.c`
 - [ ] `m_menu.c`
-- [ ] `m_misc.c`
+- [x] `m_misc.c`
 - [x] `m_random.c`
 - [x] `tables.c`
-- [ ] `info.c`
+- [x] `info.c`
 
 ### Platform / system (doomgeneric side, not the Rust host)
 
@@ -174,14 +174,14 @@ A box is ticked when the `.c` file has been removed from
 - [ ] `i_input.c`
 - [x] `i_joystick.c`
 - [ ] `i_scale.c`
-- [ ] `i_sound.c`
+- [x] `i_sound.c`
 - [ ] `i_system.c`
-- [ ] `i_timer.c`
+- [x] `i_timer.c`
 - [ ] `i_video.c`
 
 ### Sound tables / sound subsystem (stubbed today)
 
-- [ ] `s_sound.c`
+- [x] `s_sound.c`
 - [x] `sounds.c`
 
 ### Video / WAD / memory / utilities

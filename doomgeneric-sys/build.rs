@@ -70,7 +70,7 @@ fn main() {
         "hu_lib.c",
         "hu_stuff.c",
         // Thing info tables
-        "info.c",
+        // info      — ported to Rust (room/src/doom/info.rs)
         // CD music stub
         // i_cdmus  — ported to Rust (room/src/doom/i_cdmus.rs)
         // ENDOOM screen
@@ -80,27 +80,29 @@ fn main() {
         // Screen scaling
         "i_scale.c",
         // Sound stub
-        "i_sound.c",
+        // i_sound   — ported to Rust (room/src/doom/i_sound.rs)
         // System functions (error handling, etc.)
         "i_system.c",
         // Timer
-        "i_timer.c",
+        // i_timer   — ported to Rust (room/src/doom/i_timer.rs)
         // Miscellaneous I/O
         // memio — ported to Rust (room/src/doom/memio.rs)
         // Command-line argument parsing
-        "m_argv.c",
+        // m_argv    — ported to Rust (room/src/doom/m_argv.rs)
         // Bounding box — ported to Rust (room/src/doom/m_bbox.rs)
         // Cheat codes
         // m_cheat  — ported to Rust (room/src/doom/m_cheat.rs)
         // Configuration file
         "m_config.c",
         // Control bindings
-        "m_controls.c",
+        // m_controls — ported to Rust (room/src/doom/m_controls.rs)
         // Fixed-point math — ported to Rust (room/src/doom/m_fixed.rs)
         // Menus
         "m_menu.c",
         // Miscellaneous utilities
-        "m_misc.c",
+        // m_misc    — ported to Rust (room/src/doom/m_misc.rs)
+        // Variadic helpers from m_misc (can't be ported to stable Rust):
+        "m_misc_varargs.c",
         // Random number generator — ported to Rust (room/src/doom/m_random.rs)
         // Ceiling actions
         "p_ceilng.c",
@@ -161,13 +163,13 @@ fn main() {
         // Sound data tables
         // sounds — ported to Rust (room/src/doom/sounds.rs)
         // Intermission stats
-        "statdump.c",
+        // statdump  — ported to Rust (room/src/doom/statdump.rs)
         // Status bar library
         "st_lib.c",
         // Status bar
         "st_stuff.c",
         // Sound subsystem (no-op when FEATURE_SOUND is not defined)
-        "s_sound.c",
+        // s_sound   — ported to Rust (room/src/doom/s_sound.rs)
         // Trigonometry tables
         // tables — ported to Rust (room/src/doom/tables.rs)
         // Video / screen buffer management
