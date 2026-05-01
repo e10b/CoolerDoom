@@ -12,19 +12,16 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 44 |
-| Total remaining LoC | 38,847 |
-| Already ported LoC | ~6,500 (est.) |
+| Remaining C modules | 42 |
+| Total remaining LoC | 38,769 |
+| Already ported LoC | ~6,578 (est.) |
 | Port completeness | ~14% (by line count) |
 
 ## Unported Modules by Complexity
 
-### Trivial — < 100 LoC (2 files, 78 LoC)
+### Trivial — < 100 LoC (0 files, 0 LoC)
 
-| File | Lines | Category | Porting notes |
-|------|------:|----------|---------------|
-| `m_menu_shim.c` | 8 | Menu | Tiny C shim for player message write; avoidable with Rust |
-| `m_misc_varargs.c` | 70 | Utils | `printf`-style variadic wrapper; use Rust formatting directly |
+_All modules in this bucket have been ported._
 
 ### Small — 100–350 LoC (7 files, 2,298 LoC)
 
@@ -100,7 +97,7 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 ## Recommended Porting Order
 
-1. **Quick wins** — Port `r_sky.c`, `m_menu_shim.c`, `m_misc_varargs.c`, `p_telept.c`, `p_tick.c`, `p_lights.c`, `p_sight.c` (all < 150 LoC).
+1. **Quick wins** — Port `p_telept.c`, `p_tick.c`, `p_lights.c`, `p_sight.c` (all < 150 LoC).
 2. **Self-contained modules** — `st_lib.c`, `f_wipe.c`, `r_plane.c`, `r_bsp.c`, `p_user.c`.
 3. **Building blocks** — `z_zone.c` (memory), `w_wad.c` (WAD), `v_video.c` (video), `i_system.c` (platform).
 4. **Renderer pipeline** — `r_data.c`, `r_draw.c`, `r_segs.c`, `r_things.c`, `r_main.c`.
@@ -109,7 +106,7 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 ## Porting Strategy Notes
 
-- **C shims**: `m_menu_shim.c` and `m_misc_varargs.c` exist because stable Rust lacks variadic functions. After porting other modules, these shims can be eliminated entirely by using Rust formatting macros and FFI-safe interfaces.
+- **C shims**: The previous `m_menu_shim.c` (replaced by `room/src/doom/d_player.rs`) and `m_misc_varargs.c` (replaced by Rust `M_StringJoinA` / `M_snprintf_clamp` + macro shims in `m_misc.h`) have already been eliminated. Stable Rust lacks variadic function definitions, so the remaining variadic-style calls from C code are redirected to non-variadic Rust helpers via C preprocessor macros.
 - **`i_video.c` overlap**: The Rust platform layer already provides window/video output via winit/wgpu. Porting `i_video.c` means merging its logic into the existing Rust platform callbacks.
 - **`d_net.c` is a stub**: Since `FEATURE_MULTIPLAYER` is not defined, this module contains only stubs. It can be ported trivially once the build no longer references it.
 - **`z_zone.c` is critical**: The zone memory allocator is called throughout the codebase. Porting it first simplifies subsequent work by providing a safe allocation layer.

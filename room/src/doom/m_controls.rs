@@ -289,8 +289,10 @@ pub static mut dclick_use: c_int = 1;
 
 extern "C" {
     fn M_BindVariable(name: *mut c_char, variable: *mut c_void);
-    fn M_snprintf(buf: *mut c_char, buf_len: usize, fmt: *const c_char, ...) -> c_int;
+    fn snprintf(s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
 }
+
+use super::m_misc::m_snprintf_clamp;
 
 //
 // Bind all of the common controls used by Doom and all other games.
@@ -832,12 +834,13 @@ pub extern "C" fn M_BindChatControls(num_players: c_uint) {
         );
 
         while i < num_players {
-            M_snprintf(
+            let result = snprintf(
                 name.as_mut_ptr(),
                 name.len(),
                 cstr(b"key_multi_msgplayer%i\0"),
                 i + 1,
             );
+            m_snprintf_clamp(name.as_mut_ptr(), name.len(), result);
             M_BindVariable(
                 name.as_ptr() as *mut c_char,
                 &mut key_multi_msgplayer[i as usize] as *mut c_int as *mut c_void,

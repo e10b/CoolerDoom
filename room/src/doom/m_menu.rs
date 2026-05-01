@@ -10,6 +10,8 @@ use std::ptr;
 use super::d_event::event_t;
 use super::d_mode;
 use super::doomstat::{gamemission, gamemode, gameversion};
+use super::d_player::M_Menu_SetPlayerMessage;
+use super::m_misc::m_snprintf_clamp;
 
 fn logical_gamemission() -> c_int {
     unsafe {
@@ -145,8 +147,7 @@ extern "C" {
     fn S_SetSfxVolume(volume: c_int);
     fn S_SetMusicVolume(volume: c_int);
     fn M_StringCopy(dest: *mut c_char, src: *const c_char, dest_size: usize) -> c_int;
-    fn M_snprintf(buf: *mut c_char, buf_len: usize, fmt: *const c_char, ...) -> c_int;
-    fn M_Menu_SetPlayerMessage(msg: *const c_char);
+    fn snprintf(s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
 }
 
 extern "C" {
@@ -164,14 +165,9 @@ extern "C" {
     static mut gamestate: c_int;
     static mut demoplayback: c_int;
     static mut consoleplayer: c_int;
-    static mut players: [PlayerStub; MAXPLAYERS];
-    static doom1_endmsg: [*const c_char; 8];
-    static doom2_endmsg: [*const c_char; 8];
-}
-
-#[repr(C)]
-struct PlayerStub {
-    message: *mut c_char,
+    static mut players: [super::d_player::PlayerT; MAXPLAYERS];
+    static mut doom1_endmsg: [*const c_char; 8];
+    static mut doom2_endmsg: [*const c_char; 8];
 }
 
 // ── sfx constants (matching sounds.h enum discriminants) ──────────────
@@ -671,12 +667,13 @@ fn M_QuickSave() {
             return;
         }
         let mut tempstring: [c_char; 80] = [0; 80];
-        M_snprintf(
+        let result = snprintf(
             tempstring.as_mut_ptr(),
             80,
             b"quicksave over your game named\n\n'%s'?\n\npress y or n.\0".as_ptr() as *const c_char,
             savegamestrings[quickSaveSlot as usize].as_ptr(),
         );
+        m_snprintf_clamp(tempstring.as_mut_ptr(), 80, result);
         M_StartMessage(tempstring.as_mut_ptr(), Some(M_QuickSaveResponse), 1);
     }
 }
@@ -713,13 +710,14 @@ fn M_QuickLoad() {
             return;
         }
         let mut tempstring: [c_char; 80] = [0; 80];
-        M_snprintf(
+        let result = snprintf(
             tempstring.as_mut_ptr(),
             80,
             b"do you want to quickload the game named\n\n'%s'?\n\npress y or n.\0".as_ptr()
                 as *const c_char,
             savegamestrings[quickSaveSlot as usize].as_ptr(),
         );
+        m_snprintf_clamp(tempstring.as_mut_ptr(), 80, result);
         M_StartMessage(tempstring.as_mut_ptr(), Some(M_QuickLoadResponse), 1);
     }
 }
@@ -1137,12 +1135,13 @@ fn M_SelectEndMessage() -> *const c_char {
 extern "C" fn M_QuitDOOM(_choice: c_int) {
     unsafe {
         let msg = M_SelectEndMessage();
-        M_snprintf(
+        let result = snprintf(
             endstring.as_mut_ptr(),
             160,
             b"%s\n\n(press y to quit to dos.)\0".as_ptr() as *const c_char,
             msg,
         );
+        m_snprintf_clamp(endstring.as_mut_ptr(), 160, result);
         M_StartMessage(endstring.as_mut_ptr(), Some(M_QuitResponse), 1);
     }
 }

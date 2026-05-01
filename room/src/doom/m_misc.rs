@@ -124,7 +124,8 @@ pub extern "C" fn M_TempFile(s: *mut c_char) -> *mut c_char {
     unsafe {
         let tempdir = b"/tmp\0".as_ptr() as *const c_char;
         let sep = DIR_SEPARATOR_S.as_ptr() as *const c_char;
-        M_StringJoin(tempdir, sep, s as *const c_char, std::ptr::null::<c_char>())
+        let strs: [*const c_char; 4] = [tempdir, sep, s as *const c_char, std::ptr::null()];
+        M_StringJoinA(strs.as_ptr())
     }
 }
 
@@ -334,9 +335,64 @@ pub extern "C" fn M_StringEndsWith(s: *const c_char, suffix: *const c_char) -> c
 }
 
 extern "C" {
-    pub fn M_StringJoin(s: *const c_char, ...) -> *mut c_char;
-    pub fn M_vsnprintf(buf: *mut c_char, buf_len: usize, s: *const c_char, ...) -> c_int;
-    pub fn M_snprintf(buf: *mut c_char, buf_len: usize, s: *const c_char, ...) -> c_int;
+    fn snprintf(s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
+}
+
+#[no_mangle]
+pub extern "C" fn M_StringJoinA(strs: *const *const c_char) -> *mut c_char {
+    unsafe {
+        let mut result_len: usize = 1;
+        let mut p = strs;
+        while !(*p).is_null() {
+            result_len += strlen(*p);
+            p = p.add(1);
+        }
+
+        let result = malloc(result_len) as *mut c_char;
+        if result.is_null() {
+            I_Error(
+                b"M_StringJoinA: Failed to allocate new string\0".as_ptr() as *const c_char,
+            );
+            return std::ptr::null_mut();
+        }
+
+        let mut dst = result;
+        p = strs;
+        while !(*p).is_null() {
+            let src = *p;
+            let len = strlen(src);
+            std::ptr::copy_nonoverlapping(src, dst, len);
+            dst = dst.add(len);
+            p = p.add(1);
+        }
+        *dst = 0;
+        result
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn M_snprintf_clamp(buf: *mut c_char, len: usize, result: c_int) -> c_int {
+    if len == 0 {
+        return 0;
+    }
+    if result < 0 || result >= len as c_int {
+        unsafe { *buf.add(len - 1) = 0; }
+        (len as c_int) - 1
+    } else {
+        result
+    }
+}
+
+pub(crate) fn m_snprintf_clamp(buf: *mut c_char, len: usize, result: c_int) -> c_int {
+    if len == 0 {
+        return 0;
+    }
+    if result < 0 || result >= len as c_int {
+        unsafe { *buf.add(len - 1) = 0; }
+        (len as c_int) - 1
+    } else {
+        result
+    }
 }
 
 #[no_mangle]
@@ -353,17 +409,19 @@ pub extern "C" fn M_DefaultConfigDir() -> *const c_char {
         }
         let xdg = getenv(b"XDG_CONFIG_HOME\0".as_ptr() as *const c_char);
         if !xdg.is_null() {
-            return M_StringJoin(
+            let strs: [*const c_char; 3] = [
                 xdg,
                 b"/doom\0".as_ptr() as *const c_char,
-                std::ptr::null::<c_char>(),
-            );
+                std::ptr::null(),
+            ];
+            return M_StringJoinA(strs.as_ptr());
         }
-        M_StringJoin(
+        let strs: [*const c_char; 3] = [
             home,
             b"/.config/doom\0".as_ptr() as *const c_char,
-            std::ptr::null::<c_char>(),
-        )
+            std::ptr::null(),
+        ];
+        M_StringJoinA(strs.as_ptr())
     }
 }
 

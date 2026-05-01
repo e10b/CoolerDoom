@@ -98,12 +98,10 @@ fn main() {
         // Fixed-point math — ported to Rust (room/src/doom/m_fixed.rs)
         // Menus
         // m_menu  — ported to Rust (room/src/doom/m_menu.rs)
-        // Shim for player message write (player_t layout avoided in Rust)
-        "m_menu_shim.c",
+        // M_Menu_SetPlayerMessage moved to room/src/doom/d_player.rs
         // Miscellaneous utilities
         // m_misc    — ported to Rust (room/src/doom/m_misc.rs)
-        // Variadic helpers from m_misc (can't be ported to stable Rust):
-        "m_misc_varargs.c",
+        // Variadic helpers replaced by M_StringJoinA/M_snprintf_clamp in Rust + macros in m_misc.h
         // Random number generator — ported to Rust (room/src/doom/m_random.rs)
         // Ceiling actions
         "p_ceilng.c",
@@ -194,6 +192,8 @@ fn main() {
         "i_video.c",
         // doomgeneric glue — ported to Rust (room/src/doom/doomgeneric.rs)
         // "doomgeneric.c",
+        // Layout probe constants for Rust struct verification
+        "layout_probe.c",
     ];
 
     let mut build = cc::Build::new();

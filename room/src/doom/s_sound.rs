@@ -162,8 +162,10 @@ extern "C" {
     fn W_CacheLumpNum(num: c_int, tag: c_int) -> *mut c_void;
     fn W_ReleaseLumpNum(num: c_int);
     fn W_LumpLength(num: c_int) -> c_int;
-    fn M_snprintf(buf: *mut c_char, buf_len: usize, fmt: *const c_char, ...) -> c_int;
+    fn snprintf(s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
 }
+
+use super::m_misc::m_snprintf_clamp;
 
 // ── Statics ───────────────────────────────────────────────────────────
 
@@ -585,14 +587,14 @@ pub extern "C" fn S_ChangeMusic(musicnum: c_int, looping: c_int) {
 
         if (*music).lumpnum == 0 {
             let mut namebuf: [c_char; 9] = [0; 9];
-            // DEH_String is a passthrough macro when deh support is disabled
             let name_ptr = (*music).name;
-            M_snprintf(
+            let result = snprintf(
                 namebuf.as_mut_ptr(),
                 namebuf.len(),
                 b"d_%s\0".as_ptr() as *const c_char,
                 name_ptr,
             );
+            m_snprintf_clamp(namebuf.as_mut_ptr(), namebuf.len(), result);
             (*music).lumpnum = W_GetNumForName(namebuf.as_ptr());
         }
 

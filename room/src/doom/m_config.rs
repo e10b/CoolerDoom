@@ -44,7 +44,7 @@ const fn cfg(name: &'static [u8], ty: DefaultType) -> Default {
 extern "C" {
     fn I_Error(fmt: *const c_char, ...);
     fn M_CheckParmWithArgs(check: *const c_char, num_args: c_int) -> c_int;
-    fn M_StringJoin(s1: *const c_char, ...) -> *mut c_char;
+    fn M_StringJoinA(strs: *const *const c_char) -> *mut c_char;
     fn M_MakeDirectory(path: *mut c_char);
     fn printf(fmt: *const c_char, ...) -> c_int;
     fn strdup(s: *const c_char) -> *mut c_char;
@@ -558,8 +558,8 @@ pub extern "C" fn M_LoadDefaults() {
                 doom_defaults.filename,
             );
         } else {
-            doom_defaults.filename =
-                M_StringJoin(configdir, default_main_config, ptr::null::<c_char>());
+            let strs: [*const c_char; 3] = [configdir, default_main_config, std::ptr::null()];
+            doom_defaults.filename = M_StringJoinA(strs.as_ptr());
         }
 
         printf(
@@ -575,8 +575,8 @@ pub extern "C" fn M_LoadDefaults() {
                 extra_defaults.filename,
             );
         } else {
-            extra_defaults.filename =
-                M_StringJoin(configdir, default_extra_config, ptr::null::<c_char>());
+            let strs: [*const c_char; 3] = [configdir, default_extra_config, std::ptr::null()];
+            extra_defaults.filename = M_StringJoinA(strs.as_ptr());
         }
 
         // No-ops because ORIGCODE is undefined
@@ -675,12 +675,13 @@ pub extern "C" fn M_GetSaveGameDir(_iwadname: *mut c_char) -> *mut c_char {
         if strcmp(configdir, b"\0".as_ptr() as *const c_char) == 0 {
             strdup(b"\0".as_ptr() as *const c_char)
         } else {
-            let savegamedir = M_StringJoin(
+            let strs: [*const c_char; 4] = [
                 configdir,
                 DIR_SEPARATOR_S.as_ptr() as *const c_char,
                 b".savegame/\0".as_ptr() as *const c_char,
-                ptr::null::<c_char>(),
-            );
+                std::ptr::null(),
+            ];
+            let savegamedir = M_StringJoinA(strs.as_ptr());
             M_MakeDirectory(savegamedir);
             printf(
                 b"Using %s for savegames\n\0".as_ptr() as *const c_char,

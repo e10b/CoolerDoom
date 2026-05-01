@@ -7,6 +7,7 @@
 pub mod d_event;
 pub mod d_items;
 pub mod d_mode;
+pub mod d_player;
 pub mod doomgeneric;
 pub mod doomstat;
 pub mod dstrings;

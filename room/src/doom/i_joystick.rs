@@ -16,8 +16,10 @@ static mut joystick_physical_buttons: [c_int; NUM_VIRTUAL_BUTTONS] = [0, 1, 2, 3
 
 extern "C" {
     fn M_BindVariable(name: *mut c_char, variable: *mut c_void);
-    fn M_snprintf(buffer: *mut c_char, size: usize, format: *const c_char, ...) -> c_int;
+    fn snprintf(buffer: *mut c_char, size: usize, format: *const c_char, ...) -> c_int;
 }
+
+use super::m_misc::m_snprintf_clamp;
 
 #[no_mangle]
 pub extern "C" fn I_InitJoystick() {}
@@ -67,7 +69,8 @@ pub extern "C" fn I_BindJoystickVariables() {
         for i in 0..NUM_VIRTUAL_BUTTONS {
             let mut name: [c_char; 32] = [0; 32];
             let format = b"joystick_physical_button%i\0".as_ptr() as *const c_char;
-            M_snprintf(name.as_mut_ptr(), name.len(), format, i as c_int);
+            let result = snprintf(name.as_mut_ptr(), name.len(), format, i as c_int);
+            m_snprintf_clamp(name.as_mut_ptr(), name.len(), result);
             M_BindVariable(
                 name.as_ptr() as *mut c_char,
                 &mut joystick_physical_buttons[i] as *mut c_int as *mut c_void,
