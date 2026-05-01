@@ -4,7 +4,7 @@ use std::ffi::{c_char, c_int, c_void};
 
 use crate::doom::d_mode;
 use crate::doom::m_random::M_Random;
-use crate::doom::sounds::{MusicInfo, S_music, S_sfx, SfxInfo, NUMMUSIC, NUMSFX};
+use crate::doom::sounds::{MusicInfo, S_InitSfxLinks, S_music, S_sfx, SfxInfo, NUMMUSIC, NUMSFX};
 use crate::doom::tables::finesine;
 
 // ── Constants ─────────────────────────────────────────────────────────
@@ -194,6 +194,8 @@ static mut mus_playing: *mut MusicInfo = std::ptr::null_mut();
 #[no_mangle]
 pub extern "C" fn S_Init(sfx_volume: c_int, music_volume: c_int) {
     unsafe {
+        S_InitSfxLinks();
+
         I_PrecacheSounds(S_sfx.as_mut_ptr(), NUMSFX as c_int);
 
         S_SetSfxVolume(sfx_volume);

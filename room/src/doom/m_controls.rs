@@ -516,10 +516,10 @@ pub extern "C" fn M_BindStrifeControls() {
 
         // These keys are shared with Heretic/Hexen but have different defaults:
         key_jump = b'a' as c_int;
-        key_lookup = 201; // KEY_PGUP
-        key_lookdown = 209; // KEY_PGDN
-        key_invleft = 210; // KEY_INS
-        key_invright = 207; // KEY_DEL
+        key_lookup = KEY_PGUP as c_int;
+        key_lookdown = KEY_PGDN as c_int;
+        key_invleft = KEY_INS as c_int;
+        key_invright = KEY_DEL as c_int;
 
         M_BindVariable(
             cstr(b"key_jump\0"),

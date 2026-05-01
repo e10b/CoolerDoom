@@ -27,6 +27,9 @@ pub struct MusicInfo {
 pub const NUMSFX: usize = 109;
 pub const NUMMUSIC: usize = 68;
 
+pub const sfx_pistol: c_int = 1;
+pub const sfx_chgun: c_int = 86;
+
 unsafe impl Sync for SfxInfo {}
 unsafe impl Sync for MusicInfo {}
 
@@ -2206,3 +2209,10 @@ pub static mut S_music: [MusicInfo; NUMMUSIC] = [
         handle: std::ptr::null_mut(),
     },
 ];
+
+#[no_mangle]
+pub extern "C" fn S_InitSfxLinks() {
+    unsafe {
+        S_sfx[sfx_chgun as usize].link = &mut S_sfx[sfx_pistol as usize] as *mut SfxInfo;
+    }
+}

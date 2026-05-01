@@ -1518,3 +1518,112 @@ pub extern "C" fn SlopeDiv(num: c_uint, den: c_uint) -> c_int {
     }
     return SLOPERANGE;
 }
+
+#[cfg(test)]
+mod vendor_table_tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn vendor_path(rel: &str) -> PathBuf {
+        let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        p.push("..");
+        p.push("vendor");
+        p.push("doomgeneric");
+        p.push(rel);
+        p
+    }
+
+    fn find_array_start(content: &str, name: &str) -> usize {
+        let mut pos = 0;
+        while let Some(idx) = content[pos..].find(name) {
+            let abs = pos + idx;
+            let before = &content[..abs];
+            if let Some(last_nl) = before.rfind('\n') {
+                let line = &before[last_nl + 1..];
+                if line.contains("const") || line.contains("static") {
+                    return abs;
+                }
+            }
+            pos = abs + name.len();
+        }
+        panic!("Could not find array definition for '{}'", name);
+    }
+
+    fn parse_c_array_i32(rel: &str, name: &str) -> Vec<i32> {
+        let content = fs::read_to_string(vendor_path(rel)).unwrap();
+        let start = find_array_start(&content, name);
+        let rest = &content[start..];
+        let brace_start = rest.find('{').unwrap();
+        let rest = &rest[brace_start + 1..];
+        let brace_end = rest.find('}').unwrap();
+        let body = &rest[..brace_end];
+        body.split(',')
+            .filter_map(|s| s.trim().parse::<i32>().ok())
+            .collect()
+    }
+
+    fn parse_c_array_u32(rel: &str, name: &str) -> Vec<u32> {
+        let content = fs::read_to_string(vendor_path(rel)).unwrap();
+        let start = find_array_start(&content, name);
+        let rest = &content[start..];
+        let brace_start = rest.find('{').unwrap();
+        let rest = &rest[brace_start + 1..];
+        let brace_end = rest.find('}').unwrap();
+        let body = &rest[..brace_end];
+        body.split(',')
+            .filter_map(|s| s.trim().parse::<u32>().ok())
+            .collect()
+    }
+
+    #[test]
+    fn finetangent_matches_vendor() {
+        let c = parse_c_array_i32("tables.c", "finetangent");
+        assert_eq!(c.len(), finetangent.len(), "finetangent length mismatch");
+        for (i, (a, b)) in c.iter().zip(finetangent.iter()).enumerate() {
+            assert_eq!(*a, *b, "finetangent[{}] mismatch: C={} Rust={}", i, a, b);
+        }
+    }
+
+    #[test]
+    fn finesine_matches_vendor() {
+        let c = parse_c_array_i32("tables.c", "finesine");
+        assert_eq!(c.len(), finesine.len(), "finesine length mismatch");
+        for (i, (a, b)) in c.iter().zip(finesine.iter()).enumerate() {
+            assert_eq!(*a, *b, "finesine[{}] mismatch: C={} Rust={}", i, a, b);
+        }
+    }
+
+    #[test]
+    fn tantoangle_matches_vendor() {
+        let c = parse_c_array_u32("tables.c", "tantoangle");
+        assert_eq!(c.len(), tantoangle.len(), "tantoangle length mismatch");
+        for (i, (a, b)) in c.iter().zip(tantoangle.iter()).enumerate() {
+            assert_eq!(*a, *b, "tantoangle[{}] mismatch: C={} Rust={}", i, a, b);
+        }
+    }
+
+    #[test]
+    fn rndtable_matches_vendor() {
+        use crate::doom::m_random::RNDTABLE;
+        let c = parse_c_array_i32("m_random.c", "rndtable");
+        assert_eq!(c.len(), RNDTABLE.len(), "rndtable length mismatch");
+        for (i, (a, b)) in c.iter().zip(RNDTABLE.iter()).enumerate() {
+            assert_eq!(*a as i32, *b as i32, "rndtable[{}] mismatch", i);
+        }
+    }
+
+    #[test]
+    fn sfx_chgun_links_to_pistol() {
+        use crate::doom::sounds::{sfx_chgun, sfx_pistol, S_InitSfxLinks, S_sfx};
+        unsafe {
+            S_InitSfxLinks();
+            let chgun_link = (*S_sfx.as_ptr().add(sfx_chgun as usize)).link;
+            let pistol_addr = S_sfx.as_ptr().add(sfx_pistol as usize);
+            assert_eq!(
+                chgun_link, pistol_addr as *mut _,
+                "S_sfx[sfx_chgun].link must point to S_sfx[sfx_pistol]"
+            );
+        }
+    }
+}
