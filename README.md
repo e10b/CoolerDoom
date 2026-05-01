@@ -78,3 +78,10 @@ The engine runs inside the winit event loop:
 - **Single player only.**  Networking (`FEATURE_MULTIPLAYER`) is not compiled in.
 - The renderer performs a nearest-neighbour upscale from the native 640 × 400
   resolution to the window size; the window is currently fixed at 640 × 400.
+
+## License
+
+This repository includes the unmodified Doom shareware IWAD, `doom1.wad`,
+copyright id Software. It is included under the Doom shareware distribution
+terms. The full registered/commercial Doom IWADs are not included and are
+not redistributable.
