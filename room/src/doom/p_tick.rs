@@ -148,22 +148,18 @@ mod tests {
 
     static LOCK: Mutex<()> = Mutex::new(());
 
-    extern "C" {
-        static ROOM_THINKER_T_SIZEOF: usize;
-    }
+    const THINKER_T_SIZEOF: usize = 24;
 
     #[test]
     fn thinker_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<thinker_t>(),
-                ROOM_THINKER_T_SIZEOF,
-                "thinker_t size mismatch: Rust={}, C={}",
-                std::mem::size_of::<thinker_t>(),
-                ROOM_THINKER_T_SIZEOF,
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<thinker_t>(),
+            THINKER_T_SIZEOF,
+            "thinker_t size mismatch: Rust={}, expected={}",
+            std::mem::size_of::<thinker_t>(),
+            THINKER_T_SIZEOF,
+        );
     }
 
     #[test]

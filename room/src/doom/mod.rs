@@ -36,6 +36,7 @@ pub mod r_sky;
 pub mod s_sound;
 pub mod sha1;
 pub mod sounds;
+pub mod st_lib;
 pub mod statdump;
 pub mod tables;
 pub mod w_checksum;

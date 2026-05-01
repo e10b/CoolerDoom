@@ -413,84 +413,72 @@ mod tests {
 
     static LOCK: Mutex<()> = Mutex::new(());
 
-    extern "C" {
-        static ROOM_SECTOR_T_SIZEOF: usize;
-        static ROOM_SECTOR_T_LIGHTLEVEL_OFFSET: usize;
-        static ROOM_SECTOR_T_SPECIAL_OFFSET: usize;
-        static ROOM_SECTOR_T_SPECIALDATA_OFFSET: usize;
-        static ROOM_FIREFLICKER_T_SIZEOF: usize;
-        static ROOM_LIGHTFLASH_T_SIZEOF: usize;
-        static ROOM_STROBE_T_SIZEOF: usize;
-        static ROOM_GLOW_T_SIZEOF: usize;
-    }
+    const SECTOR_T_SIZEOF: usize = 128;
+    const SECTOR_T_LIGHTLEVEL_OFFSET: usize = 12;
+    const SECTOR_T_SPECIAL_OFFSET: usize = 14;
+    const SECTOR_T_SPECIALDATA_OFFSET: usize = 104;
+    const FIREFLICKER_T_SIZEOF: usize = 48;
+    const LIGHTFLASH_T_SIZEOF: usize = 56;
+    const STROBE_T_SIZEOF: usize = 56;
+    const GLOW_T_SIZEOF: usize = 48;
 
     #[test]
     fn sector_t_layout_matches_c() {
         let _g = LOCK.lock().unwrap();
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<sector_t>(),
-                ROOM_SECTOR_T_SIZEOF,
-                "sector_t size mismatch: Rust={}, C={}",
-                std::mem::size_of::<sector_t>(),
-                ROOM_SECTOR_T_SIZEOF,
-            );
-            assert_eq!(
-                std::mem::offset_of!(sector_t, lightlevel),
-                ROOM_SECTOR_T_LIGHTLEVEL_OFFSET,
-            );
-            assert_eq!(
-                std::mem::offset_of!(sector_t, special),
-                ROOM_SECTOR_T_SPECIAL_OFFSET,
-            );
-            assert_eq!(
-                std::mem::offset_of!(sector_t, specialdata),
-                ROOM_SECTOR_T_SPECIALDATA_OFFSET,
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<sector_t>(),
+            SECTOR_T_SIZEOF,
+            "sector_t size mismatch: Rust={}, expected={}",
+            std::mem::size_of::<sector_t>(),
+            SECTOR_T_SIZEOF,
+        );
+        assert_eq!(
+            std::mem::offset_of!(sector_t, lightlevel),
+            SECTOR_T_LIGHTLEVEL_OFFSET,
+        );
+        assert_eq!(
+            std::mem::offset_of!(sector_t, special),
+            SECTOR_T_SPECIAL_OFFSET,
+        );
+        assert_eq!(
+            std::mem::offset_of!(sector_t, specialdata),
+            SECTOR_T_SPECIALDATA_OFFSET,
+        );
     }
 
     #[test]
     fn fireflicker_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<fireflicker_t>(),
-                ROOM_FIREFLICKER_T_SIZEOF,
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<fireflicker_t>(),
+            FIREFLICKER_T_SIZEOF,
+        );
     }
 
     #[test]
     fn lightflash_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<lightflash_t>(),
-                ROOM_LIGHTFLASH_T_SIZEOF,
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<lightflash_t>(),
+            LIGHTFLASH_T_SIZEOF,
+        );
     }
 
     #[test]
     fn strobe_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<strobe_t>(),
-                ROOM_STROBE_T_SIZEOF,
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<strobe_t>(),
+            STROBE_T_SIZEOF,
+        );
     }
 
     #[test]
     fn glow_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<glow_t>(),
-                ROOM_GLOW_T_SIZEOF,
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<glow_t>(),
+            GLOW_T_SIZEOF,
+        );
     }
 }

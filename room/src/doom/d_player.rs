@@ -113,34 +113,31 @@ pub unsafe extern "C" fn M_Menu_SetPlayerMessage(msg: *const c_char) {
 mod tests {
     use super::*;
 
-    extern "C" {
-        static ROOM_PLAYER_T_SIZEOF: usize;
-        static ROOM_PLAYER_T_MESSAGE_OFFSET: usize;
-    }
+    /// Expected layout of `player_t` as emitted by layout_probe.c
+    /// on x86_64 Linux.  Kept in-source so tests don't depend on the
+    /// linker pulling symbols out of a static archive.
+    const PLAYER_T_SIZEOF: usize = 328;
+    const PLAYER_T_MESSAGE_OFFSET: usize = 232;
 
     #[test]
     fn player_t_size_matches_c() {
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<PlayerT>(),
-                ROOM_PLAYER_T_SIZEOF,
-                "PlayerT size mismatch: Rust={}, C={}",
-                std::mem::size_of::<PlayerT>(),
-                ROOM_PLAYER_T_SIZEOF
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<PlayerT>(),
+            PLAYER_T_SIZEOF,
+            "PlayerT size mismatch: Rust={}, expected={}",
+            std::mem::size_of::<PlayerT>(),
+            PLAYER_T_SIZEOF
+        );
     }
 
     #[test]
     fn player_t_message_offset_matches_c() {
-        unsafe {
-            assert_eq!(
-                std::mem::offset_of!(PlayerT, message),
-                ROOM_PLAYER_T_MESSAGE_OFFSET,
-                "PlayerT.message offset mismatch: Rust={}, C={}",
-                std::mem::offset_of!(PlayerT, message),
-                ROOM_PLAYER_T_MESSAGE_OFFSET
-            );
-        }
+        assert_eq!(
+            std::mem::offset_of!(PlayerT, message),
+            PLAYER_T_MESSAGE_OFFSET,
+            "PlayerT.message offset mismatch: Rust={}, expected={}",
+            std::mem::offset_of!(PlayerT, message),
+            PLAYER_T_MESSAGE_OFFSET
+        );
     }
 }

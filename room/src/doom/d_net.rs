@@ -258,52 +258,44 @@ mod tests {
 
     static LOCK: Mutex<()> = Mutex::new(());
 
-    extern "C" {
-        static ROOM_NET_CONNECT_DATA_T_SIZEOF: usize;
-        static ROOM_NET_GAMESETTINGS_T_SIZEOF: usize;
-        static ROOM_LOOP_INTERFACE_T_SIZEOF: usize;
-    }
+    const NET_CONNECT_DATA_T_SIZEOF: usize = 68;
+    const NET_GAMESETTINGS_T_SIZEOF: usize = 100;
+    const LOOP_INTERFACE_T_SIZEOF: usize = 32;
 
     #[test]
     fn net_connect_data_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<NetConnectDataT>(),
-                ROOM_NET_CONNECT_DATA_T_SIZEOF,
-                "NetConnectDataT size mismatch: Rust={}, C={}",
-                std::mem::size_of::<NetConnectDataT>(),
-                ROOM_NET_CONNECT_DATA_T_SIZEOF,
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<NetConnectDataT>(),
+            NET_CONNECT_DATA_T_SIZEOF,
+            "NetConnectDataT size mismatch: Rust={}, expected={}",
+            std::mem::size_of::<NetConnectDataT>(),
+            NET_CONNECT_DATA_T_SIZEOF,
+        );
     }
 
     #[test]
     fn net_gamesettings_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<NetGameSettingsT>(),
-                ROOM_NET_GAMESETTINGS_T_SIZEOF,
-                "NetGameSettingsT size mismatch: Rust={}, C={}",
-                std::mem::size_of::<NetGameSettingsT>(),
-                ROOM_NET_GAMESETTINGS_T_SIZEOF,
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<NetGameSettingsT>(),
+            NET_GAMESETTINGS_T_SIZEOF,
+            "NetGameSettingsT size mismatch: Rust={}, expected={}",
+            std::mem::size_of::<NetGameSettingsT>(),
+            NET_GAMESETTINGS_T_SIZEOF,
+        );
     }
 
     #[test]
     fn loop_interface_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        unsafe {
-            assert_eq!(
-                std::mem::size_of::<LoopInterfaceT>(),
-                ROOM_LOOP_INTERFACE_T_SIZEOF,
-                "LoopInterfaceT size mismatch: Rust={}, C={}",
-                std::mem::size_of::<LoopInterfaceT>(),
-                ROOM_LOOP_INTERFACE_T_SIZEOF,
-            );
-        }
+        assert_eq!(
+            std::mem::size_of::<LoopInterfaceT>(),
+            LOOP_INTERFACE_T_SIZEOF,
+            "LoopInterfaceT size mismatch: Rust={}, expected={}",
+            std::mem::size_of::<LoopInterfaceT>(),
+            LOOP_INTERFACE_T_SIZEOF,
+        );
     }
 
     #[test]

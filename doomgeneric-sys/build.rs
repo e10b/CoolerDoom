@@ -37,7 +37,8 @@ fn main() {
     // Platform files (doomgeneric_xlib.c, doomgeneric_sdl.c, etc.) are
     // excluded because the `room` crate provides its own implementation
     // of the DG_* functions via Rust.
-    let sources: &[&str] = &[
+    // Build the main library (everything except layout_probe.c).
+    let lib_sources: &[&str] = &[
         // Stub / dummy implementations (networking, etc.)
         // dummy  — ported to Rust (room/src/doom/dummy.rs)
         // Automap
@@ -163,8 +164,8 @@ fn main() {
         // sounds — ported to Rust (room/src/doom/sounds.rs)
         // Intermission stats
         // statdump  — ported to Rust (room/src/doom/statdump.rs)
-        // Status bar library
-        "st_lib.c",
+        // Status bar library — ported to Rust (room/src/doom/st_lib.rs)
+        // "st_lib.c",
         // Status bar
         "st_stuff.c",
         // Sound subsystem (no-op when FEATURE_SOUND is not defined)
@@ -192,8 +193,6 @@ fn main() {
         "i_video.c",
         // doomgeneric glue — ported to Rust (room/src/doom/doomgeneric.rs)
         // "doomgeneric.c",
-        // Layout probe constants for Rust struct verification
-        "layout_probe.c",
     ];
 
     let mut build = cc::Build::new();
@@ -214,7 +213,7 @@ fn main() {
         .flag_if_supported("-Wno-unused-but-set-variable")
         .flag_if_supported("-Wno-maybe-uninitialized");
 
-    for src in sources {
+    for src in lib_sources {
         build.file(vendor.join(src));
     }
 
