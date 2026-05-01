@@ -72,11 +72,11 @@ fn main() {
         // Thing info tables
         "info.c",
         // CD music stub
-        "i_cdmus.c",
+        // i_cdmus  — ported to Rust (room/src/doom/i_cdmus.rs)
         // ENDOOM screen
-        "i_endoom.c",
+        // i_endoom — ported to Rust (room/src/doom/i_endoom.rs)
         // Joystick stub
-        "i_joystick.c",
+        // i_joystick — ported to Rust (room/src/doom/i_joystick.rs)
         // Screen scaling
         "i_scale.c",
         // Sound stub
@@ -86,7 +86,7 @@ fn main() {
         // Timer
         "i_timer.c",
         // Miscellaneous I/O
-        "memio.c",
+        // memio — ported to Rust (room/src/doom/memio.rs)
         // Command-line argument parsing
         "m_argv.c",
         // Bounding box — ported to Rust (room/src/doom/m_bbox.rs)
@@ -157,9 +157,9 @@ fn main() {
         // Sprite rendering
         "r_things.c",
         // SHA-1 hash (for WAD checksums)
-        "sha1.c",
+        // sha1 — ported to Rust (room/src/doom/sha1.rs)
         // Sound data tables
-        "sounds.c",
+        // sounds — ported to Rust (room/src/doom/sounds.rs)
         // Intermission stats
         "statdump.c",
         // Status bar library
@@ -169,13 +169,13 @@ fn main() {
         // Sound subsystem (no-op when FEATURE_SOUND is not defined)
         "s_sound.c",
         // Trigonometry tables
-        "tables.c",
+        // tables — ported to Rust (room/src/doom/tables.rs)
         // Video / screen buffer management
         "v_video.c",
         // Intermission / victory screens
         "wi_stuff.c",
         // WAD checksum
-        "w_checksum.c",
+        // w_checksum — ported to Rust (room/src/doom/w_checksum.rs)
         // WAD file abstraction
         "w_file.c",
         "w_file_stdc.c",

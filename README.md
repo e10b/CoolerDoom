@@ -164,15 +164,15 @@ A box is ticked when the `.c` file has been removed from
 - [ ] `m_menu.c`
 - [ ] `m_misc.c`
 - [x] `m_random.c`
-- [ ] `tables.c`
+- [x] `tables.c`
 - [ ] `info.c`
 
 ### Platform / system (doomgeneric side, not the Rust host)
 
-- [ ] `i_cdmus.c`
-- [ ] `i_endoom.c`
+- [x] `i_cdmus.c`
+- [x] `i_endoom.c`
 - [ ] `i_input.c`
-- [ ] `i_joystick.c`
+- [x] `i_joystick.c`
 - [ ] `i_scale.c`
 - [ ] `i_sound.c`
 - [ ] `i_system.c`
@@ -182,18 +182,18 @@ A box is ticked when the `.c` file has been removed from
 ### Sound tables / sound subsystem (stubbed today)
 
 - [ ] `s_sound.c`
-- [ ] `sounds.c`
+- [x] `sounds.c`
 
 ### Video / WAD / memory / utilities
 
 - [ ] `v_video.c`
-- [ ] `w_checksum.c`
+- [x] `w_checksum.c`
 - [ ] `w_file.c`
 - [ ] `w_file_stdc.c`
 - [ ] `w_main.c`
 - [ ] `w_wad.c`
-- [ ] `memio.c`
-- [ ] `sha1.c`
+- [x] `memio.c`
+- [x] `sha1.c`
 - [ ] `z_zone.c`
 
 ## License
