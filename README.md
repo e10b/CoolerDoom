@@ -161,7 +161,7 @@ A box is ticked when the `.c` file has been removed from
 - [ ] `m_config.c`
 - [x] `m_controls.c`
 - [x] `m_fixed.c`
-- [ ] `m_menu.c`
+- [x] `m_menu.c`
 - [x] `m_misc.c`
 - [x] `m_random.c`
 - [x] `tables.c`

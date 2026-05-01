@@ -20,6 +20,7 @@ pub mod m_bbox;
 pub mod m_cheat;
 pub mod m_controls;
 pub mod m_fixed;
+pub mod m_menu;
 pub mod m_misc;
 pub mod m_random;
 pub mod memio;

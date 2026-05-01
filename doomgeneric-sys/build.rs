@@ -98,7 +98,9 @@ fn main() {
         // m_controls — ported to Rust (room/src/doom/m_controls.rs)
         // Fixed-point math — ported to Rust (room/src/doom/m_fixed.rs)
         // Menus
-        "m_menu.c",
+        // m_menu  — ported to Rust (room/src/doom/m_menu.rs)
+        // Shim for player message write (player_t layout avoided in Rust)
+        "m_menu_shim.c",
         // Miscellaneous utilities
         // m_misc    — ported to Rust (room/src/doom/m_misc.rs)
         // Variadic helpers from m_misc (can't be ported to stable Rust):

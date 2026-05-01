@@ -10,6 +10,12 @@ use std::ffi::c_char;
 struct Ptr(*const c_char);
 unsafe impl Sync for Ptr {}
 
+impl Ptr {
+    pub fn as_ptr(&self) -> *const c_char {
+        self.0
+    }
+}
+
 macro_rules! cstr {
     ($s:literal) => {
         Ptr(concat!($s, "\0").as_ptr() as *const c_char)
