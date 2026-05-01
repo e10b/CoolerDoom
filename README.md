@@ -1,5 +1,9 @@
 # room
 
+<div align="center">
+  <img src=".readme/room.png" alt="room screenshot" />
+</div>
+
 A faithful Rust port of [doomgeneric](https://github.com/ozkl/doomgeneric) using
 [winit](https://github.com/rust-windowing/winit) and [wgpu](https://github.com/gfx-rs/wgpu)
 for the platform layer.
