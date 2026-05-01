@@ -1,0 +1,32 @@
+[package]
+name = "room"
+version = "0.1.0"
+edition = "2021"
+description = "A Rust implementation of the doomgeneric platform layer using winit and wgpu"
+license = "GPL-2.0-or-later"
+
+[[bin]]
+name = "room"
+path = "src/main.rs"
+
+[dependencies]
+# Low-level Doom engine bindings (vendored C source compiled via cc).
+doomgeneric-sys = { path = "../doomgeneric-sys" }
+
+# Cross-platform window creation and event handling.
+winit = "0.30"
+
+# Cross-platform GPU API.
+wgpu = { version = "29", features = ["wgsl"] }
+
+# Blocking async executor – used to wait for wgpu futures.
+pollster = "0.4"
+
+# Safe transmutation between byte slices and typed buffers.
+bytemuck = { version = "1", features = ["derive"] }
+
+# Logging facade.
+log = "0.4"
+
+# Simple logger backed by stderr.
+env_logger = "0.11"
