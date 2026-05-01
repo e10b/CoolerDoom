@@ -163,17 +163,15 @@ impl GpuState {
         .map_err(|e| format!("no suitable GPU adapter found: {e}"))?;
 
         // --- Device & Queue ---
-        let (device, queue) = pollster::block_on(adapter.request_device(
-            &wgpu::DeviceDescriptor {
-                label: Some("doom_device"),
-                required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::default(),
-                memory_hints: wgpu::MemoryHints::default(),
-                // Disable experimental features and API tracing for production use.
-                experimental_features: wgpu::ExperimentalFeatures::default(),
-                trace: wgpu::Trace::Off,
-            },
-        ))
+        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+            label: Some("doom_device"),
+            required_features: wgpu::Features::empty(),
+            required_limits: wgpu::Limits::default(),
+            memory_hints: wgpu::MemoryHints::default(),
+            // Disable experimental features and API tracing for production use.
+            experimental_features: wgpu::ExperimentalFeatures::default(),
+            trace: wgpu::Trace::Off,
+        }))
         .map_err(|e| format!("request_device: {e}"))?;
 
         // --- Surface configuration ---
@@ -217,8 +215,7 @@ impl GpuState {
             view_formats: &[],
         });
 
-        let doom_texture_view =
-            doom_texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let doom_texture_view = doom_texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let doom_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("doom_sampler"),
@@ -229,30 +226,29 @@ impl GpuState {
         });
 
         // --- Bind group layout ---
-        let bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("doom_bind_group_layout"),
-                entries: &[
-                    // Binding 0: the Doom frame texture.
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            multisampled: false,
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        },
-                        count: None,
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("doom_bind_group_layout"),
+            entries: &[
+                // Binding 0: the Doom frame texture.
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
                     },
-                    // Binding 1: the texture sampler.
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
+                    count: None,
+                },
+                // Binding 1: the texture sampler.
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
 
         // --- Bind group ---
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {

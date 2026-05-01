@@ -156,14 +156,14 @@ A box is ticked when the `.c` file has been removed from
 ### Menu / misc / math
 
 - [ ] `m_argv.c`
-- [ ] `m_bbox.c`
+- [x] `m_bbox.c`
 - [ ] `m_cheat.c`
 - [ ] `m_config.c`
 - [ ] `m_controls.c`
-- [ ] `m_fixed.c`
+- [x] `m_fixed.c`
 - [ ] `m_menu.c`
 - [ ] `m_misc.c`
-- [ ] `m_random.c`
+- [x] `m_random.c`
 - [ ] `tables.c`
 - [ ] `info.c`
 

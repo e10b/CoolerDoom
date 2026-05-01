@@ -37,6 +37,7 @@
 //! GPU resources through [`thread_local!`] statics, which is safe because
 //! everything runs on the main thread.
 
+mod doom;
 mod gpu;
 mod platform;
 
@@ -95,10 +96,7 @@ impl App {
             .map(|a| CString::new(a).expect("argument contained null byte"))
             .collect();
 
-        let mut argv: Vec<*mut c_char> = args
-            .iter()
-            .map(|s| s.as_ptr() as *mut c_char)
-            .collect();
+        let mut argv: Vec<*mut c_char> = args.iter().map(|s| s.as_ptr() as *mut c_char).collect();
         // The C standard requires `argv[argc]` to be a null pointer.
         argv.push(std::ptr::null_mut());
 
@@ -116,7 +114,11 @@ impl ApplicationHandler for App {
     /// Creates the OS window, initialises wgpu, and stores both in the
     /// thread-local platform state so the `DG_*` callbacks can reach them.
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        log::info!("Creating window ({}×{})", DOOMGENERIC_RESX, DOOMGENERIC_RESY);
+        log::info!(
+            "Creating window ({}×{})",
+            DOOMGENERIC_RESX,
+            DOOMGENERIC_RESY
+        );
 
         let window_attrs = Window::default_attributes()
             .with_title("room")

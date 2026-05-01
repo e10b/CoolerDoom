@@ -89,22 +89,19 @@ fn main() {
         "memio.c",
         // Command-line argument parsing
         "m_argv.c",
-        // Bounding box
-        "m_bbox.c",
+        // Bounding box — ported to Rust (room/src/doom/m_bbox.rs)
         // Cheat codes
         "m_cheat.c",
         // Configuration file
         "m_config.c",
         // Control bindings
         "m_controls.c",
-        // Fixed-point math
-        "m_fixed.c",
+        // Fixed-point math — ported to Rust (room/src/doom/m_fixed.rs)
         // Menus
         "m_menu.c",
         // Miscellaneous utilities
         "m_misc.c",
-        // Random number generator
-        "m_random.c",
+        // Random number generator — ported to Rust (room/src/doom/m_random.rs)
         // Ceiling actions
         "p_ceilng.c",
         // Door actions
