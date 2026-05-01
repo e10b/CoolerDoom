@@ -160,17 +160,10 @@ extern "C" {
     fn I_Error(format: *const i8, ...) -> !;
 }
 
-// ── mobj_t partial mirror (just the fields P_CheckSight needs) ───────
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct mobj_t {
-    pub x: c_int,
-    pub y: c_int,
-    pub z: c_int,
-    pub height: c_int,
-    pub subsector: *mut subsector_t,
-}
+// ── mobj_t re-export (verified layout in p_telept.rs) ────────────────
+// Reuse the authoritative mobj_t mirror from p_telept.rs to guarantee
+// field offsets match the C layout (x=24, subsector=88, height=108).
+pub use crate::doom::p_telept::mobj_t;
 
 // ── P_DivlineSide ─────────────────────────────────────────────────────
 // Returns side 0 (front), 1 (back), or 2 (on).
@@ -409,8 +402,16 @@ fn P_CrossBSPNode(bspnum: c_int) -> bool {
 #[no_mangle]
 pub extern "C" fn P_CheckSight(t1: *mut mobj_t, t2: *mut mobj_t) -> bool {
     unsafe {
-        let s1 = (*(*t1).subsector).sector.offset_from(sectors) as c_int;
-        let s2 = (*(*t2).subsector).sector.offset_from(sectors) as c_int;
+        // Cast both pointers through *const u8 to sidestep the fact that
+        // mobj_t (from p_telept) references a different sector_t type than
+        // the one declared here. Sector size is the same in both.
+        let sec_size = std::mem::size_of::<sector_t>() as isize;
+        let s1 = (((*(*t1).subsector).sector as *const u8)
+            .offset_from(sectors as *const u8)
+            / sec_size) as c_int;
+        let s2 = (((*(*t2).subsector).sector as *const u8)
+            .offset_from(sectors as *const u8)
+            / sec_size) as c_int;
         let pnum = s1 * numsectors + s2;
         let bytenum = pnum >> 3;
         let bitnum = 1 << (pnum & 7);
