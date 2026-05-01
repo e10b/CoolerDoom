@@ -58,12 +58,12 @@ fn main() {
         "d_main.c",
         // Game mode detection
         // d_mode   — ported to Rust (room/src/doom/d_mode.rs)
-        // Networking stub
-        "d_net.c",
+        // Networking stub — ported to Rust (room/src/doom/d_net.rs)
+        // "d_net.c",
         // Finale / end screens
         "f_finale.c",
-        // Screen wipe effect
-        "f_wipe.c",
+        // Screen wipe effect — ported to Rust (room/src/doom/f_wipe.rs)
+        // "f_wipe.c",
         // Core game logic
         "g_game.c",
         // HUD text library
@@ -137,8 +137,8 @@ fn main() {
         "p_switch.c",
         // Teleporter
         "p_telept.c",
-        // Thinker / object tick
-        "p_tick.c",
+        // Thinker / object tick — ported to Rust (room/src/doom/p_tick.rs)
+        // "p_tick.c",
         // Player movement
         "p_user.c",
         // Binary space partitioner traversal
