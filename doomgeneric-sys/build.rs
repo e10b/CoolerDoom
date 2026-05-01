@@ -39,14 +39,14 @@ fn main() {
     // of the DG_* functions via Rust.
     let sources: &[&str] = &[
         // Stub / dummy implementations (networking, etc.)
-        "dummy.c",
+        // dummy  — ported to Rust (room/src/doom/dummy.rs)
         // Automap
         "am_map.c",
         // Doom definitions & state
-        "doomdef.c",
-        "doomstat.c",
+        // doomdef  — removed, no symbols
+        // doomstat — ported to Rust (room/src/doom/doomstat.rs)
         // String tables
-        "dstrings.c",
+        // dstrings — ported to Rust (room/src/doom/dstrings.rs)
         // Events
         "d_event.c",
         // Items
@@ -57,7 +57,7 @@ fn main() {
         "d_loop.c",
         "d_main.c",
         // Game mode detection
-        "d_mode.c",
+        // d_mode   — ported to Rust (room/src/doom/d_mode.rs)
         // Networking stub
         "d_net.c",
         // Finale / end screens
@@ -91,7 +91,7 @@ fn main() {
         "m_argv.c",
         // Bounding box — ported to Rust (room/src/doom/m_bbox.rs)
         // Cheat codes
-        "m_cheat.c",
+        // m_cheat  — ported to Rust (room/src/doom/m_cheat.rs)
         // Configuration file
         "m_config.c",
         // Control bindings

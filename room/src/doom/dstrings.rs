@@ -1,0 +1,76 @@
+//! Rust port of vendor/doomgeneric/dstrings.c.
+//!
+//! Globally defined quit messages.
+
+#![allow(non_upper_case_globals, non_snake_case)]
+
+use std::ffi::c_char;
+
+// `*const c_char` does not implement `Sync`, so wrap it.
+struct Ptr(*const c_char);
+unsafe impl Sync for Ptr {}
+
+macro_rules! cstr {
+    ($s:literal) => {
+        Ptr(concat!($s, "\0").as_ptr() as *const c_char)
+    };
+}
+
+#[no_mangle]
+pub static doom1_endmsg: [Ptr; 8] = [
+    cstr!("are you sure you want to\nquit this great game?"),
+    cstr!("please don't leave, there's more\ndemons to toast!"),
+    cstr!("let's beat it -- this is turning\ninto a bloodbath!"),
+    cstr!("i wouldn't leave if i were you.\ndos is much worse."),
+    cstr!("you're trying to say you like dos\nbetter than me, right?"),
+    cstr!("don't leave yet -- there's a\ndemon around that corner!"),
+    cstr!("ya know, next time you come in here\ni'm gonna toast ya."),
+    cstr!("go ahead and leave. see if i care."),
+];
+
+#[no_mangle]
+pub static doom2_endmsg: [Ptr; 8] = [
+    cstr!("are you sure you want to\nquit this great game?"),
+    cstr!("you want to quit?\nthen, thou hast lost an eighth!"),
+    cstr!("don't go now, there's a \ndimensional shambler waiting\nat the dos prompt!"),
+    cstr!("get outta here and go back\nto your boring programs."),
+    cstr!("if i were your boss, i'd \n deathmatch ya in a minute!"),
+    cstr!("look, bud. you leave now\nand you forfeit your body count!"),
+    cstr!("just leave. when you come\nback, i'll be waiting with a bat."),
+    cstr!("you're lucky i don't smack\nyou for thinking about leaving."),
+];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn doom1_table_length() {
+        assert_eq!(doom1_endmsg.len(), 8);
+    }
+
+    #[test]
+    fn doom2_table_length() {
+        assert_eq!(doom2_endmsg.len(), 8);
+    }
+
+    #[test]
+    fn doom1_first_entry_roundtrips() {
+        use std::ffi::CStr;
+        let s = unsafe { CStr::from_ptr(doom1_endmsg[0].0) };
+        assert_eq!(
+            s.to_str().unwrap(),
+            "are you sure you want to\nquit this great game?"
+        );
+    }
+
+    #[test]
+    fn doom2_first_entry_roundtrips() {
+        use std::ffi::CStr;
+        let s = unsafe { CStr::from_ptr(doom2_endmsg[0].0) };
+        assert_eq!(
+            s.to_str().unwrap(),
+            "are you sure you want to\nquit this great game?"
+        );
+    }
+}

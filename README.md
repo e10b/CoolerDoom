@@ -99,12 +99,12 @@ A box is ticked when the `.c` file has been removed from
 - [ ] `d_iwad.c`
 - [ ] `d_loop.c`
 - [ ] `d_main.c`
-- [ ] `d_mode.c`
+- [x] `d_mode.c`
 - [ ] `d_net.c`
-- [ ] `doomdef.c`
-- [ ] `doomstat.c`
-- [ ] `dstrings.c`
-- [ ] `dummy.c`
+- [x] `doomdef.c`
+- [x] `doomstat.c`
+- [x] `dstrings.c`
+- [x] `dummy.c`
 - [ ] `doomgeneric.c`
 
 ### Game logic (`g_*`, `p_*`)
@@ -157,7 +157,7 @@ A box is ticked when the `.c` file has been removed from
 
 - [ ] `m_argv.c`
 - [x] `m_bbox.c`
-- [ ] `m_cheat.c`
+- [x] `m_cheat.c`
 - [ ] `m_config.c`
 - [ ] `m_controls.c`
 - [x] `m_fixed.c`
