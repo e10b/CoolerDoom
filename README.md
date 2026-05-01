@@ -83,6 +83,119 @@ The engine runs inside the winit event loop:
 - The renderer performs a nearest-neighbour upscale from the native 640 × 400
   resolution to the window size; the window is currently fixed at 640 × 400.
 
+## Porting progress
+
+The goal is to incrementally replace each vendored `.c` module with a native
+Rust module, preserving behaviour until the C blob is empty.
+
+A box is ticked when the `.c` file has been removed from
+`doomgeneric-sys/build.rs` and fully replaced by Rust code in the `room` crate
+(or a new sub-crate). Partially ported modules stay unticked.
+
+### Engine core / game loop
+
+- [ ] `d_event.c`
+- [ ] `d_items.c`
+- [ ] `d_iwad.c`
+- [ ] `d_loop.c`
+- [ ] `d_main.c`
+- [ ] `d_mode.c`
+- [ ] `d_net.c`
+- [ ] `doomdef.c`
+- [ ] `doomstat.c`
+- [ ] `dstrings.c`
+- [ ] `dummy.c`
+- [ ] `doomgeneric.c`
+
+### Game logic (`g_*`, `p_*`)
+
+- [ ] `g_game.c`
+- [ ] `p_ceilng.c`
+- [ ] `p_doors.c`
+- [ ] `p_enemy.c`
+- [ ] `p_floor.c`
+- [ ] `p_inter.c`
+- [ ] `p_lights.c`
+- [ ] `p_map.c`
+- [ ] `p_maputl.c`
+- [ ] `p_mobj.c`
+- [ ] `p_plats.c`
+- [ ] `p_pspr.c`
+- [ ] `p_saveg.c`
+- [ ] `p_setup.c`
+- [ ] `p_sight.c`
+- [ ] `p_spec.c`
+- [ ] `p_switch.c`
+- [ ] `p_telept.c`
+- [ ] `p_tick.c`
+- [ ] `p_user.c`
+
+### Renderer (`r_*`)
+
+- [ ] `r_bsp.c`
+- [ ] `r_data.c`
+- [ ] `r_draw.c`
+- [ ] `r_main.c`
+- [ ] `r_plane.c`
+- [ ] `r_segs.c`
+- [ ] `r_sky.c`
+- [ ] `r_things.c`
+
+### Automap / HUD / status bar / finale / intermission
+
+- [ ] `am_map.c`
+- [ ] `hu_lib.c`
+- [ ] `hu_stuff.c`
+- [ ] `st_lib.c`
+- [ ] `st_stuff.c`
+- [ ] `f_finale.c`
+- [ ] `f_wipe.c`
+- [ ] `wi_stuff.c`
+- [ ] `statdump.c`
+
+### Menu / misc / math
+
+- [ ] `m_argv.c`
+- [ ] `m_bbox.c`
+- [ ] `m_cheat.c`
+- [ ] `m_config.c`
+- [ ] `m_controls.c`
+- [ ] `m_fixed.c`
+- [ ] `m_menu.c`
+- [ ] `m_misc.c`
+- [ ] `m_random.c`
+- [ ] `tables.c`
+- [ ] `info.c`
+
+### Platform / system (doomgeneric side, not the Rust host)
+
+- [ ] `i_cdmus.c`
+- [ ] `i_endoom.c`
+- [ ] `i_input.c`
+- [ ] `i_joystick.c`
+- [ ] `i_scale.c`
+- [ ] `i_sound.c`
+- [ ] `i_system.c`
+- [ ] `i_timer.c`
+- [ ] `i_video.c`
+
+### Sound tables / sound subsystem (stubbed today)
+
+- [ ] `s_sound.c`
+- [ ] `sounds.c`
+
+### Video / WAD / memory / utilities
+
+- [ ] `v_video.c`
+- [ ] `w_checksum.c`
+- [ ] `w_file.c`
+- [ ] `w_file_stdc.c`
+- [ ] `w_main.c`
+- [ ] `w_wad.c`
+- [ ] `memio.c`
+- [ ] `sha1.c`
+- [ ] `z_zone.c`
+
 ## License
 
 This repository includes the unmodified Doom shareware IWAD, `doom1.wad`,
