@@ -1,0 +1,2 @@
+doom1.wad !text !filter !merge !diff
+*.sf2 !text !filter !merge !diff
