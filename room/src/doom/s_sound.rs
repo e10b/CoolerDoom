@@ -351,10 +351,12 @@ unsafe fn S_AdjustSoundParams(
     vol: *mut c_int,
     sep: *mut c_int,
 ) -> c_int {
-    let adx = ((*listener).x - (*source).x).abs();
-    let ady = ((*listener).y - (*source).y).abs();
+    let adx = (*listener).x.wrapping_sub((*source).x).wrapping_abs();
+    let ady = (*listener).y.wrapping_sub((*source).y).wrapping_abs();
 
-    let approx_dist = adx + ady - ((if adx < ady { adx } else { ady }) >> 1);
+    let approx_dist = adx
+        .wrapping_add(ady)
+        .wrapping_sub((if adx < ady { adx } else { ady }) >> 1);
 
     if gamemap != 8 && approx_dist > S_CLIPPING_DIST {
         return 0;
@@ -365,7 +367,7 @@ unsafe fn S_AdjustSoundParams(
     if angle > (*listener).angle {
         angle = angle - (*listener).angle;
     } else {
-        angle = angle + (0xffffffff - (*listener).angle);
+        angle = angle.wrapping_add(0xffffffff_u32 - (*listener).angle);
     }
 
     angle >>= ANGLETOFINESHIFT;
