@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "doomgeneric-sys",
+    "room",
+]
+resolver = "2"
