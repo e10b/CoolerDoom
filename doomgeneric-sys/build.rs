@@ -47,8 +47,8 @@ fn main() {
         // doomstat — ported to Rust (room/src/doom/doomstat.rs)
         // String tables
         // dstrings — ported to Rust (room/src/doom/dstrings.rs)
-        // Events
-        "d_event.c",
+        // Events — ported to Rust (room/src/doom/d_event.rs)
+        // "d_event.c",
         // Items
         "d_items.c",
         // IWAD loading
@@ -178,11 +178,11 @@ fn main() {
         "wi_stuff.c",
         // WAD checksum
         // w_checksum — ported to Rust (room/src/doom/w_checksum.rs)
-        // WAD file abstraction
-        "w_file.c",
-        "w_file_stdc.c",
-        // WAD main loader
-        "w_main.c",
+        // WAD file abstraction — ported to Rust (room/src/doom/w_file.rs)
+        // "w_file.c",
+        // "w_file_stdc.c",
+        // WAD main loader — ported to Rust (room/src/doom/w_main.rs)
+        // "w_main.c",
         // WAD directory
         "w_wad.c",
         // Zone memory allocator

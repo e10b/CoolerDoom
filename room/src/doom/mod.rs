@@ -4,6 +4,7 @@
 //! Functions are exported with `#[no_mangle] extern "C"` so the
 //! remaining C code resolves them at final link time.
 
+pub mod d_event;
 pub mod d_mode;
 pub mod doomstat;
 pub mod dstrings;
@@ -28,3 +29,5 @@ pub mod sounds;
 pub mod statdump;
 pub mod tables;
 pub mod w_checksum;
+pub mod w_file;
+pub mod w_main;

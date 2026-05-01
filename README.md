@@ -94,7 +94,7 @@ A box is ticked when the `.c` file has been removed from
 
 ### Engine core / game loop
 
-- [ ] `d_event.c`
+- [x] `d_event.c`
 - [ ] `d_items.c`
 - [ ] `d_iwad.c`
 - [ ] `d_loop.c`
@@ -188,9 +188,9 @@ A box is ticked when the `.c` file has been removed from
 
 - [ ] `v_video.c`
 - [x] `w_checksum.c`
-- [ ] `w_file.c`
-- [ ] `w_file_stdc.c`
-- [ ] `w_main.c`
+- [x] `w_file.c`
+- [x] `w_file_stdc.c`
+- [x] `w_main.c`
 - [ ] `w_wad.c`
 - [x] `memio.c`
 - [x] `sha1.c`
