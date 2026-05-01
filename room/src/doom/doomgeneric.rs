@@ -3,9 +3,10 @@
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-// Pull in the p_lights anchor so all #[no_mangle] light functions
+// Pull in the p_lights and p_telept anchors so all #[no_mangle] functions
 // survive link-time dead-code elimination (they are only called from C).
 use super::p_lights::P_Lights_Link_Anchor;
+use super::p_telept::P_Telept_Link_Anchor;
 
 // Constants matching DOOMGENERIC_RESX * DOOMGENERIC_RESY from doomgeneric.h
 const DOOMGENERIC_RESX: usize = 640;
@@ -27,8 +28,9 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn doomgeneric_Create(argc: c_int, argv: *mut *mut c_char) {
-    // Anchor p_lights symbols so they survive LTO (called only from C).
+    // Anchor p_lights and p_telept symbols so they survive LTO (called only from C).
     P_Lights_Link_Anchor();
+    P_Telept_Link_Anchor();
 
     myargc = argc;
     myargv = argv;

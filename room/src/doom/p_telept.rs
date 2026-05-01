@@ -269,6 +269,13 @@ extern "C" {
     fn P_MobjThinker(mobj: *mut mobj_t);
 }
 
+/// Anchor function referenced from `doomgeneric_Create` to ensure
+/// `EV_Teleport` survives link-time dead-code elimination.
+#[no_mangle]
+pub extern "C" fn P_Telept_Link_Anchor() {
+    let _ = EV_Teleport as usize;
+}
+
 // ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
