@@ -92,6 +92,9 @@ A box is ticked when the `.c` file has been removed from
 `doomgeneric-sys/build.rs` and fully replaced by Rust code in the `room` crate
 (or a new sub-crate). Partially ported modules stay unticked.
 
+See [PORT.md](PORT.md) for a complexity assessment of all remaining modules and
+recommended porting order.
+
 ### Engine core / game loop
 
 - [x] `d_event.c`
@@ -138,7 +141,7 @@ A box is ticked when the `.c` file has been removed from
 - [ ] `r_main.c`
 - [ ] `r_plane.c`
 - [ ] `r_segs.c`
-- [ ] `r_sky.c`
+- [x] `r_sky.c`
 - [ ] `r_things.c`
 
 ### Automap / HUD / status bar / finale / intermission

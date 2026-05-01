@@ -1,0 +1,116 @@
+# Porting Progress — Missing Conversions
+
+This document lists every C module that has not yet been ported to Rust,
+ordered by size (lines of code).  Use it to plan incremental porting work.
+
+> A module is considered "ported" when the `.c` file is removed from
+> `doomgeneric-sys/build.rs` and a Rust replacement exists in the `room`
+> crate.  The checklist in [README.md](README.md#porting-progress) is the
+> source of truth.
+
+## Summary
+
+| Metric | Value |
+|--------|------:|
+| Remaining C modules | 44 |
+| Total remaining LoC | 38,847 |
+| Already ported LoC | ~6,500 (est.) |
+| Port completeness | ~14% (by line count) |
+
+## Unported Modules by Complexity
+
+### Trivial — < 100 LoC (2 files, 78 LoC)
+
+| File | Lines | Category | Porting notes |
+|------|------:|----------|---------------|
+| `m_menu_shim.c` | 8 | Menu | Tiny C shim for player message write; avoidable with Rust |
+| `m_misc_varargs.c` | 70 | Utils | `printf`-style variadic wrapper; use Rust formatting directly |
+
+### Small — 100–350 LoC (7 files, 2,298 LoC)
+
+| File | Lines | Category | Porting notes |
+|------|------:|----------|---------------|
+| `p_telept.c` | 133 | Game logic | Teleporter action specials |
+| `p_tick.c` | 151 | Game logic | Thinker tick loop |
+| `d_net.c` | 281 | Engine | Network stubs; `FEATURE_MULTIPLAYER` not defined |
+| `st_lib.c` | 284 | HUD | Status bar widget library |
+| `f_wipe.c` | 294 | Finale | Screen wipe effect |
+| `p_lights.c` | 350 | Game logic | Lighting sector effects |
+| `p_sight.c` | 350 | Game logic | Line-of-sight checks |
+
+### Medium-Small — 350–550 LoC (6 files, 2,701 LoC)
+
+| File | Lines | Category | Porting notes |
+|------|------:|----------|---------------|
+| `p_user.c` | 379 | Game logic | Player movement and controls |
+| `r_plane.c` | 446 | Renderer | Visplane rendering |
+| `z_zone.c` | 488 | Memory | Zone memory allocator; critical path, many callers |
+| `i_video.c` | 495 | Platform | Video output; overlaps with Rust platform layer |
+| `p_floor.c` | 546 | Game logic | Floor sector actions |
+| `r_bsp.c` | 573 | Renderer | BSP traversal |
+
+### Medium — 550–900 LoC (12 files, 8,557 LoC)
+
+| File | Lines | Category | Porting notes |
+|------|------:|----------|---------------|
+| `i_system.c` | 578 | Platform | Error handling, I_Error, I_Quit |
+| `w_wad.c` | 612 | WAD | WAD directory loading and lump lookup |
+| `hu_stuff.c` | 641 | HUD | Heads-up display logic |
+| `p_switch.c` | 648 | Game logic | Switch/button action specials |
+| `f_finale.c` | 718 | Finale | End-of-episode text/screens |
+| `r_segs.c` | 743 | Renderer | Segment rendering |
+| `p_doors.c` | 778 | Game logic | Door action specials |
+| `d_loop.c` | 826 | Engine | Main game loop; net sync even without MP |
+| `d_iwad.c` | 848 | Engine | IWAD discovery and validation |
+| `p_setup.c` | 855 | Game logic | Level/map loading and initialization |
+| `p_pspr.c` | 888 | Game logic | Player weapon sprite (psprite) logic |
+| `r_main.c` | 891 | Renderer | Renderer main loop and view setup |
+
+### Medium-Large — 900–1,100 LoC (6 files, 5,747 LoC)
+
+| File | Lines | Category | Porting notes |
+|------|------:|----------|---------------|
+| `r_data.c` | 912 | Renderer | Texture/flat/colormap data management |
+| `v_video.c` | 932 | Video | Screen buffer / drawing primitives |
+| `p_inter.c` | 922 | Game logic | Player/item interactions and damage |
+| `r_draw.c` | 975 | Renderer | Column/span drawing (inner loop) |
+| `r_things.c` | 982 | Renderer | Sprite rendering and scaling |
+| `p_maputl.c` | 1,001 | Game logic | Map collision utilities (P_PathTraverse, etc.) |
+
+### Large — 1,000–1,500 LoC (6 files, 7,229 LoC)
+
+| File | Lines | Category | Porting notes |
+|------|------:|----------|---------------|
+| `p_mobj.c` | 1,049 | Game logic | Map object (mobj) creation, movement, spawning |
+| `am_map.c` | 1,355 | Automap | Full automap implementation |
+| `st_stuff.c` | 1,416 | Status bar | Full status bar logic |
+| `p_map.c` | 1,448 | Game logic | Map collision detection; dense geometry code |
+| `i_scale.c` | 1,452 | Platform | Screen scaling algorithms |
+| `p_spec.c` | 1,489 | Game logic | Special sector/line action dispatcher |
+
+### Very Large — > 1,500 LoC (5 files, 8,697 LoC)
+
+| File | Lines | Category | Porting notes |
+|------|------:|----------|---------------|
+| `wi_stuff.c` | 1,829 | Intermission | Victory/intermission screens and stats |
+| `d_main.c` | 1,845 | Engine | Main initialization; orchestrates all subsystems |
+| `p_saveg.c` | 1,891 | Game logic | Save/load game serialization; heavy struct layout |
+| `p_enemy.c` | 2,006 | Game logic | Enemy AI; complex state machines and behavior |
+| `g_game.c` | 2,303 | Game logic | Core game logic; largest single module |
+
+## Recommended Porting Order
+
+1. **Quick wins** — Port `r_sky.c`, `m_menu_shim.c`, `m_misc_varargs.c`, `p_telept.c`, `p_tick.c`, `p_lights.c`, `p_sight.c` (all < 150 LoC).
+2. **Self-contained modules** — `st_lib.c`, `f_wipe.c`, `r_plane.c`, `r_bsp.c`, `p_user.c`.
+3. **Building blocks** — `z_zone.c` (memory), `w_wad.c` (WAD), `v_video.c` (video), `i_system.c` (platform).
+4. **Renderer pipeline** — `r_data.c`, `r_draw.c`, `r_segs.c`, `r_things.c`, `r_main.c`.
+5. **Game logic** — Start with smaller `p_*` modules, work up to `p_map.c`, `p_mobj.c`, `p_spec.c`.
+6. **Large orchestrators** — `d_main.c`, `g_game.c`, `p_enemy.c`, `p_saveg.c` last (most dependencies).
+
+## Porting Strategy Notes
+
+- **C shims**: `m_menu_shim.c` and `m_misc_varargs.c` exist because stable Rust lacks variadic functions. After porting other modules, these shims can be eliminated entirely by using Rust formatting macros and FFI-safe interfaces.
+- **`i_video.c` overlap**: The Rust platform layer already provides window/video output via winit/wgpu. Porting `i_video.c` means merging its logic into the existing Rust platform callbacks.
+- **`d_net.c` is a stub**: Since `FEATURE_MULTIPLAYER` is not defined, this module contains only stubs. It can be ported trivially once the build no longer references it.
+- **`z_zone.c` is critical**: The zone memory allocator is called throughout the codebase. Porting it first simplifies subsequent work by providing a safe allocation layer.
+- **Renderer inner loops**: `r_draw.c` and `r_segs.c` contain the hottest rendering paths. Consider whether to port to idiomatic Rust or leverage SIMD/wgpu for these.

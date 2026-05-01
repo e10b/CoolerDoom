@@ -27,6 +27,7 @@ pub mod m_menu;
 pub mod m_misc;
 pub mod m_random;
 pub mod memio;
+pub mod r_sky;
 pub mod s_sound;
 pub mod sha1;
 pub mod sounds;

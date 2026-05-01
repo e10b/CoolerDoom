@@ -155,8 +155,8 @@ fn main() {
         "r_plane.c",
         // Segment rendering
         "r_segs.c",
-        // Sky rendering
-        "r_sky.c",
+        // Sky rendering — ported to Rust (room/src/doom/r_sky.rs)
+        // "r_sky.c",
         // Sprite rendering
         "r_things.c",
         // SHA-1 hash (for WAD checksums)
