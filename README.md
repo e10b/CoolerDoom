@@ -158,7 +158,7 @@ A box is ticked when the `.c` file has been removed from
 - [x] `m_argv.c`
 - [x] `m_bbox.c`
 - [x] `m_cheat.c`
-- [ ] `m_config.c`
+- [x] `m_config.c`
 - [x] `m_controls.c`
 - [x] `m_fixed.c`
 - [x] `m_menu.c`

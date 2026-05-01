@@ -92,8 +92,7 @@ fn main() {
         // Bounding box — ported to Rust (room/src/doom/m_bbox.rs)
         // Cheat codes
         // m_cheat  — ported to Rust (room/src/doom/m_cheat.rs)
-        // Configuration file
-        "m_config.c",
+        // m_config  — ported to Rust (room/src/doom/m_config.rs)
         // Control bindings
         // m_controls — ported to Rust (room/src/doom/m_controls.rs)
         // Fixed-point math — ported to Rust (room/src/doom/m_fixed.rs)

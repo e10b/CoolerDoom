@@ -9,7 +9,7 @@ use std::ptr;
 
 use super::d_event::event_t;
 use super::d_mode;
-use super::doomstat::{gamemode, gamemission, gameversion};
+use super::doomstat::{gamemission, gamemode, gameversion};
 
 fn logical_gamemission() -> c_int {
     unsafe {
@@ -51,7 +51,12 @@ const KEY_CAPSLOCK: c_int = 0x80 + 0x3a;
 const KEY_NUMLOCK: c_int = 0x80 + 0x45;
 const KEY_SCRLCK: c_int = 0x80 + 0x46;
 
-const fn mi(status: i16, name: &[u8], routine: Option<extern "C" fn(c_int)>, alpha: u8) -> menuitem_t {
+const fn mi(
+    status: i16,
+    name: &[u8],
+    routine: Option<extern "C" fn(c_int)>,
+    alpha: u8,
+) -> menuitem_t {
     let mut n = [0i8; 10];
     let mut i = 0;
     while i < name.len() && i < 10 {
@@ -102,10 +107,7 @@ const _: () = assert!(
     std::mem::size_of::<menuitem_t>() == 32,
     "menuitem_t size mismatch"
 );
-const _: () = assert!(
-    std::mem::size_of::<menu_t>() == 40,
-    "menu_t size mismatch"
-);
+const _: () = assert!(std::mem::size_of::<menu_t>() == 40, "menu_t size mismatch");
 
 #[repr(C)]
 struct patch_stub {
@@ -327,13 +329,9 @@ static mut OptionsMenu: [menuitem_t; 8] = [
     mi(1, b"M_SVOL\0\0\0\0", Some(M_Sound), b's'),
 ];
 
-static mut ReadMenu1: [menuitem_t; 1] = [
-    mi(1, b"", Some(M_ReadThis2), 0),
-];
+static mut ReadMenu1: [menuitem_t; 1] = [mi(1, b"", Some(M_ReadThis2), 0)];
 
-static mut ReadMenu2: [menuitem_t; 1] = [
-    mi(1, b"", Some(M_FinishReadThis), 0),
-];
+static mut ReadMenu2: [menuitem_t; 1] = [mi(1, b"", Some(M_FinishReadThis), 0)];
 
 static mut SoundMenu: [menuitem_t; 4] = [
     mi(2, b"M_SFXVOL\0\0", Some(M_SfxVol), b's'),
@@ -461,7 +459,10 @@ fn M_ReadSaveStrings() {
             let mut name: [c_char; 256] = [0; 256];
             M_StringCopy(name.as_mut_ptr(), name_ptr, name.len());
 
-            let handle = fopen(name.as_ptr() as *const c_char, b"rb\0".as_ptr() as *const c_char);
+            let handle = fopen(
+                name.as_ptr() as *const c_char,
+                b"rb\0".as_ptr() as *const c_char,
+            );
             if handle.is_null() {
                 M_StringCopy(
                     savegamestrings[i].as_mut_ptr(),
@@ -618,7 +619,11 @@ extern "C" fn M_SaveSelect(choice: c_int) {
             savegamestrings[choice as usize].as_ptr(),
             SAVESTRINGSIZE,
         );
-        if strcmp(savegamestrings[choice as usize].as_ptr(), b"empty slot\0".as_ptr() as *const c_char) == 0 {
+        if strcmp(
+            savegamestrings[choice as usize].as_ptr(),
+            b"empty slot\0".as_ptr() as *const c_char,
+        ) == 0
+        {
             savegamestrings[choice as usize][0] = 0;
         }
         saveCharIndex = strlen(savegamestrings[choice as usize].as_ptr()) as c_int;
@@ -700,7 +705,8 @@ fn M_QuickLoad() {
         }
         if quickSaveSlot < 0 {
             M_StartMessage(
-                b"you haven't picked a quicksave slot yet!\n\npress a key.\0".as_ptr() as *mut c_char,
+                b"you haven't picked a quicksave slot yet!\n\npress a key.\0".as_ptr()
+                    as *mut c_char,
                 None,
                 0,
             );
@@ -710,7 +716,8 @@ fn M_QuickLoad() {
         M_snprintf(
             tempstring.as_mut_ptr(),
             80,
-            b"do you want to quickload the game named\n\n'%s'?\n\npress y or n.\0".as_ptr() as *const c_char,
+            b"do you want to quickload the game named\n\n'%s'?\n\npress y or n.\0".as_ptr()
+                as *const c_char,
             savegamestrings[quickSaveSlot as usize].as_ptr(),
         );
         M_StartMessage(tempstring.as_mut_ptr(), Some(M_QuickLoadResponse), 1);
@@ -791,7 +798,7 @@ extern "C" fn M_DrawReadThis2() {
 // ── M_DrawSound ──────────────────────────────────────────────────────
 
 extern "C" fn M_DrawSound() {
-    use super::s_sound::{sfxVolume, musicVolume};
+    use super::s_sound::{musicVolume, sfxVolume};
     unsafe {
         V_DrawPatchDirect(
             60,
@@ -1107,15 +1114,9 @@ extern "C" fn M_QuitResponse(key: c_int) {
         }
         if netgame == 0 {
             if gamemode == d_mode::commercial {
-                S_StartSound(
-                    ptr::null_mut(),
-                    quitsounds2[((gametic >> 2) & 7) as usize],
-                );
+                S_StartSound(ptr::null_mut(), quitsounds2[((gametic >> 2) & 7) as usize]);
             } else {
-                S_StartSound(
-                    ptr::null_mut(),
-                    quitsounds[((gametic >> 2) & 7) as usize],
-                );
+                S_StartSound(ptr::null_mut(), quitsounds[((gametic >> 2) & 7) as usize]);
             }
             I_WaitVBL(105);
         }
@@ -1337,10 +1338,7 @@ fn M_WriteText(x: c_int, y: c_int, string: *mut c_char) {
 // ── IsNullKey ────────────────────────────────────────────────────────
 
 fn IsNullKey(key: c_int) -> bool {
-    key == KEY_PAUSE
-        || key == KEY_CAPSLOCK
-        || key == KEY_SCRLCK
-        || key == KEY_NUMLOCK
+    key == KEY_PAUSE || key == KEY_CAPSLOCK || key == KEY_SCRLCK || key == KEY_NUMLOCK
 }
 
 // ── M_Responder static locals ────────────────────────────────────────
@@ -1357,11 +1355,11 @@ static mut RESP_lastx: c_int = 0;
 #[no_mangle]
 pub extern "C" fn M_Responder(ev: *mut event_t) -> c_int {
     use super::m_controls::{
-        key_menu_abort, key_menu_activate, key_menu_back, key_menu_confirm, key_menu_decscreen,
-        key_menu_detail, key_menu_down, key_menu_endgame, key_menu_forward, key_menu_gamma, key_menu_help,
-        key_menu_incscreen, key_menu_left, key_menu_load, key_menu_messages, key_menu_qload,
-        key_menu_qsave, key_menu_quit, key_menu_right, key_menu_save, key_menu_screenshot,
-        key_menu_up, key_menu_volume, joybmenu,
+        joybmenu, key_menu_abort, key_menu_activate, key_menu_back, key_menu_confirm,
+        key_menu_decscreen, key_menu_detail, key_menu_down, key_menu_endgame, key_menu_forward,
+        key_menu_gamma, key_menu_help, key_menu_incscreen, key_menu_left, key_menu_load,
+        key_menu_messages, key_menu_qload, key_menu_qsave, key_menu_quit, key_menu_right,
+        key_menu_save, key_menu_screenshot, key_menu_up, key_menu_volume,
     };
 
     unsafe {
@@ -1749,11 +1747,7 @@ pub extern "C" fn M_Drawer() {
                 let remaining = strlen(messageString.add(start));
                 for i in 0..remaining {
                     if *messageString.add(start + i) == b'\n' as c_char {
-                        M_StringCopy(
-                            string.as_mut_ptr(),
-                            messageString.add(start),
-                            string.len(),
-                        );
+                        M_StringCopy(string.as_mut_ptr(), messageString.add(start), string.len());
                         if i < string.len() {
                             string[i] = 0;
                         }

@@ -18,6 +18,7 @@ pub mod info;
 pub mod m_argv;
 pub mod m_bbox;
 pub mod m_cheat;
+pub mod m_config;
 pub mod m_controls;
 pub mod m_fixed;
 pub mod m_menu;
