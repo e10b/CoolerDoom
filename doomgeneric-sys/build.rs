@@ -130,8 +130,8 @@ fn main() {
         "p_saveg.c",
         // Map loading
         "p_setup.c",
-        // Line-of-sight checks
-        "p_sight.c",
+        // Line-of-sight checks — ported to Rust (room/src/doom/p_sight.rs)
+        // "p_sight.c",
         // Special actions
         "p_spec.c",
         // Switch actions

@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 36 |
-| Total remaining LoC | 37,007 |
-| Already ported LoC | ~8,340 (est.) |
-| Port completeness | ~18% (by line count) |
+| Remaining C modules | 35 |
+| Total remaining LoC | 36,657 |
+| Already ported LoC | ~8,690 (est.) |
+| Port completeness | ~19% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -23,13 +23,11 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 _All modules in this bucket have been ported._
 
-### Small — 100–350 LoC (1 file, 350 LoC)
+### Small — 100–350 LoC (0 files, 0 LoC)
 
-| File | Lines | Category | Porting notes |
-|------|------:|----------|---------------|
-| `p_sight.c` | 350 | Game logic | Line-of-sight checks |
+_All modules in this bucket have been ported._
 
-**Recently ported**: `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC).
+**Recently ported**: `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC).
 
 ### Medium-Small — 350–550 LoC (6 files, 2,701 LoC)
 
