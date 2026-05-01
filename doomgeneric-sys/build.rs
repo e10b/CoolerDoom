@@ -113,8 +113,8 @@ fn main() {
         "p_floor.c",
         // Player interactions
         "p_inter.c",
-        // Lighting effects
-        "p_lights.c",
+        // Lighting effects — ported to Rust (room/src/doom/p_lights.rs)
+        // "p_lights.c",
         // Map collisions
         "p_map.c",
         // Map utility functions

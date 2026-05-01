@@ -1,0 +1,496 @@
+//! Rust port of vendor/doomgeneric/p_lights.c.
+//!
+//! Sector lighting effects: fire flicker, light flash, strobe, and glow.
+
+#![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
+
+use std::ffi::c_void;
+use std::os::raw::c_int;
+
+use crate::doom::p_tick::{P_AddThinker, actionf_t, thinker_t};
+
+// ── Constants ─────────────────────────────────────────────────────────
+
+const PU_LEVSPEC: c_int = 5;
+const GLOWSPEED: c_int = 8;
+const STROBEBRIGHT: c_int = 5;
+const FASTDARK: c_int = 15;
+const SLOWDARK: c_int = 35;
+
+// ── Sector mirror (partial layout from r_defs.h) ─────────────────────
+//
+// We only need fields up to `specialdata`.  Verified against C layout
+// on x86_64 Linux via layout_probe:
+//   sector_t size=128, lightlevel@12, special@14, specialdata@104
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sector_t {
+    pub floorheight: c_int,
+    pub ceilingheight: c_int,
+    pub floorpic: i16,
+    pub ceilingpic: i16,
+    pub lightlevel: i16,
+    pub special: i16,
+    pub tag: i16,
+    _pad0: [u8; 2],
+    pub soundtraversed: c_int,
+    pub soundtarget: *mut c_void,
+    pub blockbox: [c_int; 4],
+    pub soundorg: [u8; 40], // degenmobj_t (opaque)
+    pub validcount: c_int,
+    pub thinglist: *mut c_void,
+    pub specialdata: *mut c_void,
+    pub linecount: c_int,
+    pub lines: *mut *mut line_t,
+}
+
+// ── Light thinker structs (from p_spec.h) ─────────────────────────────
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct fireflicker_t {
+    pub thinker: thinker_t,
+    pub sector: *mut sector_t,
+    pub count: c_int,
+    pub maxlight: c_int,
+    pub minlight: c_int,
+    _pad: [u8; 4],
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct lightflash_t {
+    pub thinker: thinker_t,
+    pub sector: *mut sector_t,
+    pub count: c_int,
+    pub maxlight: c_int,
+    pub minlight: c_int,
+    pub maxtime: c_int,
+    pub mintime: c_int,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct strobe_t {
+    pub thinker: thinker_t,
+    pub sector: *mut sector_t,
+    pub count: c_int,
+    pub minlight: c_int,
+    pub maxlight: c_int,
+    pub darktime: c_int,
+    pub brighttime: c_int,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glow_t {
+    pub thinker: thinker_t,
+    pub sector: *mut sector_t,
+    pub minlight: c_int,
+    pub maxlight: c_int,
+    pub direction: c_int,
+    _pad: [u8; 4],
+}
+
+// ── line_t mirror (from r_defs.h) ─────────────────────────────────────
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct line_t {
+    pub v1: *mut c_void,
+    pub v2: *mut c_void,
+    pub dx: c_int,
+    pub dy: c_int,
+    pub flags: i16,
+    pub special: i16,
+    pub tag: i16,
+    pub sidenum: [i16; 2],
+    pub bbox: [c_int; 4],
+    pub slopetype: c_int,
+    pub frontsector: *mut sector_t,
+    pub backsector: *mut sector_t,
+    pub validcount: c_int,
+    pub specialdata: *mut c_void,
+}
+
+// ── External declarations ─────────────────────────────────────────────
+
+extern "C" {
+    fn Z_Malloc(size: usize, tag: c_int, user: *mut c_void) -> *mut c_void;
+    fn P_Random() -> c_int;
+    fn P_FindMinSurroundingLight(sector: *mut sector_t, max: c_int) -> c_int;
+    fn P_FindSectorFromLineTag(line: *mut line_t, start: c_int) -> c_int;
+    fn getNextSector(line: *mut line_t, sec: *mut sector_t) -> *mut sector_t;
+    static mut numsectors: c_int;
+    static mut sectors: *mut sector_t;
+}
+
+// ── FIRELIGHT FLICKER ─────────────────────────────────────────────────
+
+#[no_mangle]
+pub unsafe extern "C" fn T_FireFlicker(flick: *mut fireflicker_t) {
+    (*flick).count -= 1;
+    if (*flick).count != 0 {
+        return;
+    }
+
+    let amount = (P_Random() & 3) * 16;
+    let sec = &mut *(*flick).sector;
+
+    if (sec.lightlevel as c_int) - amount < (*flick).minlight {
+        sec.lightlevel = (*flick).minlight as i16;
+    } else {
+        sec.lightlevel = ((*flick).maxlight - amount) as i16;
+    }
+
+    (*flick).count = 4;
+}
+
+#[no_mangle]
+pub extern "C" fn P_SpawnFireFlicker(sector: *mut sector_t) {
+    unsafe {
+        (*sector).special = 0;
+
+        let flick = Z_Malloc(
+            std::mem::size_of::<fireflicker_t>(),
+            PU_LEVSPEC,
+            std::ptr::null_mut(),
+        ) as *mut fireflicker_t;
+
+        P_AddThinker(&mut (*flick).thinker);
+
+        (*flick).thinker.function.acp1 =
+            Some(core::mem::transmute::<
+                unsafe extern "C" fn(*mut fireflicker_t),
+                unsafe extern "C" fn(*mut c_void),
+            >(T_FireFlicker));
+        (*flick).sector = sector;
+        (*flick).maxlight = (*sector).lightlevel as c_int;
+        (*flick).minlight = P_FindMinSurroundingLight(sector, (*sector).lightlevel as c_int) + 16;
+        (*flick).count = 4;
+    }
+}
+
+// ── BROKEN LIGHT FLASHING ─────────────────────────────────────────────
+
+#[no_mangle]
+pub unsafe extern "C" fn T_LightFlash(flash: *mut lightflash_t) {
+    (*flash).count -= 1;
+    if (*flash).count != 0 {
+        return;
+    }
+
+    let sec = &mut *(*flash).sector;
+
+    if sec.lightlevel as c_int == (*flash).maxlight {
+        sec.lightlevel = (*flash).minlight as i16;
+        (*flash).count = (P_Random() & (*flash).mintime) + 1;
+    } else {
+        sec.lightlevel = (*flash).maxlight as i16;
+        (*flash).count = (P_Random() & (*flash).maxtime) + 1;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn P_SpawnLightFlash(sector: *mut sector_t) {
+    unsafe {
+        (*sector).special = 0;
+
+        let flash = Z_Malloc(
+            std::mem::size_of::<lightflash_t>(),
+            PU_LEVSPEC,
+            std::ptr::null_mut(),
+        ) as *mut lightflash_t;
+
+        P_AddThinker(&mut (*flash).thinker);
+
+        (*flash).thinker.function.acp1 =
+            Some(core::mem::transmute::<
+                unsafe extern "C" fn(*mut lightflash_t),
+                unsafe extern "C" fn(*mut c_void),
+            >(T_LightFlash));
+        (*flash).sector = sector;
+        (*flash).maxlight = (*sector).lightlevel as c_int;
+        (*flash).minlight = P_FindMinSurroundingLight(sector, (*sector).lightlevel as c_int);
+        (*flash).maxtime = 64;
+        (*flash).mintime = 7;
+        (*flash).count = (P_Random() & (*flash).maxtime) + 1;
+    }
+}
+
+// ── STROBE LIGHT FLASHING ─────────────────────────────────────────────
+
+#[no_mangle]
+pub unsafe extern "C" fn T_StrobeFlash(flash: *mut strobe_t) {
+    (*flash).count -= 1;
+    if (*flash).count != 0 {
+        return;
+    }
+
+    let sec = &mut *(*flash).sector;
+
+    if sec.lightlevel as c_int == (*flash).minlight {
+        sec.lightlevel = (*flash).maxlight as i16;
+        (*flash).count = (*flash).brighttime;
+    } else {
+        sec.lightlevel = (*flash).minlight as i16;
+        (*flash).count = (*flash).darktime;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn P_SpawnStrobeFlash(
+    sector: *mut sector_t,
+    fastOrSlow: c_int,
+    inSync: c_int,
+) {
+    unsafe {
+        let flash = Z_Malloc(
+            std::mem::size_of::<strobe_t>(),
+            PU_LEVSPEC,
+            std::ptr::null_mut(),
+        ) as *mut strobe_t;
+
+        P_AddThinker(&mut (*flash).thinker);
+
+        (*flash).sector = sector;
+        (*flash).darktime = fastOrSlow;
+        (*flash).brighttime = STROBEBRIGHT;
+        (*flash).thinker.function.acp1 =
+            Some(core::mem::transmute::<
+                unsafe extern "C" fn(*mut strobe_t),
+                unsafe extern "C" fn(*mut c_void),
+            >(T_StrobeFlash));
+        (*flash).maxlight = (*sector).lightlevel as c_int;
+        (*flash).minlight = P_FindMinSurroundingLight(sector, (*sector).lightlevel as c_int);
+
+        if (*flash).minlight == (*flash).maxlight {
+            (*flash).minlight = 0;
+        }
+
+        (*sector).special = 0;
+
+        if inSync == 0 {
+            (*flash).count = (P_Random() & 7) + 1;
+        } else {
+            (*flash).count = 1;
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn EV_StartLightStrobing(line: *mut line_t) {
+    unsafe {
+        let mut secnum: c_int = -1;
+        loop {
+            secnum = P_FindSectorFromLineTag(line, secnum);
+            if secnum < 0 {
+                break;
+            }
+            let sec = sectors.add(secnum as usize);
+            if !(*sec).specialdata.is_null() {
+                continue;
+            }
+            P_SpawnStrobeFlash(sec, SLOWDARK, 0);
+        }
+    }
+}
+
+// ── TURN LINE'S TAG LIGHTS OFF ────────────────────────────────────────
+
+#[no_mangle]
+pub extern "C" fn EV_TurnTagLightsOff(line: *mut line_t) {
+    unsafe {
+        for j in 0..numsectors as usize {
+            let sec = sectors.add(j);
+            if (*sec).tag != (*line).tag {
+                continue;
+            }
+
+            let mut min = (*sec).lightlevel as c_int;
+            for i in 0..(*sec).linecount as usize {
+                let templine = *(*sec).lines.add(i);
+                let tsec = getNextSector(templine, sec);
+                if tsec.is_null() {
+                    continue;
+                }
+                let tl = (*tsec).lightlevel as c_int;
+                if tl < min {
+                    min = tl;
+                }
+            }
+            (*sec).lightlevel = min as i16;
+        }
+    }
+}
+
+// ── TURN LINE'S TAG LIGHTS ON ─────────────────────────────────────────
+
+#[no_mangle]
+pub extern "C" fn EV_LightTurnOn(line: *mut line_t, bright: c_int) {
+    unsafe {
+        let mut bright = bright;
+        for i in 0..numsectors as usize {
+            let sec = sectors.add(i);
+            if (*sec).tag != (*line).tag {
+                continue;
+            }
+
+            if bright == 0 {
+                for j in 0..(*sec).linecount as usize {
+                    let templine = *(*sec).lines.add(j);
+                    let temp = getNextSector(templine, sec);
+                    if temp.is_null() {
+                        continue;
+                    }
+                    let tl = (*temp).lightlevel as c_int;
+                    if tl > bright {
+                        bright = tl;
+                    }
+                }
+            }
+            (*sec).lightlevel = bright as i16;
+        }
+    }
+}
+
+// ── GLOWING LIGHT ─────────────────────────────────────────────────────
+
+#[no_mangle]
+pub unsafe extern "C" fn T_Glow(g: *mut glow_t) {
+    let sec = &mut *(*g).sector;
+    match (*g).direction {
+        -1 => {
+            sec.lightlevel -= GLOWSPEED as i16;
+            if (sec.lightlevel as c_int) <= (*g).minlight {
+                sec.lightlevel += GLOWSPEED as i16;
+                (*g).direction = 1;
+            }
+        }
+        1 => {
+            sec.lightlevel += GLOWSPEED as i16;
+            if (sec.lightlevel as c_int) >= (*g).maxlight {
+                sec.lightlevel -= GLOWSPEED as i16;
+                (*g).direction = -1;
+            }
+        }
+        _ => {}
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn P_SpawnGlowingLight(sector: *mut sector_t) {
+    unsafe {
+        let g = Z_Malloc(
+            std::mem::size_of::<glow_t>(),
+            PU_LEVSPEC,
+            std::ptr::null_mut(),
+        ) as *mut glow_t;
+
+        P_AddThinker(&mut (*g).thinker);
+
+        (*g).sector = sector;
+        (*g).minlight = P_FindMinSurroundingLight(sector, (*sector).lightlevel as c_int);
+        (*g).maxlight = (*sector).lightlevel as c_int;
+        (*g).thinker.function.acp1 =
+            Some(core::mem::transmute::<
+                unsafe extern "C" fn(*mut glow_t),
+                unsafe extern "C" fn(*mut c_void),
+            >(T_Glow));
+        (*g).direction = -1;
+
+        (*sector).special = 0;
+    }
+}
+
+// ── Layout assertions ─────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Mutex;
+
+    static LOCK: Mutex<()> = Mutex::new(());
+
+    extern "C" {
+        static ROOM_SECTOR_T_SIZEOF: usize;
+        static ROOM_SECTOR_T_LIGHTLEVEL_OFFSET: usize;
+        static ROOM_SECTOR_T_SPECIAL_OFFSET: usize;
+        static ROOM_SECTOR_T_SPECIALDATA_OFFSET: usize;
+        static ROOM_FIREFLICKER_T_SIZEOF: usize;
+        static ROOM_LIGHTFLASH_T_SIZEOF: usize;
+        static ROOM_STROBE_T_SIZEOF: usize;
+        static ROOM_GLOW_T_SIZEOF: usize;
+    }
+
+    #[test]
+    fn sector_t_layout_matches_c() {
+        let _g = LOCK.lock().unwrap();
+        unsafe {
+            assert_eq!(
+                std::mem::size_of::<sector_t>(),
+                ROOM_SECTOR_T_SIZEOF,
+                "sector_t size mismatch: Rust={}, C={}",
+                std::mem::size_of::<sector_t>(),
+                ROOM_SECTOR_T_SIZEOF,
+            );
+            assert_eq!(
+                std::mem::offset_of!(sector_t, lightlevel),
+                ROOM_SECTOR_T_LIGHTLEVEL_OFFSET,
+            );
+            assert_eq!(
+                std::mem::offset_of!(sector_t, special),
+                ROOM_SECTOR_T_SPECIAL_OFFSET,
+            );
+            assert_eq!(
+                std::mem::offset_of!(sector_t, specialdata),
+                ROOM_SECTOR_T_SPECIALDATA_OFFSET,
+            );
+        }
+    }
+
+    #[test]
+    fn fireflicker_t_size_matches_c() {
+        let _g = LOCK.lock().unwrap();
+        unsafe {
+            assert_eq!(
+                std::mem::size_of::<fireflicker_t>(),
+                ROOM_FIREFLICKER_T_SIZEOF,
+            );
+        }
+    }
+
+    #[test]
+    fn lightflash_t_size_matches_c() {
+        let _g = LOCK.lock().unwrap();
+        unsafe {
+            assert_eq!(
+                std::mem::size_of::<lightflash_t>(),
+                ROOM_LIGHTFLASH_T_SIZEOF,
+            );
+        }
+    }
+
+    #[test]
+    fn strobe_t_size_matches_c() {
+        let _g = LOCK.lock().unwrap();
+        unsafe {
+            assert_eq!(
+                std::mem::size_of::<strobe_t>(),
+                ROOM_STROBE_T_SIZEOF,
+            );
+        }
+    }
+
+    #[test]
+    fn glow_t_size_matches_c() {
+        let _g = LOCK.lock().unwrap();
+        unsafe {
+            assert_eq!(
+                std::mem::size_of::<glow_t>(),
+                ROOM_GLOW_T_SIZEOF,
+            );
+        }
+    }
+}
