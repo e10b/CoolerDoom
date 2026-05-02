@@ -90,9 +90,13 @@ pub static mut sttminus: *mut patch_t = std::ptr::null_mut();
 extern "C" {
     fn W_CacheLumpName(name: *const c_char, tag: c_int) -> *mut c_void;
     fn V_CopyRect(
-        srcx: c_int, srcy: c_int, srcscr: *mut u8,
-        width: c_int, height: c_int,
-        destx: c_int, desty: c_int,
+        srcx: c_int,
+        srcy: c_int,
+        srcscr: *mut u8,
+        width: c_int,
+        height: c_int,
+        destx: c_int,
+        desty: c_int,
     );
     fn V_DrawPatch(x: c_int, y: c_int, patch: *mut patch_t);
     fn I_Error(error: *const c_char, ...);
@@ -106,8 +110,8 @@ extern "C" {
 pub extern "C" fn STlib_init() {
     unsafe {
         // DEH_String("STTMINUS") is identity — just pass the string.
-        sttminus = W_CacheLumpName(b"STTMINUS\0".as_ptr() as *const c_char, PU_STATIC)
-            as *mut patch_t;
+        sttminus =
+            W_CacheLumpName(b"STTMINUS\0".as_ptr() as *const c_char, PU_STATIC) as *mut patch_t;
     }
 }
 
@@ -259,10 +263,7 @@ pub extern "C" fn STlib_initMultIcon(
 #[no_mangle]
 pub extern "C" fn STlib_updateMultIcon(mi: *mut st_multicon_t, refresh: c_int) {
     unsafe {
-        if *(*mi).on != 0
-            && ((*mi).oldinum != *(*mi).inum || refresh != 0)
-            && *(*mi).inum != -1
-        {
+        if *(*mi).on != 0 && ((*mi).oldinum != *(*mi).inum || refresh != 0) && *(*mi).inum != -1 {
             if (*mi).oldinum != -1 {
                 let old_patch = *(*mi).p.offset((*mi).oldinum as isize);
                 let x = (*mi).x - short_swap((*old_patch).leftoffset) as c_int;

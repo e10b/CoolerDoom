@@ -7,8 +7,8 @@
 use std::ffi::c_void;
 use std::os::raw::c_int;
 
-use crate::doom::p_tick::{thinker_t, actionf_t};
 use crate::doom::d_player::PlayerT;
+use crate::doom::p_tick::{actionf_t, thinker_t};
 
 // ── Constants ─────────────────────────────────────────────────────────
 
@@ -164,11 +164,7 @@ extern "C" {
 // ── Public API ────────────────────────────────────────────────────────
 
 #[no_mangle]
-pub extern "C" fn EV_Teleport(
-    line: *mut line_t,
-    side: c_int,
-    thing: *mut mobj_t,
-) -> c_int {
+pub extern "C" fn EV_Teleport(line: *mut line_t, side: c_int, thing: *mut mobj_t) -> c_int {
     unsafe {
         // Don't teleport missiles
         if (*thing).flags & MF_MISSILE != 0 {

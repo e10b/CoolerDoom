@@ -110,9 +110,9 @@ fn main() {
         "p_doors.c",
         // AI / enemy logic
         "p_enemy.c",
-        // Floor actions
-        "p_floor.c",
-        // Player interactions
+        // Floor actions — ported to Rust (room/src/doom/p_floor.rs)
+        // "p_floor.c",
+        // Player interactions — ported to Rust (room/src/doom/p_inter.c)
         "p_inter.c",
         // Lighting effects — ported to Rust (room/src/doom/p_lights.rs)
         // "p_lights.c",
@@ -140,8 +140,8 @@ fn main() {
         // "p_telept.c",
         // Thinker / object tick — ported to Rust (room/src/doom/p_tick.rs)
         // "p_tick.c",
-        // Player movement
-        "p_user.c",
+        // Player movement — ported to Rust (room/src/doom/p_user.rs)
+        // "p_user.c",
         // Binary space partitioner traversal
         "r_bsp.c",
         // Texture / flat data

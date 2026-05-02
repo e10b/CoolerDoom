@@ -7,7 +7,7 @@
 use std::ffi::c_void;
 use std::os::raw::c_int;
 
-use crate::doom::p_tick::{P_AddThinker, actionf_t, thinker_t};
+use crate::doom::p_tick::{actionf_t, thinker_t, P_AddThinker};
 
 // ── Constants ─────────────────────────────────────────────────────────
 
@@ -160,11 +160,10 @@ pub extern "C" fn P_SpawnFireFlicker(sector: *mut sector_t) {
 
         P_AddThinker(&mut (*flick).thinker);
 
-        (*flick).thinker.function.acp1 =
-            Some(core::mem::transmute::<
-                unsafe extern "C" fn(*mut fireflicker_t),
-                unsafe extern "C" fn(*mut c_void),
-            >(T_FireFlicker));
+        (*flick).thinker.function.acp1 = Some(core::mem::transmute::<
+            unsafe extern "C" fn(*mut fireflicker_t),
+            unsafe extern "C" fn(*mut c_void),
+        >(T_FireFlicker));
         (*flick).sector = sector;
         (*flick).maxlight = (*sector).lightlevel as c_int;
         (*flick).minlight = P_FindMinSurroundingLight(sector, (*sector).lightlevel as c_int) + 16;
@@ -205,11 +204,10 @@ pub extern "C" fn P_SpawnLightFlash(sector: *mut sector_t) {
 
         P_AddThinker(&mut (*flash).thinker);
 
-        (*flash).thinker.function.acp1 =
-            Some(core::mem::transmute::<
-                unsafe extern "C" fn(*mut lightflash_t),
-                unsafe extern "C" fn(*mut c_void),
-            >(T_LightFlash));
+        (*flash).thinker.function.acp1 = Some(core::mem::transmute::<
+            unsafe extern "C" fn(*mut lightflash_t),
+            unsafe extern "C" fn(*mut c_void),
+        >(T_LightFlash));
         (*flash).sector = sector;
         (*flash).maxlight = (*sector).lightlevel as c_int;
         (*flash).minlight = P_FindMinSurroundingLight(sector, (*sector).lightlevel as c_int);
@@ -240,11 +238,7 @@ pub unsafe extern "C" fn T_StrobeFlash(flash: *mut strobe_t) {
 }
 
 #[no_mangle]
-pub extern "C" fn P_SpawnStrobeFlash(
-    sector: *mut sector_t,
-    fastOrSlow: c_int,
-    inSync: c_int,
-) {
+pub extern "C" fn P_SpawnStrobeFlash(sector: *mut sector_t, fastOrSlow: c_int, inSync: c_int) {
     unsafe {
         let flash = Z_Malloc(
             std::mem::size_of::<strobe_t>(),
@@ -257,11 +251,10 @@ pub extern "C" fn P_SpawnStrobeFlash(
         (*flash).sector = sector;
         (*flash).darktime = fastOrSlow;
         (*flash).brighttime = STROBEBRIGHT;
-        (*flash).thinker.function.acp1 =
-            Some(core::mem::transmute::<
-                unsafe extern "C" fn(*mut strobe_t),
-                unsafe extern "C" fn(*mut c_void),
-            >(T_StrobeFlash));
+        (*flash).thinker.function.acp1 = Some(core::mem::transmute::<
+            unsafe extern "C" fn(*mut strobe_t),
+            unsafe extern "C" fn(*mut c_void),
+        >(T_StrobeFlash));
         (*flash).maxlight = (*sector).lightlevel as c_int;
         (*flash).minlight = P_FindMinSurroundingLight(sector, (*sector).lightlevel as c_int);
 
@@ -393,11 +386,10 @@ pub extern "C" fn P_SpawnGlowingLight(sector: *mut sector_t) {
         (*g).sector = sector;
         (*g).minlight = P_FindMinSurroundingLight(sector, (*sector).lightlevel as c_int);
         (*g).maxlight = (*sector).lightlevel as c_int;
-        (*g).thinker.function.acp1 =
-            Some(core::mem::transmute::<
-                unsafe extern "C" fn(*mut glow_t),
-                unsafe extern "C" fn(*mut c_void),
-            >(T_Glow));
+        (*g).thinker.function.acp1 = Some(core::mem::transmute::<
+            unsafe extern "C" fn(*mut glow_t),
+            unsafe extern "C" fn(*mut c_void),
+        >(T_Glow));
         (*g).direction = -1;
 
         (*sector).special = 0;
@@ -467,36 +459,24 @@ mod tests {
     #[test]
     fn fireflicker_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        assert_eq!(
-            std::mem::size_of::<fireflicker_t>(),
-            FIREFLICKER_T_SIZEOF,
-        );
+        assert_eq!(std::mem::size_of::<fireflicker_t>(), FIREFLICKER_T_SIZEOF,);
     }
 
     #[test]
     fn lightflash_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        assert_eq!(
-            std::mem::size_of::<lightflash_t>(),
-            LIGHTFLASH_T_SIZEOF,
-        );
+        assert_eq!(std::mem::size_of::<lightflash_t>(), LIGHTFLASH_T_SIZEOF,);
     }
 
     #[test]
     fn strobe_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        assert_eq!(
-            std::mem::size_of::<strobe_t>(),
-            STROBE_T_SIZEOF,
-        );
+        assert_eq!(std::mem::size_of::<strobe_t>(), STROBE_T_SIZEOF,);
     }
 
     #[test]
     fn glow_t_size_matches_c() {
         let _g = LOCK.lock().unwrap();
-        assert_eq!(
-            std::mem::size_of::<glow_t>(),
-            GLOW_T_SIZEOF,
-        );
+        assert_eq!(std::mem::size_of::<glow_t>(), GLOW_T_SIZEOF,);
     }
 }

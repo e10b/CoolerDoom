@@ -116,7 +116,7 @@ recommended porting order.
 - [ ] `p_ceilng.c`
 - [ ] `p_doors.c`
 - [ ] `p_enemy.c`
-- [ ] `p_floor.c`
+- [x] `p_floor.c`
 - [ ] `p_inter.c`
 - [x] `p_lights.c`
 - [ ] `p_map.c`
@@ -131,7 +131,7 @@ recommended porting order.
 - [ ] `p_switch.c`
 - [x] `p_telept.c`
 - [x] `p_tick.c`
-- [ ] `p_user.c`
+- [x] `p_user.c`
 
 ### Renderer (`r_*`)
 

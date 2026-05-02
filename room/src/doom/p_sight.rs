@@ -213,18 +213,13 @@ fn P_DivlineSide(x: c_int, y: c_int, node: &divline_t) -> c_int {
 // Returns the fractional intercept point along the first divline.
 
 fn P_InterceptVector2(v2: &divline_t, v1: &divline_t) -> c_int {
-    let den = unsafe {
-        FixedMul(v1.dy >> 8, v2.dx) - FixedMul(v1.dx >> 8, v2.dy)
-    };
+    let den = unsafe { FixedMul(v1.dy >> 8, v2.dx) - FixedMul(v1.dx >> 8, v2.dy) };
 
     if den == 0 {
         return 0;
     }
 
-    let num = unsafe {
-        FixedMul((v1.x - v2.x) >> 8, v1.dy)
-            + FixedMul((v2.y - v1.y) >> 8, v1.dx)
-    };
+    let num = unsafe { FixedMul((v1.x - v2.x) >> 8, v1.dy) + FixedMul((v2.y - v1.y) >> 8, v1.dx) };
 
     unsafe { FixedDiv(num, den) }
 }
@@ -417,11 +412,9 @@ pub extern "C" fn P_CheckSight(t1: *mut mobj_t, t2: *mut mobj_t) -> c_int {
         // mobj_t (from p_telept) references a different sector_t type than
         // the one declared here. Sector size is the same in both.
         let sec_size = std::mem::size_of::<sector_t>() as isize;
-        let s1 = (((*(*t1).subsector).sector as *const u8)
-            .offset_from(sectors as *const u8)
+        let s1 = (((*(*t1).subsector).sector as *const u8).offset_from(sectors as *const u8)
             / sec_size) as c_int;
-        let s2 = (((*(*t2).subsector).sector as *const u8)
-            .offset_from(sectors as *const u8)
+        let s2 = (((*(*t2).subsector).sector as *const u8).offset_from(sectors as *const u8)
             / sec_size) as c_int;
         let pnum = s1 * numsectors + s2;
         let bytenum = pnum >> 3;
@@ -485,27 +478,18 @@ mod tests {
     #[test]
     fn subsector_t_size() {
         let _g = LOCK.lock().unwrap();
-        assert_eq!(
-            std::mem::size_of::<subsector_t>(),
-            SUBSECTOR_T_SIZEOF,
-        );
+        assert_eq!(std::mem::size_of::<subsector_t>(), SUBSECTOR_T_SIZEOF,);
     }
 
     #[test]
     fn seg_t_size() {
         let _g = LOCK.lock().unwrap();
-        assert_eq!(
-            std::mem::size_of::<seg_t>(),
-            SEG_T_SIZEOF,
-        );
+        assert_eq!(std::mem::size_of::<seg_t>(), SEG_T_SIZEOF,);
     }
 
     #[test]
     fn node_t_size() {
         let _g = LOCK.lock().unwrap();
-        assert_eq!(
-            std::mem::size_of::<node_t>(),
-            NODE_T_SIZEOF,
-        );
+        assert_eq!(std::mem::size_of::<node_t>(), NODE_T_SIZEOF,);
     }
 }
