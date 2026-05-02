@@ -181,7 +181,10 @@ fn P_DivlineSide(x: c_int, y: c_int, node: &divline_t) -> c_int {
     }
 
     if node.dy == 0 {
-        if y == node.y {
+        // NOTE: The original C code reads `if (x==node->y)` here — NOT
+        // `y==node->y`. This is a long-standing quirk in the Doom source
+        // that demos rely on for deterministic playback. DO NOT "fix" it.
+        if x == node.y {
             return 2;
         }
         return if y <= node.y {
