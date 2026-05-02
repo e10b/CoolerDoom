@@ -103,7 +103,7 @@ recommended porting order.
 - [ ] `d_loop.c`
 - [ ] `d_main.c`
 - [x] `d_mode.c`
-- [ ] `d_net.c`
+- [x] `d_net.c`
 - [x] `doomdef.c`
 - [x] `doomstat.c`
 - [x] `dstrings.c`
@@ -118,7 +118,7 @@ recommended porting order.
 - [ ] `p_enemy.c`
 - [ ] `p_floor.c`
 - [ ] `p_inter.c`
-- [ ] `p_lights.c`
+- [x] `p_lights.c`
 - [ ] `p_map.c`
 - [ ] `p_maputl.c`
 - [ ] `p_mobj.c`
@@ -126,11 +126,11 @@ recommended porting order.
 - [ ] `p_pspr.c`
 - [ ] `p_saveg.c`
 - [ ] `p_setup.c`
-- [ ] `p_sight.c`
+- [x] `p_sight.c`
 - [ ] `p_spec.c`
 - [ ] `p_switch.c`
-- [ ] `p_telept.c`
-- [ ] `p_tick.c`
+- [x] `p_telept.c`
+- [x] `p_tick.c`
 - [ ] `p_user.c`
 
 ### Renderer (`r_*`)
@@ -149,10 +149,10 @@ recommended porting order.
 - [ ] `am_map.c`
 - [ ] `hu_lib.c`
 - [ ] `hu_stuff.c`
-- [ ] `st_lib.c`
+- [x] `st_lib.c`
 - [ ] `st_stuff.c`
 - [ ] `f_finale.c`
-- [ ] `f_wipe.c`
+- [x] `f_wipe.c`
 - [ ] `wi_stuff.c`
 - [x] `statdump.c`
 
