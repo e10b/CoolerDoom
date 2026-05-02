@@ -1,7 +1,6 @@
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
 use std::ffi::c_int;
-use std::mem::size_of;
 
 // ---------------------------------------------------------------------------
 // Ammo type enum values (from doomdef.h)

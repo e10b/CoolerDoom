@@ -7,7 +7,7 @@
 use std::ffi::c_void;
 use std::os::raw::c_int;
 
-use crate::doom::p_tick::{actionf_t, thinker_t, P_AddThinker};
+use crate::doom::p_tick::{thinker_t, P_AddThinker};
 
 // ── Constants ─────────────────────────────────────────────────────────
 
@@ -401,17 +401,17 @@ pub extern "C" fn P_SpawnGlowingLight(sector: *mut sector_t) {
 #[no_mangle]
 pub unsafe extern "C" fn P_Lights_Link_Anchor() {
     // Force the linker to include every exported symbol from this module.
-    let _ = T_FireFlicker as usize;
-    let _ = T_LightFlash as usize;
-    let _ = T_StrobeFlash as usize;
-    let _ = T_Glow as usize;
-    let _ = P_SpawnFireFlicker as usize;
-    let _ = P_SpawnLightFlash as usize;
-    let _ = P_SpawnStrobeFlash as usize;
-    let _ = EV_StartLightStrobing as usize;
-    let _ = EV_TurnTagLightsOff as usize;
-    let _ = EV_LightTurnOn as usize;
-    let _ = P_SpawnGlowingLight as usize;
+    let _ = T_FireFlicker as *const () as usize;
+    let _ = T_LightFlash as *const () as usize;
+    let _ = T_StrobeFlash as *const () as usize;
+    let _ = T_Glow as *const () as usize;
+    let _ = P_SpawnFireFlicker as *const () as usize;
+    let _ = P_SpawnLightFlash as *const () as usize;
+    let _ = P_SpawnStrobeFlash as *const () as usize;
+    let _ = EV_StartLightStrobing as *const () as usize;
+    let _ = EV_TurnTagLightsOff as *const () as usize;
+    let _ = EV_LightTurnOn as *const () as usize;
+    let _ = P_SpawnGlowingLight as *const () as usize;
 }
 
 // ── Layout assertions ─────────────────────────────────────────────────

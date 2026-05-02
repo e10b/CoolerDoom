@@ -137,7 +137,7 @@ pub extern "C" fn STlib_initNum(
 }
 
 #[no_mangle]
-pub extern "C" fn STlib_drawNum(n: *mut st_number_t, refresh: c_int) {
+pub extern "C" fn STlib_drawNum(n: *mut st_number_t, _refresh: c_int) {
     unsafe {
         let mut numdigits = (*n).width;
         let num = *(*n).num;

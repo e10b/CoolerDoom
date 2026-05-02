@@ -3,7 +3,6 @@
 use std::ffi::{c_char, c_int, c_void};
 
 use crate::doom::d_mode;
-use crate::doom::m_random::M_Random;
 use crate::doom::sounds::{MusicInfo, S_InitSfxLinks, S_music, S_sfx, SfxInfo, NUMMUSIC, NUMSFX};
 use crate::doom::tables::finesine;
 
@@ -298,7 +297,7 @@ pub extern "C" fn S_Start() {
 pub extern "C" fn S_StopSound(origin: *mut MobjStub) {
     unsafe {
         for cnum in 0..snd_channels {
-            let ch = (*channels.offset(cnum as isize));
+            let ch = *channels.offset(cnum as isize);
             if !ch.sfxinfo.is_null() && ch.origin == origin {
                 S_StopChannel(cnum);
                 break;
@@ -313,7 +312,7 @@ unsafe fn S_GetChannel(origin: *mut MobjStub, sfxinfo: *mut SfxInfo) -> c_int {
     let mut cnum: c_int = 0;
 
     for cnum_search in 0..snd_channels {
-        let ch = (*channels.offset(cnum_search as isize));
+        let ch = *channels.offset(cnum_search as isize);
         if ch.sfxinfo.is_null() {
             cnum = cnum_search;
             break;
@@ -326,7 +325,7 @@ unsafe fn S_GetChannel(origin: *mut MobjStub, sfxinfo: *mut SfxInfo) -> c_int {
 
     if cnum == snd_channels {
         for cnum_search in 0..snd_channels {
-            let ch = (*channels.offset(cnum_search as isize));
+            let ch = *channels.offset(cnum_search as isize);
             if !ch.sfxinfo.is_null() && (*ch.sfxinfo).priority >= (*sfxinfo).priority {
                 cnum = cnum_search;
                 break;
@@ -369,7 +368,7 @@ unsafe fn S_AdjustSoundParams(
     let mut angle = R_PointToAngle2((*listener).x, (*listener).y, (*source).x, (*source).y);
 
     if angle > (*listener).angle {
-        angle = angle - (*listener).angle;
+        angle -= (*listener).angle;
     } else {
         angle = angle.wrapping_add(0xffffffff_u32 - (*listener).angle);
     }
@@ -411,8 +410,8 @@ pub extern "C" fn S_StartSound(origin_p: *mut c_void, sfx_id: c_int) {
 
         let sfx = &mut *S_sfx.as_mut_ptr().offset(sfx_id as isize);
 
-        if !(*sfx).link.is_null() {
-            volume += (*sfx).volume;
+        if !sfx.link.is_null() {
+            volume += sfx.volume;
 
             if volume < 1 {
                 return;
@@ -446,13 +445,13 @@ pub extern "C" fn S_StartSound(origin_p: *mut c_void, sfx_id: c_int) {
             return;
         }
 
-        if (*sfx).usefulness < 0 {
-            (*sfx).usefulness = 1;
+        if sfx.usefulness < 0 {
+            sfx.usefulness = 1;
         }
-        (*sfx).usefulness += 1;
+        sfx.usefulness += 1;
 
-        if (*sfx).lumpnum < 0 {
-            (*sfx).lumpnum = I_GetSfxLumpNum(sfx);
+        if sfx.lumpnum < 0 {
+            sfx.lumpnum = I_GetSfxLumpNum(sfx);
         }
 
         (*channels.offset(cnum as isize)).handle = I_StartSound(sfx, cnum, volume, sep);
@@ -532,7 +531,7 @@ pub extern "C" fn S_UpdateSounds(listener: *mut MobjStub) {
 #[no_mangle]
 pub extern "C" fn S_SetMusicVolume(volume: c_int) {
     unsafe {
-        if volume < 0 || volume > 127 {
+        if !(0..=127).contains(&volume) {
             return;
         }
 
@@ -545,7 +544,7 @@ pub extern "C" fn S_SetMusicVolume(volume: c_int) {
 #[no_mangle]
 pub extern "C" fn S_SetSfxVolume(volume: c_int) {
     unsafe {
-        if volume < 0 || volume > 127 {
+        if !(0..=127).contains(&volume) {
             return;
         }
 
@@ -585,9 +584,9 @@ pub extern "C" fn S_ChangeMusic(musicnum: c_int, looping: c_int) {
 
         S_StopMusic();
 
-        if (*music).lumpnum == 0 {
+        if music.lumpnum == 0 {
             let mut namebuf: [c_char; 9] = [0; 9];
-            let name_ptr = (*music).name;
+            let name_ptr = music.name;
             let result = snprintf(
                 namebuf.as_mut_ptr(),
                 namebuf.len(),
@@ -595,14 +594,14 @@ pub extern "C" fn S_ChangeMusic(musicnum: c_int, looping: c_int) {
                 name_ptr,
             );
             m_snprintf_clamp(namebuf.as_mut_ptr(), namebuf.len(), result);
-            (*music).lumpnum = W_GetNumForName(namebuf.as_ptr());
+            music.lumpnum = W_GetNumForName(namebuf.as_ptr());
         }
 
-        (*music).data = W_CacheLumpNum((*music).lumpnum, PU_STATIC);
+        music.data = W_CacheLumpNum(music.lumpnum, PU_STATIC);
 
-        let len = W_LumpLength((*music).lumpnum);
-        let handle = I_RegisterSong((*music).data, len);
-        (*music).handle = handle;
+        let len = W_LumpLength(music.lumpnum);
+        let handle = I_RegisterSong(music.data, len);
+        music.handle = handle;
         I_PlaySong(handle, looping);
 
         mus_playing = music;
@@ -629,9 +628,9 @@ pub extern "C" fn S_StopMusic() {
             }
 
             I_StopSong();
-            I_UnRegisterSong((*m).handle);
-            W_ReleaseLumpNum((*m).lumpnum);
-            (*m).data = std::ptr::null_mut();
+            I_UnRegisterSong(m.handle);
+            W_ReleaseLumpNum(m.lumpnum);
+            m.data = std::ptr::null_mut();
             mus_playing = std::ptr::null_mut();
         }
     }

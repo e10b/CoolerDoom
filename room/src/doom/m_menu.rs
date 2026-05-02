@@ -828,15 +828,11 @@ extern "C" fn M_SfxVol(choice: c_int) {
     use super::s_sound::sfxVolume;
     unsafe {
         match choice {
-            0 => {
-                if sfxVolume > 0 {
-                    sfxVolume -= 1;
-                }
+            0 if sfxVolume > 0 => {
+                sfxVolume -= 1;
             }
-            1 => {
-                if sfxVolume < 15 {
-                    sfxVolume += 1;
-                }
+            1 if sfxVolume < 15 => {
+                sfxVolume += 1;
             }
             _ => {}
         }
@@ -848,15 +844,11 @@ extern "C" fn M_MusicVol(choice: c_int) {
     use super::s_sound::musicVolume;
     unsafe {
         match choice {
-            0 => {
-                if musicVolume > 0 {
-                    musicVolume -= 1;
-                }
+            0 if musicVolume > 0 => {
+                musicVolume -= 1;
             }
-            1 => {
-                if musicVolume < 15 {
-                    musicVolume += 1;
-                }
+            1 if musicVolume < 15 => {
+                musicVolume += 1;
             }
             _ => {}
         }
@@ -1081,7 +1073,7 @@ extern "C" fn M_ReadThis(_choice: c_int) {
     unsafe { M_SetupNextMenu(&mut ReadDef1) };
 }
 
-extern "C" fn M_ReadThis2(choice: c_int) {
+extern "C" fn M_ReadThis2(_choice: c_int) {
     unsafe {
         if gameversion <= d_mode::exe_doom_1_9 && gamemode != d_mode::commercial {
             M_SetupNextMenu(&mut ReadDef2);
@@ -1151,15 +1143,11 @@ extern "C" fn M_QuitDOOM(_choice: c_int) {
 extern "C" fn M_ChangeSensitivity(choice: c_int) {
     unsafe {
         match choice {
-            0 => {
-                if mouseSensitivity > 0 {
-                    mouseSensitivity -= 1;
-                }
+            0 if mouseSensitivity > 0 => {
+                mouseSensitivity -= 1;
             }
-            1 => {
-                if mouseSensitivity < 9 {
-                    mouseSensitivity += 1;
-                }
+            1 if mouseSensitivity < 9 => {
+                mouseSensitivity += 1;
             }
             _ => {}
         }
@@ -1185,17 +1173,13 @@ extern "C" fn M_ChangeDetail(_choice: c_int) {
 extern "C" fn M_SizeDisplay(choice: c_int) {
     unsafe {
         match choice {
-            0 => {
-                if screenSize > 0 {
-                    screenblocks -= 1;
-                    screenSize -= 1;
-                }
+            0 if screenSize > 0 => {
+                screenblocks -= 1;
+                screenSize -= 1;
             }
-            1 => {
-                if screenSize < 8 {
-                    screenblocks += 1;
-                    screenSize += 1;
-                }
+            1 if screenSize < 8 => {
+                screenblocks += 1;
+                screenSize += 1;
             }
             _ => {}
         }
@@ -1380,7 +1364,8 @@ pub extern "C" fn M_Responder(ev: *mut event_t) -> c_int {
         if ev.type_ == EV_QUIT {
             if menuactive != 0
                 && messageToPrint != 0
-                && messageRoutine.map(|f| f as usize).unwrap_or(0) == M_QuitResponse as usize
+                && messageRoutine.map(|f| f as usize).unwrap_or(0)
+                    == M_QuitResponse as *const () as usize
             {
                 M_QuitResponse(key_menu_confirm);
             } else {
@@ -1495,8 +1480,7 @@ pub extern "C" fn M_Responder(ev: *mut event_t) -> c_int {
                     return 1;
                 }
 
-                if ch >= 32
-                    && ch <= 127
+                if (32..=127).contains(&ch)
                     && saveCharIndex < (SAVESTRINGSIZE as c_int - 1)
                     && M_StringWidth(savegamestrings[saveSlot as usize].as_mut_ptr())
                         < (SAVESTRINGSIZE as c_int - 2) * 8
@@ -1511,14 +1495,13 @@ pub extern "C" fn M_Responder(ev: *mut event_t) -> c_int {
 
         // Messages that need input
         if messageToPrint != 0 {
-            if messageNeedsInput != 0 {
-                if key != b' ' as c_int
-                    && key != KEY_ESCAPE
-                    && key != key_menu_confirm
-                    && key != key_menu_abort
-                {
-                    return 0;
-                }
+            if messageNeedsInput != 0
+                && key != b' ' as c_int
+                && key != KEY_ESCAPE
+                && key != key_menu_confirm
+                && key != key_menu_abort
+            {
+                return 0;
             }
 
             menuactive = messageLastMenuActive;
@@ -1781,7 +1764,7 @@ pub extern "C" fn M_Drawer() {
         let max = (*currentMenu).numitems as usize;
 
         for i in 0..max {
-            let name = (*(*currentMenu).menuitems.offset(i as isize)).name.as_ptr();
+            let name = (*(*currentMenu).menuitems.add(i)).name.as_ptr();
             if *name != 0 {
                 V_DrawPatchDirect(x, y + LINEHEIGHT * i as c_int, W_CacheLumpName(name, 0));
             }

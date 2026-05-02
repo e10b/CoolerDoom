@@ -1,6 +1,6 @@
 #![allow(non_upper_case_globals, non_snake_case)]
 
-use std::ffi::{c_char, c_int, c_long, c_void, CStr};
+use std::ffi::{c_char, c_int, c_long, c_void};
 
 enum FILE {}
 

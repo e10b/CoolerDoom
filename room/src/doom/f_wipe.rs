@@ -127,7 +127,7 @@ unsafe extern "C" fn wipe_init_melt(width: c_int, height: c_int, _ticks: c_int) 
 }
 
 unsafe extern "C" fn wipe_do_melt(width: c_int, height: c_int, ticks: c_int) -> c_int {
-    let mut width = width / 2;
+    let width = width / 2;
     let mut done = true;
     let mut ticks = ticks;
 
@@ -224,8 +224,8 @@ pub extern "C" fn wipe_EndScreen(x: c_int, y: c_int, width: c_int, height: c_int
 #[no_mangle]
 pub extern "C" fn wipe_ScreenWipe(
     wipeno: c_int,
-    x: c_int,
-    y: c_int,
+    _x: c_int,
+    _y: c_int,
     width: c_int,
     height: c_int,
     ticks: c_int,

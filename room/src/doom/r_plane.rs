@@ -114,7 +114,7 @@ pub static mut visplanes: [visplane_t; MAXVISPLANES] = {
         bottom: [0; SCREENWIDTH],
         pad4: 0,
     };
-    let mut arr: [visplane_t; MAXVISPLANES] = [ZERO; MAXVISPLANES];
+    let arr: [visplane_t; MAXVISPLANES] = [ZERO; MAXVISPLANES];
     // Initialize top to 0xFF for each visplane at runtime via memset-like
     // approach. For now leave as 0; R_ClearPlanes will reset them.
     arr
@@ -499,7 +499,7 @@ pub extern "C" fn R_DrawPlanes() {
 
             // Sky flat
             if (*pl).picnum == r_sky::skyflatnum {
-                let iscale = pspriteiscale >> detailshift;
+                let _iscale = pspriteiscale >> detailshift;
 
                 for x in (*pl).minx..=(*pl).maxx {
                     let y_top = (*pl).top[x as usize] as c_int;

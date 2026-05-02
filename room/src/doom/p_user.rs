@@ -6,13 +6,10 @@
 
 use std::ffi::c_int;
 
-use crate::doom::d_mode::{commercial, registered, retail, shareware};
-use crate::doom::d_player::{
-    PlayerT, PspdefT, TiccmdT, MAXPLAYERS, NUMAMMO, NUMCARDS, NUMPOWERS, NUMPSPRITES, NUMWEAPONS,
-};
+use crate::doom::d_mode::{commercial, shareware};
+use crate::doom::d_player::PlayerT;
 use crate::doom::doomstat::gamemode;
 use crate::doom::m_fixed::{fixed_t, FixedMul};
-use crate::doom::m_random::P_Random;
 use crate::doom::p_telept::mobj_t;
 use crate::doom::p_tick::leveltime;
 use crate::doom::tables::{finecosine, finesine, FINEANGLES};
@@ -125,8 +122,8 @@ pub extern "C" fn P_Thrust(player: *mut PlayerT, angle: u32, move_: fixed_t) {
 pub extern "C" fn P_CalcHeight(player: *mut PlayerT) {
     unsafe {
         let mo = (*player).mo as *mut mobj_t;
-        let mut angle: c_int;
-        let mut bob: fixed_t;
+        let angle: c_int;
+        let bob: fixed_t;
 
         // Regular movement bobbing
         (*player).bob = FixedMul((*mo).momx, (*mo).momx) + FixedMul((*mo).momy, (*mo).momy);
@@ -223,8 +220,8 @@ pub extern "C" fn P_MovePlayer(player: *mut PlayerT) {
 pub extern "C" fn P_DeathThink(player: *mut PlayerT) {
     unsafe {
         let mo = (*player).mo as *mut mobj_t;
-        let mut angle: u32;
-        let mut delta: u32;
+        let angle: u32;
+        let delta: u32;
 
         P_MovePsprites(player);
 
@@ -421,11 +418,11 @@ pub extern "C" fn P_User_Link_Anchor() {
     unsafe {
         let _ = onground as usize;
     }
-    let _ = P_Thrust as usize;
-    let _ = P_CalcHeight as usize;
-    let _ = P_MovePlayer as usize;
-    let _ = P_DeathThink as usize;
-    let _ = P_PlayerThink as usize;
+    let _ = P_Thrust as *const () as usize;
+    let _ = P_CalcHeight as *const () as usize;
+    let _ = P_MovePlayer as *const () as usize;
+    let _ = P_DeathThink as *const () as usize;
+    let _ = P_PlayerThink as *const () as usize;
 }
 
 // ── Layout assertions ─────────────────────────────────────────────────

@@ -9,13 +9,13 @@ use std::os::raw::c_short;
 
 use crate::doom::m_fixed::fixed_t;
 use crate::doom::p_lights::sector_t;
-use crate::doom::p_tick::{actionf_t, thinker_t, P_AddThinker, P_RemoveThinker};
+use crate::doom::p_tick::{thinker_t, P_AddThinker, P_RemoveThinker};
 
 // ── Constants ─────────────────────────────────────────────────────────
 
 const PU_LEVSPEC: c_int = 5;
 const FLOORSPEED: fixed_t = FRACUNIT;
-const FRACUNIT: fixed_t = (1 << 16);
+const FRACUNIT: fixed_t = 1 << 16;
 const INT_MAX: c_int = c_int::MAX;
 
 // result_e enum values
@@ -214,7 +214,7 @@ pub extern "C" fn T_MovePlane(
                             }
                             return result_pastdest;
                         } else {
-                            let lastpos = sec.ceilingheight;
+                            let _lastpos = sec.ceilingheight;
                             sec.ceilingheight += speed;
                             let _flag = P_ChangeSector(sector, crush);
                             // The original C code has #if 0 here, so no crush check.
@@ -257,11 +257,9 @@ pub unsafe extern "C" fn T_MoveFloor(floor: *mut floormove_t) {
                 (*(*floor).sector).special = (*floor).newspecial as i16;
                 (*(*floor).sector).floorpic = (*floor).texture;
             }
-        } else if (*floor).direction == -1 {
-            if (*floor).r#type == floor_lowerAndChange {
-                (*(*floor).sector).special = (*floor).newspecial as i16;
-                (*(*floor).sector).floorpic = (*floor).texture;
-            }
+        } else if (*floor).direction == -1 && (*floor).r#type == floor_lowerAndChange {
+            (*(*floor).sector).special = (*floor).newspecial as i16;
+            (*(*floor).sector).floorpic = (*floor).texture;
         }
         P_RemoveThinker(&mut (*floor).thinker as *mut thinker_t);
 
@@ -467,7 +465,7 @@ pub unsafe extern "C" fn EV_BuildStairs(line: *mut line_t, stype: c_int) -> c_in
         (*floor).direction = 1;
         (*floor).sector = sec;
 
-        let (mut speed, mut stairsize): (fixed_t, fixed_t) = match stype {
+        let (speed, stairsize): (fixed_t, fixed_t) = match stype {
             stair_build8 => (FLOORSPEED / 4, 8 * FRACUNIT),
             stair_turbo16 => (FLOORSPEED * 4, 16 * FRACUNIT),
             _ => (FLOORSPEED, 8 * FRACUNIT),
@@ -509,7 +507,7 @@ pub unsafe extern "C" fn EV_BuildStairs(line: *mut line_t, stype: c_int) -> c_in
                 }
 
                 sec = tsec;
-                let secnum_new = newsecnum;
+                let _secnum_new = newsecnum;
                 floor = Z_Malloc(
                     std::mem::size_of::<floormove_t>(),
                     PU_LEVSPEC,
@@ -542,10 +540,10 @@ pub unsafe extern "C" fn EV_BuildStairs(line: *mut line_t, stype: c_int) -> c_in
 
 #[no_mangle]
 pub extern "C" fn P_Floor_Link_Anchor() {
-    let _ = T_MovePlane as usize;
-    let _ = T_MoveFloor as usize;
-    let _ = EV_DoFloor as usize;
-    let _ = EV_BuildStairs as usize;
+    let _ = T_MovePlane as *const () as usize;
+    let _ = T_MoveFloor as *const () as usize;
+    let _ = EV_DoFloor as *const () as usize;
+    let _ = EV_BuildStairs as *const () as usize;
 }
 
 // ── Layout assertions ─────────────────────────────────────────────────

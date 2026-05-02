@@ -164,9 +164,8 @@ pub extern "C" fn M_ExtractFileBase(path: *mut c_char, dest: *mut c_char) {
                 let filename_cstr = CStr::from_ptr(filename);
                 let dest_cstr = CStr::from_ptr(dest);
                 eprintln!(
-                    "Warning: Truncated '{}.{}' lump name to '{}'.",
+                    "Warning: Truncated '{}.????????' lump name to '{}'.",
                     filename_cstr.to_string_lossy(),
-                    "????????",
                     dest_cstr.to_string_lossy()
                 );
                 break;
@@ -425,7 +424,7 @@ pub extern "C" fn M_DefaultConfigDir() -> *const c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn M_OEMToUTF8(oem: *const c_char) -> *mut c_char {
+pub extern "C" fn M_OEMToUTF8(_oem: *const c_char) -> *mut c_char {
     std::ptr::null_mut()
 }
 

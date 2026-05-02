@@ -208,7 +208,7 @@ pub extern "C" fn D_ValidEpisodeMap(
     // Hacks for Heretic secret episodes
     if mission == heretic {
         if mode == retail && episode == 6 {
-            return if map >= 1 && map <= 3 { 1 } else { 0 };
+            return if (1..=3).contains(&map) { 1 } else { 0 };
         } else if mode == registered && episode == 4 {
             return if map == 1 { 1 } else { 0 };
         }

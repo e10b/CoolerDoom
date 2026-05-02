@@ -1508,15 +1508,14 @@ pub static gammatable: [[u8; 256]; 5] = [
 
 #[no_mangle]
 pub extern "C" fn SlopeDiv(num: c_uint, den: c_uint) -> c_int {
-    let ans: c_uint;
     if den < 512 {
         return SLOPERANGE;
     }
-    ans = (num << 3) / (den >> 8);
+    let ans: c_uint = (num << 3) / (den >> 8);
     if ans <= SLOPERANGE as c_uint {
         return ans as c_int;
     }
-    return SLOPERANGE;
+    SLOPERANGE
 }
 
 #[cfg(test)]

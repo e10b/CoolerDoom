@@ -8,7 +8,7 @@ use std::ffi::c_void;
 use std::os::raw::c_int;
 
 use crate::doom::d_player::PlayerT;
-use crate::doom::p_tick::{actionf_t, thinker_t};
+use crate::doom::p_tick::thinker_t;
 
 // ── Constants ─────────────────────────────────────────────────────────
 
@@ -184,7 +184,7 @@ pub extern "C" fn EV_Teleport(line: *mut line_t, side: c_int, thing: *mut mobj_t
             }
 
             let mut thinker = thinkercap.next;
-            while thinker != &mut thinkercap as *mut thinker_t {
+            while !std::ptr::eq(thinker, &mut thinkercap) {
                 // Not a mobj
                 if (*thinker).function.acp1
                     != Some(core::mem::transmute::<
@@ -269,7 +269,7 @@ extern "C" {
 /// `EV_Teleport` survives link-time dead-code elimination.
 #[no_mangle]
 pub extern "C" fn P_Telept_Link_Anchor() {
-    let _ = EV_Teleport as usize;
+    let _ = EV_Teleport as *const () as usize;
 }
 
 // ── Layout assertions ─────────────────────────────────────────────────

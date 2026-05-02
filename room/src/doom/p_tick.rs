@@ -42,8 +42,8 @@ pub static mut leveltime: c_int = 0;
 
 #[no_mangle]
 pub static mut thinkercap: thinker_t = thinker_t {
-    prev: 0 as *mut thinker_t,
-    next: 0 as *mut thinker_t,
+    prev: std::ptr::null_mut::<thinker_t>(),
+    next: std::ptr::null_mut::<thinker_t>(),
     function: actionf_t { acv: None },
 };
 
