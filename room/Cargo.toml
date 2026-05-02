@@ -5,6 +5,10 @@ edition = "2021"
 description = "A Rust implementation of the doomgeneric platform layer using winit and wgpu"
 license = "GPL-2.0-or-later"
 
+[lib]
+name = "room"
+path = "src/lib.rs"
+
 [[bin]]
 name = "room"
 path = "src/main.rs"

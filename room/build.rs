@@ -2,9 +2,8 @@ use std::env;
 use std::fs;
 use std::path::Path;
 
-fn main() {
+fn generate_statenum() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    // vendor is at workspace root, which is one level up from the room crate
     let info_h = Path::new(&manifest_dir)
         .join("..")
         .join("vendor")
@@ -47,4 +46,19 @@ fn main() {
     }
 
     fs::write(&dest_path, output).unwrap();
+}
+
+fn main() {
+    generate_statenum();
+
+    // Re-emit the doomgeneric library link directive so it applies to all
+    // compilation targets (lib, bin, lib-test, integration-test).
+    println!("cargo:rustc-link-lib=static=doomgeneric");
+
+    if let Ok(root) = std::env::var("DEP_DOOMGENERIC_ROOT") {
+        println!("cargo:rustc-link-search=native={}", root);
+    }
+
+    println!("cargo:rustc-link-lib=m");
+    println!("cargo:rerun-if-changed=../doomgeneric-sys/build.rs");
 }

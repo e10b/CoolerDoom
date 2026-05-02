@@ -3,7 +3,7 @@
 use std::ffi::{c_char, c_int, c_void};
 use std::os::raw::c_uint;
 
-use crate::platform::keys::{
+use super::doomkeys::{
     KEY_BACKSPACE, KEY_DEL, KEY_DOWNARROW, KEY_END, KEY_ENTER, KEY_EQUALS, KEY_ESCAPE, KEY_F1,
     KEY_F10, KEY_F11, KEY_F12, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9,
     KEY_HOME, KEY_INS, KEY_LEFTARROW, KEY_MINUS, KEY_PAUSE, KEY_PGDN, KEY_PGUP, KEY_RALT,
@@ -27,7 +27,7 @@ pub static mut key_strafeleft: c_int = KEY_STRAFE_L as c_int;
 #[no_mangle]
 pub static mut key_straferight: c_int = KEY_STRAFE_R as c_int;
 #[no_mangle]
-pub static mut key_fire: c_int = crate::platform::keys::KEY_FIRE as c_int;
+pub static mut key_fire: c_int = super::doomkeys::KEY_FIRE as c_int;
 #[no_mangle]
 pub static mut key_use: c_int = KEY_USE as c_int;
 #[no_mangle]

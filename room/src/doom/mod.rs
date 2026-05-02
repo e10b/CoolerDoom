@@ -10,6 +10,7 @@ pub mod d_mode;
 pub mod d_net;
 pub mod d_player;
 pub mod doomgeneric;
+pub mod doomkeys;
 pub mod doomstat;
 pub mod dstrings;
 pub mod dummy;

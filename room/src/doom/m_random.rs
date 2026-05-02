@@ -32,7 +32,8 @@ pub static mut rndindex: c_int = 0;
 
 /// `int prndindex` — the play-simulation random cursor. No C file
 /// outside m_random.c references it, so we keep it Rust-local.
-static mut prndindex: c_int = 0;
+#[no_mangle]
+pub static mut prndindex: c_int = 0;
 
 #[no_mangle]
 pub extern "C" fn P_Random() -> c_int {

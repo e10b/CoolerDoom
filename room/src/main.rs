@@ -37,7 +37,6 @@
 //! GPU resources through [`thread_local!`] statics, which is safe because
 //! everything runs on the main thread.
 
-mod doom;
 mod gpu;
 mod platform;
 
