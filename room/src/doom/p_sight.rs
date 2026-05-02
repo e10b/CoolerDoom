@@ -405,8 +405,13 @@ fn P_CrossBSPNode(bspnum: c_int) -> bool {
 
 // ── P_CheckSight ──────────────────────────────────────────────────────
 
+/// Returns C `boolean` (= `unsigned int`, 4 bytes), not Rust `bool` (1 byte).
+/// Doom's `typedef unsigned int boolean` means the C caller reads a 32-bit
+/// return value; returning Rust `bool` would leave 24 bits undefined and
+/// cause sight checks to randomly succeed/fail, desynchronising demos and
+/// RNG.
 #[no_mangle]
-pub extern "C" fn P_CheckSight(t1: *mut mobj_t, t2: *mut mobj_t) -> bool {
+pub extern "C" fn P_CheckSight(t1: *mut mobj_t, t2: *mut mobj_t) -> c_int {
     unsafe {
         // Cast both pointers through *const u8 to sidestep the fact that
         // mobj_t (from p_telept) references a different sector_t type than
@@ -425,7 +430,7 @@ pub extern "C" fn P_CheckSight(t1: *mut mobj_t, t2: *mut mobj_t) -> bool {
         // Check in REJECT table.
         if *rejectmatrix.add(bytenum as usize) & bitnum != 0 {
             sightcounts[0] += 1;
-            return false;
+            return 0;
         }
 
         sightcounts[1] += 1;
@@ -442,7 +447,7 @@ pub extern "C" fn P_CheckSight(t1: *mut mobj_t, t2: *mut mobj_t) -> bool {
         strace.dx = (*t2).x - (*t1).x;
         strace.dy = (*t2).y - (*t1).y;
 
-        P_CrossBSPNode(numnodes - 1)
+        P_CrossBSPNode(numnodes - 1) as c_int
     }
 }
 
