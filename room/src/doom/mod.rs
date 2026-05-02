@@ -36,6 +36,7 @@ pub mod p_sight;
 pub mod p_telept;
 pub mod p_tick;
 pub mod p_user;
+pub mod r_plane;
 pub mod r_sky;
 pub mod s_sound;
 pub mod sha1;
