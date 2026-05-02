@@ -287,12 +287,15 @@ fn P_CrossSubsector(num: c_int) -> bool {
             }
 
             // Backsector may be NULL if this is an "impassible glass" hack line.
-            if seg.backsector.is_null() {
+            // IMPORTANT: C uses line->backsector (the original linedef side), NOT
+            // seg->backsector (which is the BSP-split sub-side and may differ).
+            if line.backsector.is_null() {
                 return false;
             }
 
             // Stop because it is not two sided anyway.
-            if seg.linedef.read().flags & ML_TWOSIDED == 0 {
+            // Also must use line->flags, not a re-read through seg->linedef.
+            if line.flags & ML_TWOSIDED == 0 {
                 return false;
             }
 
