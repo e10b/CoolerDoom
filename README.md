@@ -194,7 +194,7 @@ recommended porting order.
 - [x] `w_file.c`
 - [x] `w_file_stdc.c`
 - [x] `w_main.c`
-- [ ] `w_wad.c`
+- [x] `w_wad.c`
 - [x] `memio.c`
 - [x] `sha1.c`
 - [ ] `z_zone.c`

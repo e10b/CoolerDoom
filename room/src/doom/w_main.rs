@@ -9,7 +9,7 @@ extern "C" {
     static mut myargc: c_int;
     static mut myargv: *mut *mut c_char;
     fn D_TryFindWADByName(name: *mut c_char) -> *mut c_char;
-    fn W_AddFile(filename: *mut c_char);
+    fn W_AddFile(filename: *mut c_char) -> *mut crate::doom::w_file::wad_file_t;
 }
 
 type boolean = c_int;

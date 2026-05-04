@@ -50,4 +50,5 @@ pub mod tables;
 pub mod w_checksum;
 pub mod w_file;
 pub mod w_main;
+pub mod w_wad;
 pub mod z_zone;

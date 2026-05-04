@@ -183,8 +183,8 @@ fn main() {
         // "w_file_stdc.c",
         // WAD main loader — ported to Rust (room/src/doom/w_main.rs)
         // "w_main.c",
-        // WAD directory
-        "w_wad.c",
+        // WAD directory — ported to Rust (room/src/doom/w_wad.rs)
+        // "w_wad.c",
         // Zone memory allocator — ported to Rust (room/src/doom/z_zone.rs)
         // "z_zone.c",
         // Input handling (calls DG_GetKey)
