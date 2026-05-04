@@ -74,4 +74,81 @@ mod tests {
     fn div_min_no_panic() {
         let _ = FixedDiv(i32::MIN, 1 << 16);
     }
+
+    // ── Additional FixedMul edge cases ────────────────────────────────
+
+    #[test]
+    fn mul_zero() {
+        assert_eq!(FixedMul(0, 1 << 16), 0);
+        assert_eq!(FixedMul(1 << 16, 0), 0);
+        assert_eq!(FixedMul(0, 0), 0);
+    }
+
+    #[test]
+    fn mul_neg_pos() {
+        // (-2.0) × 3.0 = -6.0 in 16.16 fixed-point
+        assert_eq!(FixedMul(-(2 << 16), 3 << 16), -(6 << 16));
+    }
+
+    #[test]
+    fn mul_neg_neg() {
+        // (-2.0) × (-3.0) = 6.0 in 16.16 fixed-point
+        assert_eq!(FixedMul(-(2 << 16), -(3 << 16)), 6 << 16);
+    }
+
+    #[test]
+    fn mul_fraction() {
+        // 1.5 × 2.0 = 3.0; 1.5 = (3 << 15)
+        assert_eq!(FixedMul(3 << 15, 2 << 16), 3 << 16);
+    }
+
+    #[test]
+    fn mul_large_does_not_panic() {
+        // The intermediate i64 must not overflow to UB; Rust guarantees this
+        let _ = FixedMul(i32::MAX, i32::MAX);
+        let _ = FixedMul(i32::MIN, i32::MIN);
+        let _ = FixedMul(i32::MAX, i32::MIN);
+    }
+
+    // ── Additional FixedDiv edge cases ────────────────────────────────
+
+    #[test]
+    fn div_half() {
+        // 1.0 / 2.0 = 0.5 in 16.16 fixed-point
+        assert_eq!(FixedDiv(1 << 16, 2 << 16), 1 << 15);
+    }
+
+    #[test]
+    fn div_neg_by_pos() {
+        // (-4.0) / 2.0 = -2.0 in 16.16 fixed-point
+        assert_eq!(FixedDiv(-(4 << 16), 2 << 16), -(2 << 16));
+    }
+
+    /// FixedDiv(a, 0): abs(a)>>14 >= abs(0)=0 is always true.
+    /// (a ^ 0) = a; sign of a decides INT_MAX vs INT_MIN.
+    #[test]
+    fn div_positive_by_zero_saturates_max() {
+        assert_eq!(FixedDiv(1, 0), i32::MAX);
+        assert_eq!(FixedDiv(i32::MAX, 0), i32::MAX);
+    }
+
+    /// For negative `a` with |a| small enough that wrapping_abs doesn't
+    /// overflow, dividing by zero saturates to INT_MIN.
+    /// Note: FixedDiv(i32::MIN, 0) is *not* tested here — i32::MIN.wrapping_abs()
+    /// returns i32::MIN whose arithmetic right-shift is negative, so the
+    /// saturation guard does not fire (same UB/trap as the C original for
+    /// abs(INT_MIN) / 0).
+    #[test]
+    fn div_negative_by_zero_saturates_min() {
+        assert_eq!(FixedDiv(-1, 0), i32::MIN);
+        assert_eq!(FixedDiv(-65536, 0), i32::MIN); // -1.0 in 16.16
+    }
+
+    /// Saturation when |a|/2^14 >= |b| and a, b have opposite signs → INT_MIN.
+    #[test]
+    fn div_saturates_neg_opposite_signs() {
+        // abs(i32::MAX) >> 14 = 131071 >= abs(-1) = 1 → saturate,
+        // (MAX ^ -1) has bit 31 set → negative → INT_MIN
+        assert_eq!(FixedDiv(i32::MAX, -1), i32::MIN);
+    }
 }

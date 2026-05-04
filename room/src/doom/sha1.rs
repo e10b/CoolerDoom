@@ -336,8 +336,9 @@ pub unsafe extern "C" fn SHA1_UpdateString(context: *mut SHA1Context, str: *mut 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ffi::c_char;
 
-    fn sha1_hex(data: &[u8]) -> String {
+    fn make_ctx() -> SHA1Context {
         let mut ctx = SHA1Context {
             h0: 0,
             h1: 0,
@@ -349,6 +350,11 @@ mod tests {
             count: 0,
         };
         SHA1_Init(&mut ctx);
+        ctx
+    }
+
+    fn sha1_hex(data: &[u8]) -> String {
+        let mut ctx = make_ctx();
         unsafe {
             SHA1_Update(&mut ctx, data.as_ptr() as *mut u8, data.len());
             let mut digest = [0u8; 20];
@@ -366,5 +372,97 @@ mod tests {
     fn rfc_448bit() {
         let msg = b"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
         assert_eq!(sha1_hex(msg), "84983e441c3bd26ebaae4aa1f95129e5e54670f1");
+    }
+
+    // ── Additional tests ──────────────────────────────────────────────
+
+    /// SHA1("") = da39a3ee5e6b4b0d3255bfef95601890afd80709
+    #[test]
+    fn empty_input() {
+        assert_eq!(
+            sha1_hex(b""),
+            "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+        );
+    }
+
+    /// SHA1_UpdateInt32 sends the value in big-endian byte order, so its
+    /// digest must match SHA1 of the four raw bytes.
+    #[test]
+    fn update_int32_big_endian() {
+        let val: u32 = 0xDEADBEEF;
+        let bytes = [
+            ((val >> 24) & 0xFF) as u8,
+            ((val >> 16) & 0xFF) as u8,
+            ((val >> 8) & 0xFF) as u8,
+            (val & 0xFF) as u8,
+        ];
+        let expected = sha1_hex(&bytes);
+
+        let mut ctx = make_ctx();
+        unsafe {
+            SHA1_UpdateInt32(&mut ctx, val);
+            let mut digest = [0u8; 20];
+            SHA1_Final(digest.as_mut_ptr(), &mut ctx);
+            let got: String = digest.iter().map(|b| format!("{:02x}", b)).collect();
+            assert_eq!(got, expected);
+        }
+    }
+
+    /// SHA1_UpdateString feeds the string with its NUL terminator, so its
+    /// digest must match SHA1 of the bytes including the trailing '\0'.
+    #[test]
+    fn update_string_includes_nul_terminator() {
+        let expected = sha1_hex(b"doom\0");
+
+        let mut ctx = make_ctx();
+        let mut s = *b"doom\0";
+        unsafe {
+            SHA1_UpdateString(&mut ctx, s.as_mut_ptr() as *mut c_char);
+            let mut digest = [0u8; 20];
+            SHA1_Final(digest.as_mut_ptr(), &mut ctx);
+            let got: String = digest.iter().map(|b| format!("{:02x}", b)).collect();
+            assert_eq!(got, expected);
+        }
+    }
+
+    /// Feeding data in two separate SHA1_Update calls must yield the same
+    /// digest as a single call with the concatenated data.
+    #[test]
+    fn incremental_update_matches_single_update() {
+        let part1 = b"Hello, ";
+        let part2 = b"world!";
+        let combined = b"Hello, world!";
+
+        let expected = sha1_hex(combined);
+
+        let mut ctx = make_ctx();
+        unsafe {
+            SHA1_Update(&mut ctx, part1.as_ptr() as *mut u8, part1.len());
+            SHA1_Update(&mut ctx, part2.as_ptr() as *mut u8, part2.len());
+            let mut digest = [0u8; 20];
+            SHA1_Final(digest.as_mut_ptr(), &mut ctx);
+            let got: String = digest.iter().map(|b| format!("{:02x}", b)).collect();
+            assert_eq!(got, expected);
+        }
+    }
+
+    /// Exactly 64 bytes of input fills one transform block exactly.
+    #[test]
+    fn exactly_one_block() {
+        let data = [0x61u8; 64]; // 64 × 'a'
+        // Must not panic and must produce a non-zero digest.
+        let hex = sha1_hex(&data);
+        assert_eq!(hex.len(), 40);
+        assert_ne!(hex, "da39a3ee5e6b4b0d3255bfef95601890afd80709"); // != empty
+    }
+
+    /// Multi-block input (>64 bytes) exercises the internal loop.
+    #[test]
+    fn multi_block_input() {
+        // 128 bytes — exactly two transform blocks
+        let data = [0x62u8; 128]; // 128 × 'b'
+        let hex = sha1_hex(&data);
+        assert_eq!(hex.len(), 40);
+        assert_ne!(hex, sha1_hex(b""));
     }
 }

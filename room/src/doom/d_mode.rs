@@ -360,4 +360,117 @@ mod tests {
     fn valid_episode_map_doom_retail_ep5_map1_invalid() {
         assert_eq!(D_ValidEpisodeMap(doom, retail, 5, 1), 0);
     }
+
+    // ── Additional coverage ───────────────────────────────────────────
+
+    /// Heretic retail secret episode 6 allows maps 1-3 only.
+    #[test]
+    fn valid_episode_map_heretic_retail_ep6_maps_1_to_3() {
+        assert_eq!(D_ValidEpisodeMap(heretic, retail, 6, 1), 1);
+        assert_eq!(D_ValidEpisodeMap(heretic, retail, 6, 2), 1);
+        assert_eq!(D_ValidEpisodeMap(heretic, retail, 6, 3), 1);
+        assert_eq!(D_ValidEpisodeMap(heretic, retail, 6, 4), 0);
+        assert_eq!(D_ValidEpisodeMap(heretic, retail, 6, 0), 0);
+    }
+
+    /// Heretic registered secret episode 4 allows only map 1.
+    #[test]
+    fn valid_episode_map_heretic_registered_ep4_map1_only() {
+        assert_eq!(D_ValidEpisodeMap(heretic, registered, 4, 1), 1);
+        assert_eq!(D_ValidEpisodeMap(heretic, registered, 4, 2), 0);
+        assert_eq!(D_ValidEpisodeMap(heretic, registered, 4, 0), 0);
+    }
+
+    /// Doom 2 only has episode 1; requesting episode 2 should fail.
+    #[test]
+    fn valid_episode_map_doom2_ep2_invalid() {
+        assert_eq!(D_ValidEpisodeMap(doom2, commercial, 2, 1), 0);
+        assert_eq!(D_ValidEpisodeMap(doom2, commercial, 1, 1), 1);
+        assert_eq!(D_ValidEpisodeMap(doom2, commercial, 1, 32), 1);
+        assert_eq!(D_ValidEpisodeMap(doom2, commercial, 1, 33), 0);
+    }
+
+    /// Map 0 is always invalid.
+    #[test]
+    fn valid_episode_map_map_zero_invalid() {
+        assert_eq!(D_ValidEpisodeMap(doom, retail, 1, 0), 0);
+        assert_eq!(D_ValidEpisodeMap(doom2, commercial, 1, 0), 0);
+    }
+
+    /// D_GetNumEpisodes for doom shareware has 1 episode.
+    #[test]
+    fn get_num_episodes_doom_shareware() {
+        assert_eq!(D_GetNumEpisodes(doom, shareware), 1);
+    }
+
+    /// D_GetNumEpisodes for doom2 (commercial) returns 1.
+    #[test]
+    fn get_num_episodes_doom2() {
+        assert_eq!(D_GetNumEpisodes(doom2, commercial), 1);
+    }
+
+    /// D_GetNumEpisodes for doom registered returns 3.
+    #[test]
+    fn get_num_episodes_doom_registered() {
+        assert_eq!(D_GetNumEpisodes(doom, registered), 3);
+    }
+
+    /// D_IsEpisodeMap is true for pack_chex (chex.wad is episode-based).
+    #[test]
+    fn is_episode_map_pack_chex_true() {
+        assert_eq!(D_IsEpisodeMap(pack_chex), 1);
+    }
+
+    /// pack_tnt / pack_plut are commercial (MAP01–MAP32), not episode-based.
+    #[test]
+    fn is_episode_map_pack_tnt_false() {
+        assert_eq!(D_IsEpisodeMap(pack_tnt), 0);
+        assert_eq!(D_IsEpisodeMap(pack_plut), 0);
+    }
+
+    /// D_ValidGameMode: all expected valid combinations succeed.
+    #[test]
+    fn valid_game_mode_all_missions() {
+        assert_eq!(D_ValidGameMode(doom, retail), 1);
+        assert_eq!(D_ValidGameMode(doom, registered), 1);
+        assert_eq!(D_ValidGameMode(doom2, commercial), 1);
+        assert_eq!(D_ValidGameMode(heretic, shareware), 1);
+        assert_eq!(D_ValidGameMode(hexen, commercial), 1);
+        assert_eq!(D_ValidGameMode(strife, commercial), 1);
+    }
+
+    /// D_ValidGameVersion: doom2 maps to doom for version checks.
+    #[test]
+    fn valid_game_version_all_doom_variants_map_to_doom() {
+        for mission in [doom2, pack_plut, pack_tnt, pack_hacx, pack_chex] {
+            assert_eq!(
+                D_ValidGameVersion(mission, exe_doom_1_9),
+                1,
+                "mission {mission} should accept exe_doom_1_9"
+            );
+        }
+    }
+
+    /// D_GameMissionString returns the right string for every known mission.
+    #[test]
+    fn game_mission_string_all_missions() {
+        use std::ffi::CStr;
+        let cases: &[(c_int, &str)] = &[
+            (doom, "doom"),
+            (doom2, "doom2"),
+            (pack_tnt, "tnt"),
+            (pack_plut, "plutonia"),
+            (pack_hacx, "hacx"),
+            (pack_chex, "chex"),
+            (heretic, "heretic"),
+            (hexen, "hexen"),
+            (strife, "strife"),
+            (none, "none"),
+        ];
+        for (mission, expected) in cases {
+            let ptr = D_GameMissionString(*mission);
+            let s = unsafe { CStr::from_ptr(ptr) };
+            assert_eq!(s.to_str().unwrap(), *expected, "mission={mission}");
+        }
+    }
 }

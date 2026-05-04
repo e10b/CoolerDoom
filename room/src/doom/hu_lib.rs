@@ -449,4 +449,175 @@ mod tests {
         assert_eq!(std::mem::offset_of!(hu_itext_t, on), 120);
         assert_eq!(std::mem::offset_of!(hu_itext_t, laston), 128);
     }
+
+    // ── Behavioral tests for textline helpers ─────────────────────────
+
+    /// Build a zero-initialised hu_textline_t without a valid font pointer.
+    /// Safe to use with clear/add/del because those don't dereference `f`.
+    fn make_textline() -> hu_textline_t {
+        hu_textline_t {
+            x: 0,
+            y: 0,
+            f: std::ptr::null_mut(),
+            sc: 0,
+            l: [0; HU_MAXLINELENGTH + 1],
+            len: 0,
+            needsupdate: 0,
+        }
+    }
+
+    #[test]
+    fn clear_text_line_resets_fields() {
+        let _g = LOCK.lock().unwrap();
+        let mut tl = make_textline();
+        tl.len = 5;
+        tl.needsupdate = 0;
+        tl.l[0] = b'X' as c_char;
+
+        HUlib_clearTextLine(&mut tl);
+
+        assert_eq!(tl.len, 0, "len must be reset to 0");
+        assert_eq!(tl.l[0], 0, "first char must be nul after clear");
+        assert_eq!(tl.needsupdate, 1, "needsupdate must be set to 1");
+    }
+
+    #[test]
+    fn add_char_increments_len_and_nul_terminates() {
+        let _g = LOCK.lock().unwrap();
+        let mut tl = make_textline();
+        HUlib_clearTextLine(&mut tl);
+
+        let ret = HUlib_addCharToTextLine(&mut tl, b'A' as c_char);
+
+        assert_eq!(ret, 1, "successful add must return 1");
+        assert_eq!(tl.len, 1);
+        assert_eq!(tl.l[0], b'A' as c_char);
+        assert_eq!(tl.l[1], 0, "character after the last must be nul");
+        assert_eq!(tl.needsupdate, 4);
+    }
+
+    #[test]
+    fn add_multiple_chars_builds_string() {
+        let _g = LOCK.lock().unwrap();
+        let mut tl = make_textline();
+        HUlib_clearTextLine(&mut tl);
+
+        for ch in b"HI" {
+            HUlib_addCharToTextLine(&mut tl, *ch as c_char);
+        }
+        assert_eq!(tl.len, 2);
+        assert_eq!(tl.l[0], b'H' as c_char);
+        assert_eq!(tl.l[1], b'I' as c_char);
+        assert_eq!(tl.l[2], 0);
+    }
+
+    #[test]
+    fn add_char_at_max_capacity_returns_zero() {
+        let _g = LOCK.lock().unwrap();
+        let mut tl = make_textline();
+        HUlib_clearTextLine(&mut tl);
+
+        // Fill to HU_MAXLINELENGTH
+        for _ in 0..HU_MAXLINELENGTH {
+            HUlib_addCharToTextLine(&mut tl, b'X' as c_char);
+        }
+        assert_eq!(tl.len, HU_MAXLINELENGTH as c_int);
+
+        // One more must be rejected
+        let ret = HUlib_addCharToTextLine(&mut tl, b'Y' as c_char);
+        assert_eq!(ret, 0, "add beyond max length must return 0");
+        assert_eq!(tl.len, HU_MAXLINELENGTH as c_int, "len must not change");
+    }
+
+    #[test]
+    fn del_char_decrements_len_and_nul_terminates() {
+        let _g = LOCK.lock().unwrap();
+        let mut tl = make_textline();
+        HUlib_clearTextLine(&mut tl);
+        HUlib_addCharToTextLine(&mut tl, b'A' as c_char);
+        HUlib_addCharToTextLine(&mut tl, b'B' as c_char);
+
+        let ret = HUlib_delCharFromTextLine(&mut tl);
+
+        assert_eq!(ret, 1, "successful delete must return 1");
+        assert_eq!(tl.len, 1);
+        assert_eq!(tl.l[1], 0, "position after new end must be nul");
+        assert_eq!(tl.needsupdate, 4);
+    }
+
+    #[test]
+    fn del_char_on_empty_line_returns_zero() {
+        let _g = LOCK.lock().unwrap();
+        let mut tl = make_textline();
+        HUlib_clearTextLine(&mut tl);
+
+        let ret = HUlib_delCharFromTextLine(&mut tl);
+        assert_eq!(ret, 0, "delete on empty line must return 0");
+        assert_eq!(tl.len, 0, "len must stay 0");
+    }
+
+    /// HUlib_keyInIText with a printable character in [' ', '_'] must add it.
+    #[test]
+    fn key_in_itext_printable_adds_char() {
+        let _g = LOCK.lock().unwrap();
+        let mut on: c_int = 1;
+        let mut it = hu_itext_t {
+            l: make_textline(),
+            lm: 0,
+            _pad0: [0; 4],
+            on: &mut on,
+            laston: 0,
+            _pad1: [0; 4],
+        };
+        HUlib_clearTextLine(&mut it.l);
+
+        let ret = HUlib_keyInIText(&mut it, b'a'); // lowercase → uppercased to 'A'
+        assert_eq!(ret, 1);
+        assert_eq!(it.l.len, 1);
+        assert_eq!(it.l.l[0], b'A' as c_char);
+    }
+
+    /// HUlib_keyInIText with KEY_BACKSPACE removes the last character.
+    #[test]
+    fn key_in_itext_backspace_removes_char() {
+        use crate::doom::doomkeys::KEY_BACKSPACE;
+        let _g = LOCK.lock().unwrap();
+        let mut on: c_int = 1;
+        let mut it = hu_itext_t {
+            l: make_textline(),
+            lm: 0,
+            _pad0: [0; 4],
+            on: &mut on,
+            laston: 0,
+            _pad1: [0; 4],
+        };
+        HUlib_clearTextLine(&mut it.l);
+        HUlib_addCharToTextLine(&mut it.l, b'Z' as c_char);
+        assert_eq!(it.l.len, 1);
+
+        let ret = HUlib_keyInIText(&mut it, KEY_BACKSPACE);
+        assert_eq!(ret, 1);
+        assert_eq!(it.l.len, 0);
+    }
+
+    /// Characters outside [' ', '_'] (except Enter/Backspace) return 0.
+    #[test]
+    fn key_in_itext_unknown_key_returns_zero() {
+        let _g = LOCK.lock().unwrap();
+        let mut on: c_int = 1;
+        let mut it = hu_itext_t {
+            l: make_textline(),
+            lm: 0,
+            _pad0: [0; 4],
+            on: &mut on,
+            laston: 0,
+            _pad1: [0; 4],
+        };
+        HUlib_clearTextLine(&mut it.l);
+
+        // 0x01 is below ' ' (0x20) and is not Enter or Backspace
+        let ret = HUlib_keyInIText(&mut it, 0x01);
+        assert_eq!(ret, 0, "unknown control char must return 0");
+        assert_eq!(it.l.len, 0, "no char should be added");
+    }
 }

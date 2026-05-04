@@ -79,4 +79,46 @@ mod tests {
             "are you sure you want to\nquit this great game?"
         );
     }
+
+    // ── Additional coverage ───────────────────────────────────────────
+
+    /// Every entry in both tables must be NUL-terminated and non-empty.
+    #[test]
+    fn all_doom1_entries_are_valid_c_strings() {
+        use std::ffi::CStr;
+        for entry in doom1_endmsg.iter() {
+            let s = unsafe { CStr::from_ptr(entry.0) };
+            let text = s.to_str().expect("doom1_endmsg entry is invalid UTF-8");
+            assert!(!text.is_empty(), "doom1_endmsg entry must not be empty");
+        }
+    }
+
+    #[test]
+    fn all_doom2_entries_are_valid_c_strings() {
+        use std::ffi::CStr;
+        for entry in doom2_endmsg.iter() {
+            let s = unsafe { CStr::from_ptr(entry.0) };
+            let text = s.to_str().expect("doom2_endmsg entry is invalid UTF-8");
+            assert!(!text.is_empty(), "doom2_endmsg entry must not be empty");
+        }
+    }
+
+    /// The two tables are independent: same index may differ between them.
+    #[test]
+    fn doom1_and_doom2_differ_at_index_1() {
+        use std::ffi::CStr;
+        let s1 = unsafe { CStr::from_ptr(doom1_endmsg[1].0) }.to_str().unwrap();
+        let s2 = unsafe { CStr::from_ptr(doom2_endmsg[1].0) }.to_str().unwrap();
+        assert_ne!(s1, s2, "index 1 messages should differ between doom1 and doom2");
+    }
+
+    /// The last entry in each table is accessible.
+    #[test]
+    fn last_entries_are_accessible() {
+        use std::ffi::CStr;
+        let s1 = unsafe { CStr::from_ptr(doom1_endmsg[7].0) };
+        let s2 = unsafe { CStr::from_ptr(doom2_endmsg[7].0) };
+        assert!(!s1.to_str().unwrap().is_empty());
+        assert!(!s2.to_str().unwrap().is_empty());
+    }
 }
