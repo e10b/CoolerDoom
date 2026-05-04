@@ -135,11 +135,11 @@ recommended porting order.
 
 ### Renderer (`r_*`)
 
-- [ ] `r_bsp.c`
+- [x] `r_bsp.c`
 - [ ] `r_data.c`
 - [ ] `r_draw.c`
 - [ ] `r_main.c`
-- [ ] `r_plane.c`
+- [x] `r_plane.c`
 - [ ] `r_segs.c`
 - [x] `r_sky.c`
 - [ ] `r_things.c`

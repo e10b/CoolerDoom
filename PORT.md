@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 26 |
-| Total remaining LoC | 31,598 |
-| Already ported LoC | ~13,739 (est.) |
-| Port completeness | ~30% (by line count) |
+| Remaining C modules | 30 |
+| Total remaining LoC | 32,027 |
+| Already ported LoC | ~23,673 (est.) |
+| Port completeness | ~42.5% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -23,9 +23,14 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 _All modules in this bucket have been ported._
 
-### Small — 100–350 LoC (0 files, 0 LoC)
+### Small — 100–350 LoC (4 files, 1,316 LoC)
 
-_All modules in this bucket have been ported._
+| File | Lines | Category | Porting notes |
+|------|------:|----------|---------------|
+| `hu_lib.c` | 347 | HUD | HUD text-drawing primitives |
+| `i_input.c` | 341 | Platform | Keyboard input (reads DG_GetKey) |
+| `p_ceilng.c` | 324 | Game logic | Ceiling action specials |
+| `p_plats.c` | 304 | Game logic | Moving platform specials |
 
 **Recently ported**: `v_video.c` (932 LoC), `i_system.c` (578 LoC), `w_wad.c` (612 LoC), `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC).
 
@@ -33,7 +38,7 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Medium — 550–900 LoC (10 files, 7,367 LoC)
+### Medium — 550–900 LoC (10 files, 7,836 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
@@ -48,7 +53,7 @@ _All modules in this bucket have been ported._
 | `p_pspr.c` | 888 | Game logic | Player weapon sprite (psprite) logic |
 | `r_main.c` | 891 | Renderer | Renderer main loop and view setup |
 
-### Medium-Large — 900–1,100 LoC (5 files, 4,815 LoC)
+### Medium-Large — 900–1,100 LoC (5 files, 4,792 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
@@ -58,7 +63,7 @@ _All modules in this bucket have been ported._
 | `r_things.c` | 982 | Renderer | Sprite rendering and scaling |
 | `p_maputl.c` | 1,001 | Game logic | Map collision utilities (P_PathTraverse, etc.) |
 
-### Large — 1,000–1,500 LoC (6 files, 7,229 LoC)
+### Large — 1,000–1,500 LoC (6 files, 8,209 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
@@ -69,7 +74,7 @@ _All modules in this bucket have been ported._
 | `i_scale.c` | 1,452 | Platform | Screen scaling algorithms |
 | `p_spec.c` | 1,489 | Game logic | Special sector/line action dispatcher |
 
-### Very Large — > 1,500 LoC (5 files, 8,697 LoC)
+### Very Large — > 1,500 LoC (5 files, 9,874 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
@@ -81,8 +86,8 @@ _All modules in this bucket have been ported._
 
 ## Recommended Porting Order
 
-1. **Quick wins** — Only `p_sight.c` remains in Small tier (needs geometry struct mirrors).
-2. **Self-contained modules** — `p_user.c`, `r_plane.c`, `r_bsp.c`.
+1. **Quick wins** — Small tier: `hu_lib.c`, `i_input.c`, `p_ceilng.c`, `p_plats.c`.
+2. **Self-contained modules** — `p_user.c`, `r_plane.c`, `r_bsp.c` are now complete. Good next candidates: `hu_lib.c`, `p_ceilng.c`, `p_plats.c`.
 3. **Building blocks** — `z_zone.c` and `v_video.c` are now ported. Next: `r_data.c`.
 4. **Renderer pipeline** — `r_data.c`, `r_draw.c`, `r_segs.c`, `r_things.c`, `r_main.c`.
 5. **Game logic** — Start with smaller `p_*` modules, work up to `p_map.c`, `p_mobj.c`, `p_spec.c`.
@@ -93,5 +98,7 @@ _All modules in this bucket have been ported._
 - **C shims**: The previous `m_menu_shim.c` (replaced by `room/src/doom/d_player.rs`) and `m_misc_varargs.c` (replaced by Rust `M_StringJoinA` / `M_snprintf_clamp` + macro shims in `m_misc.h`) have already been eliminated. Stable Rust lacks variadic function definitions, so the remaining variadic-style calls from C code are redirected to non-variadic Rust helpers via C preprocessor macros.
 - **`i_video.c` overlap**: The Rust platform layer already provides window/video output via winit/wgpu. Porting `i_video.c` means merging its logic into the existing Rust platform callbacks.
 - **`d_net.c` is a stub**: Since `FEATURE_MULTIPLAYER` is not defined, this module contains only stubs. It can be ported trivially once the build no longer references it.
-- **`z_zone.c` is critical**: The zone memory allocator is called throughout the codebase. Porting it first simplifies subsequent work by providing a safe allocation layer.
+- **`z_zone.c` is now ported**: The zone memory allocator is available in Rust (`room/src/doom/z_zone.rs`). This simplifies subsequent work by providing a safe allocation layer.
 - **Renderer inner loops**: `r_draw.c` and `r_segs.c` contain the hottest rendering paths. Consider whether to port to idiomatic Rust or leverage SIMD/wgpu for these.
+
+(End of file - total 104 lines)
