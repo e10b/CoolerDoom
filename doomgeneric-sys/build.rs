@@ -67,8 +67,8 @@ fn main() {
         // "f_wipe.c",
         // Core game logic
         "g_game.c",
-        // HUD text library
-        "hu_lib.c",
+        // HUD text library — ported to Rust (room/src/doom/hu_lib.rs)
+        // "hu_lib.c",
         "hu_stuff.c",
         // Thing info tables
         // info      — ported to Rust (room/src/doom/info.rs)
@@ -104,8 +104,8 @@ fn main() {
         // m_misc    — ported to Rust (room/src/doom/m_misc.rs)
         // Variadic helpers replaced by M_StringJoinA/M_snprintf_clamp in Rust + macros in m_misc.h
         // Random number generator — ported to Rust (room/src/doom/m_random.rs)
-        // Ceiling actions
-        "p_ceilng.c",
+        // Ceiling actions — ported to Rust (room/src/doom/p_ceilng.rs)
+        // "p_ceilng.c",
         // Door actions
         "p_doors.c",
         // AI / enemy logic
@@ -122,8 +122,8 @@ fn main() {
         "p_maputl.c",
         // Map objects (things)
         "p_mobj.c",
-        // Moving platforms
-        "p_plats.c",
+        // Moving platforms — ported to Rust (room/src/doom/p_plats.rs)
+        // "p_plats.c",
         // Player sprite logic
         "p_pspr.c",
         // Save games
@@ -187,8 +187,8 @@ fn main() {
         // "w_wad.c",
         // Zone memory allocator — ported to Rust (room/src/doom/z_zone.rs)
         // "z_zone.c",
-        // Input handling (calls DG_GetKey)
-        "i_input.c",
+        // Input handling (calls DG_GetKey) — ported to Rust (room/src/doom/i_input.rs)
+        // "i_input.c",
         // Video output (calls DG_DrawFrame, DG_Init) — ported to Rust (room/src/doom/i_video.rs)
         // "i_video.c",
         // doomgeneric glue — ported to Rust (room/src/doom/doomgeneric.rs)

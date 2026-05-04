@@ -113,7 +113,7 @@ recommended porting order.
 ### Game logic (`g_*`, `p_*`)
 
 - [ ] `g_game.c`
-- [ ] `p_ceilng.c`
+- [x] `p_ceilng.c`
 - [ ] `p_doors.c`
 - [ ] `p_enemy.c`
 - [x] `p_floor.c`
@@ -122,7 +122,7 @@ recommended porting order.
 - [ ] `p_map.c`
 - [ ] `p_maputl.c`
 - [ ] `p_mobj.c`
-- [ ] `p_plats.c`
+- [x] `p_plats.c`
 - [ ] `p_pspr.c`
 - [ ] `p_saveg.c`
 - [ ] `p_setup.c`
@@ -147,7 +147,7 @@ recommended porting order.
 ### Automap / HUD / status bar / finale / intermission
 
 - [ ] `am_map.c`
-- [ ] `hu_lib.c`
+- [x] `hu_lib.c`
 - [ ] `hu_stuff.c`
 - [x] `st_lib.c`
 - [ ] `st_stuff.c`
@@ -174,7 +174,7 @@ recommended porting order.
 
 - [x] `i_cdmus.c`
 - [x] `i_endoom.c`
-- [ ] `i_input.c`
+- [x] `i_input.c`
 - [x] `i_joystick.c`
 - [ ] `i_scale.c`
 - [x] `i_sound.c`

@@ -3,10 +3,14 @@
 use std::ffi::{c_char, c_int};
 use std::ptr;
 
-// Pull in the p_lights, p_telept, p_sight, p_floor, and p_user anchors so all #[no_mangle] functions
-// survive link-time dead-code elimination (they are only called from C).
+// Pull in the anchors so all #[no_mangle] functions survive link-time dead-code elimination
+// (they are only called from C).
+use super::hu_lib::HUlib_init;
+use super::i_input::I_Input_Link_Anchor;
+use super::p_ceilng::P_Ceilng_Link_Anchor;
 use super::p_floor::P_Floor_Link_Anchor;
 use super::p_lights::P_Lights_Link_Anchor;
+use super::p_plats::P_Plats_Link_Anchor;
 use super::p_sight::P_Sight_Link_Anchor;
 use super::p_telept::P_Telept_Link_Anchor;
 use super::p_user::P_User_Link_Anchor;
@@ -31,12 +35,16 @@ extern "C" {
 
 #[no_mangle]
 pub unsafe extern "C" fn doomgeneric_Create(argc: c_int, argv: *mut *mut c_char) {
-    // Anchor p_lights, p_telept, p_sight, p_floor, and p_user symbols so they survive LTO (called only from C).
-    P_Lights_Link_Anchor();
-    P_Telept_Link_Anchor();
-    P_Sight_Link_Anchor();
+    // Anchor all ported module symbols so they survive LTO (called only from C).
+    P_Ceilng_Link_Anchor();
     P_Floor_Link_Anchor();
+    P_Lights_Link_Anchor();
+    P_Plats_Link_Anchor();
+    P_Sight_Link_Anchor();
+    P_Telept_Link_Anchor();
     P_User_Link_Anchor();
+    I_Input_Link_Anchor();
+    let _ = HUlib_init as *const () as usize;
 
     myargc = argc;
     myargv = argv;
