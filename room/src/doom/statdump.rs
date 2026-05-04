@@ -73,3 +73,30 @@ pub extern "C" fn StatCopy(stats: *mut wbstartstruct_t) {
 pub extern "C" fn StatDump() {
     // All implementation is wrapped in #if ORIGCODE which is not defined
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// wbplayerstruct_t must be 36 bytes: 5 × i32 (20) + [i32; 4] (16).
+    #[test]
+    fn wbplayerstruct_t_size_matches_c() {
+        // in_(4) + skills(4) + sitems(4) + ssecret(4) + stime(4) + frags[4](16) = 36
+        assert_eq!(std::mem::size_of::<wbplayerstruct_t>(), 36);
+    }
+
+    /// wbstartstruct_t: 3 × sizeof(int) + 4 × sizeof(wbplayerstruct_t).
+    #[test]
+    fn wbstartstruct_t_size_matches_c() {
+        // epsd(4) + last(4) + partime(4) + plyr[4] (4 × 36 = 144) = 156
+        let expected =
+            3 * std::mem::size_of::<c_int>() + 4 * std::mem::size_of::<wbplayerstruct_t>();
+        assert_eq!(std::mem::size_of::<wbstartstruct_t>(), expected);
+    }
+
+    /// StatDump must not panic (it is currently a no-op stub).
+    #[test]
+    fn stat_dump_does_not_panic() {
+        StatDump();
+    }
+}

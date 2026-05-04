@@ -10,8 +10,6 @@ use std::os::raw::c_int;
 
 use crate::doom::v_video::patch_t;
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const PU_STATIC: c_int = 1;
 const ST_HEIGHT: c_int = 32;
 const ST_Y: c_int = 200 - ST_HEIGHT; // 168
@@ -22,8 +20,6 @@ const ST_Y: c_int = 200 - ST_HEIGHT; // 168
 fn short_swap(v: i16) -> i16 {
     v
 }
-
-// ── Widget structs (from st_lib.h) ────────────────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -69,12 +65,8 @@ pub struct st_binicon_t {
     pub data: c_int,
 }
 
-// ── C globals ─────────────────────────────────────────────────────────
-
 #[no_mangle]
 pub static mut sttminus: *mut patch_t = std::ptr::null_mut();
-
-// ── External declarations ─────────────────────────────────────────────
 
 extern "C" {
     fn W_CacheLumpName(name: *const c_char, tag: c_int) -> *mut c_void;
@@ -92,8 +84,6 @@ extern "C" {
     static mut st_backing_screen: *mut u8;
     static mut automapactive: c_int;
 }
-
-// ── Public API ────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn STlib_init() {
@@ -315,8 +305,6 @@ pub extern "C" fn STlib_updateBinIcon(bi: *mut st_binicon_t, refresh: c_int) {
         }
     }
 }
-
-// ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {

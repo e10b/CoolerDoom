@@ -19,15 +19,12 @@ pub use room::doom::doomkeys::*;
 /// extended with additional special keys supported by the winit API.
 pub fn to_doom_key(code: KeyCode) -> Option<u8> {
     let key = match code {
-        // --- Navigation ---
         KeyCode::Enter => KEY_ENTER,
         KeyCode::Escape => KEY_ESCAPE,
         KeyCode::ArrowLeft => KEY_LEFTARROW,
         KeyCode::ArrowRight => KEY_RIGHTARROW,
         KeyCode::ArrowUp => KEY_UPARROW,
         KeyCode::ArrowDown => KEY_DOWNARROW,
-
-        // --- Action keys ---
         // Ctrl → fire
         KeyCode::ControlLeft | KeyCode::ControlRight => KEY_FIRE,
         // Space → use
@@ -36,8 +33,6 @@ pub fn to_doom_key(code: KeyCode) -> Option<u8> {
         KeyCode::ShiftLeft | KeyCode::ShiftRight => KEY_RSHIFT,
         // Alt → strafe
         KeyCode::AltLeft | KeyCode::AltRight => KEY_LALT,
-
-        // --- Function keys ---
         KeyCode::F1 => KEY_F1,
         KeyCode::F2 => KEY_F2,
         KeyCode::F3 => KEY_F3,
@@ -50,15 +45,11 @@ pub fn to_doom_key(code: KeyCode) -> Option<u8> {
         KeyCode::F10 => KEY_F10,
         KeyCode::F11 => KEY_F11,
         KeyCode::F12 => KEY_F12,
-
-        // --- Punctuation ---
         KeyCode::Equal => KEY_EQUALS,
         KeyCode::Minus => KEY_MINUS,
         KeyCode::Backspace => KEY_BACKSPACE,
         KeyCode::Tab => KEY_TAB,
         KeyCode::Pause => KEY_PAUSE,
-
-        // --- Printable ASCII keys ---
         // Map winit physical key codes to lower-case ASCII.
         KeyCode::KeyA => b'a',
         KeyCode::KeyB => b'b',

@@ -107,4 +107,57 @@ mod tests {
             assert_eq!(rndindex, 0);
         }
     }
+
+    #[test]
+    fn p_random_increments_prndindex() {
+        let _g = LOCK.lock().unwrap();
+        M_ClearRandom();
+        assert_eq!(P_Random(), RNDTABLE[1] as c_int);
+        assert_eq!(P_Random(), RNDTABLE[2] as c_int);
+        unsafe {
+            assert_eq!(prndindex, 2);
+        }
+    }
+
+    #[test]
+    fn clear_also_resets_prndindex() {
+        let _g = LOCK.lock().unwrap();
+        P_Random();
+        P_Random();
+        M_ClearRandom();
+        unsafe {
+            assert_eq!(prndindex, 0);
+        }
+    }
+
+    /// After exactly 256 calls to M_Random the index wraps back to 0,
+    /// so the 257th call returns RNDTABLE[1] — identical to the first call.
+    #[test]
+    fn m_random_wraps_at_256() {
+        let _g = LOCK.lock().unwrap();
+        M_ClearRandom();
+        let first = M_Random();
+        for _ in 1..256 {
+            M_Random();
+        }
+        // 256 calls done; rndindex = (0 + 256) & 0xFF = 0
+        unsafe {
+            assert_eq!(rndindex, 0);
+        }
+        // 257th call should match the first (RNDTABLE[1])
+        assert_eq!(M_Random(), first);
+    }
+
+    /// P_Random and M_Random share the same RNDTABLE but use independent cursors.
+    #[test]
+    fn p_and_m_cursors_are_independent() {
+        let _g = LOCK.lock().unwrap();
+        M_ClearRandom();
+        // advance M five steps
+        for _ in 0..5 {
+            M_Random();
+        }
+        // P cursor is still at 0; first P_Random returns RNDTABLE[1]
+        assert_eq!(P_Random(), RNDTABLE[1] as c_int);
+    }
 }

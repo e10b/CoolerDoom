@@ -11,8 +11,6 @@ use crate::doom::m_fixed::fixed_t;
 use crate::doom::p_lights::sector_t;
 use crate::doom::p_tick::{thinker_t, P_AddThinker, P_RemoveThinker};
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const PU_LEVSPEC: c_int = 5;
 const FLOORSPEED: fixed_t = FRACUNIT;
 const FRACUNIT: fixed_t = 1 << 16;
@@ -45,8 +43,6 @@ const stair_turbo16: c_int = 1;
 // line flags
 const ML_TWOSIDED: i16 = 4;
 
-// ── floormove_t (from p_spec.h) ───────────────────────────────────────
-
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct floormove_t {
@@ -61,8 +57,6 @@ pub struct floormove_t {
     pub floordestheight: fixed_t,
     pub speed: fixed_t,
 }
-
-// ── side_t minimal mirror ─────────────────────────────────────────────
 // Only .sector is accessed in EV_BuildStairs via pointer arithmetic.
 // Probe required for offset. On x86_64, sector is at offset 48.
 
@@ -77,8 +71,6 @@ pub struct side_t {
     _pad: [u8; 2],
     pub sector: *mut sector_t,
 }
-
-// ── line_t partial mirror (reuse from p_lights.rs) ────────────────────
 
 use crate::doom::p_lights::line_t;
 
@@ -105,8 +97,6 @@ mod layout_checks {
     const _: () = assert!(std::mem::offset_of!(side_t, sector) == 16);
 }
 
-// ── External declarations ─────────────────────────────────────────────
-
 extern "C" {
     fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
     fn P_FindSectorFromLineTag(line: *mut line_t, start: c_int) -> c_int;
@@ -127,8 +117,6 @@ extern "C" {
 
 const SFX_PSTOP: c_int = 19;
 const SFX_STNMOV: c_int = 22;
-
-// ── T_MovePlane ──────────────────────────────────────────────────────
 
 /// Move a plane (floor or ceiling) and check for crushing.
 /// Shared by p_floor, p_ceilng, p_plats, p_doors.
@@ -252,8 +240,6 @@ pub extern "C" fn T_MovePlane(
     }
 }
 
-// ── T_MoveFloor ───────────────────────────────────────────────────────
-
 #[no_mangle]
 pub unsafe extern "C" fn T_MoveFloor(floor: *mut floormove_t) {
     let res = T_MovePlane(
@@ -292,8 +278,6 @@ pub unsafe extern "C" fn T_MoveFloor(floor: *mut floormove_t) {
         );
     }
 }
-
-// ── EV_DoFloor ────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn EV_DoFloor(line: *mut line_t, floortype: c_int) -> c_int {
@@ -455,8 +439,6 @@ pub unsafe extern "C" fn EV_DoFloor(line: *mut line_t, floortype: c_int) -> c_in
     rtn
 }
 
-// ── EV_BuildStairs ────────────────────────────────────────────────────
-
 #[no_mangle]
 pub unsafe extern "C" fn EV_BuildStairs(line: *mut line_t, stype: c_int) -> c_int {
     let mut secnum: c_int = -1;
@@ -559,8 +541,6 @@ pub unsafe extern "C" fn EV_BuildStairs(line: *mut line_t, stype: c_int) -> c_in
     rtn
 }
 
-// ── Link Anchor ───────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn P_Floor_Link_Anchor() {
     let _ = T_MovePlane as *const () as usize;
@@ -568,8 +548,6 @@ pub extern "C" fn P_Floor_Link_Anchor() {
     let _ = EV_DoFloor as *const () as usize;
     let _ = EV_BuildStairs as *const () as usize;
 }
-
-// ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {

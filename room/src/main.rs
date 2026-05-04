@@ -159,14 +159,11 @@ impl ApplicationHandler for App {
         event: WindowEvent,
     ) {
         match event {
-            // --- Close button pressed ---
             WindowEvent::CloseRequested => {
                 log::info!("Close requested – exiting");
                 QUIT_REQUESTED.with(|q| q.set(true));
                 event_loop.exit();
             }
-
-            // --- Window resized ---
             WindowEvent::Resized(new_size) => {
                 GPU.with_borrow_mut(|g| {
                     if let Some(gpu) = g.as_mut() {
@@ -174,8 +171,6 @@ impl ApplicationHandler for App {
                     }
                 });
             }
-
-            // --- Keyboard input ---
             WindowEvent::KeyboardInput { event, .. } => {
                 if let PhysicalKey::Code(code) = event.physical_key {
                     // Ignore auto-repeat key presses (key held down).

@@ -292,4 +292,126 @@ mod tests {
         mem_fclose(read_file);
         mem_fclose(write_file);
     }
+
+    /// Reading from a write-mode stream must return 0 items.
+    #[test]
+    fn fread_on_write_mode_returns_zero() {
+        let write_file = mem_fopen_write();
+        let data = [0u8; 4];
+        mem_fwrite(data.as_ptr() as *const c_void, 1, 4, write_file);
+
+        let mut out = [0u8; 4];
+        let items = mem_fread(out.as_mut_ptr() as *mut c_void, 1, 4, write_file);
+        assert_eq!(items, 0, "fread on write-mode stream must return 0");
+
+        mem_fclose(write_file);
+    }
+
+    /// Writing to a read-mode stream must return 0 items.
+    #[test]
+    fn fwrite_on_read_mode_returns_zero() {
+        // Create a small backing buffer on the stack.
+        let mut backing = [1u8, 2, 3, 4];
+        let read_file = mem_fopen_read(backing.as_mut_ptr() as *mut c_void, backing.len());
+
+        let payload = [0xFFu8; 4];
+        let items = mem_fwrite(payload.as_ptr() as *const c_void, 1, 4, read_file);
+        assert_eq!(items, 0, "fwrite on read-mode stream must return 0");
+
+        mem_fclose(read_file);
+    }
+
+    /// Seeking exactly to the buffer length (== one past the last byte) must
+    /// return -1 because that position is out of range for reading.
+    #[test]
+    fn fseek_to_exact_end_returns_neg1() {
+        let write_file = mem_fopen_write();
+        let data = [0u8; 8];
+        mem_fwrite(data.as_ptr() as *const c_void, 1, 8, write_file);
+
+        let mut buf_ptr: *mut c_void = std::ptr::null_mut();
+        let mut buflen: usize = 0;
+        mem_get_buf(write_file, &mut buf_ptr, &mut buflen);
+
+        let read_file = mem_fopen_read(buf_ptr, buflen);
+        // Seeking to buflen (8) is past the last valid position (7).
+        assert_eq!(
+            mem_fseek(read_file, 8, mem_rel_t::MEM_SEEK_SET),
+            -1,
+            "seek to exact buflen should fail"
+        );
+
+        mem_fclose(read_file);
+        mem_fclose(write_file);
+    }
+
+    /// Seeking far beyond the buffer must also return -1.
+    #[test]
+    fn fseek_beyond_end_returns_neg1() {
+        let write_file = mem_fopen_write();
+        let data = [0u8; 4];
+        mem_fwrite(data.as_ptr() as *const c_void, 1, 4, write_file);
+
+        let mut buf_ptr: *mut c_void = std::ptr::null_mut();
+        let mut buflen: usize = 0;
+        mem_get_buf(write_file, &mut buf_ptr, &mut buflen);
+
+        let read_file = mem_fopen_read(buf_ptr, buflen);
+        assert_eq!(
+            mem_fseek(read_file, 100, mem_rel_t::MEM_SEEK_SET),
+            -1,
+            "seek past end should return -1"
+        );
+
+        mem_fclose(read_file);
+        mem_fclose(write_file);
+    }
+
+    /// Writing enough bytes to exceed the initial 1024-byte allocation forces
+    /// the write buffer to grow via realloc.
+    #[test]
+    fn fwrite_grows_buffer_past_initial_alloc() {
+        let write_file = mem_fopen_write();
+        let data = vec![0xABu8; 2048]; // 2× initial allocation
+
+        let items = mem_fwrite(data.as_ptr() as *const c_void, 1, data.len(), write_file);
+        assert_eq!(items, data.len());
+
+        let mut buf_ptr: *mut c_void = std::ptr::null_mut();
+        let mut buflen: usize = 0;
+        mem_get_buf(write_file, &mut buf_ptr, &mut buflen);
+        assert_eq!(buflen, 2048);
+
+        // Verify all bytes round-trip correctly.
+        let read_file = mem_fopen_read(buf_ptr, buflen);
+        let mut out = vec![0u8; 2048];
+        let items_read = mem_fread(out.as_mut_ptr() as *mut c_void, 1, out.len(), read_file);
+        assert_eq!(items_read, 2048);
+        assert_eq!(out, data);
+
+        mem_fclose(read_file);
+        mem_fclose(write_file);
+    }
+
+    /// mem_fread with a multi-byte element size reads only whole elements.
+    #[test]
+    fn fread_partial_elements_truncated() {
+        let write_file = mem_fopen_write();
+        let data = [1u8, 2, 3, 4, 5]; // 5 bytes
+        mem_fwrite(data.as_ptr() as *const c_void, 1, 5, write_file);
+
+        let mut buf_ptr: *mut c_void = std::ptr::null_mut();
+        let mut buflen: usize = 0;
+        mem_get_buf(write_file, &mut buf_ptr, &mut buflen);
+
+        let read_file = mem_fopen_read(buf_ptr, buflen);
+        let mut out = [0u8; 6];
+        // request 3 items of size 2 = 6 bytes, but only 5 available → 2 items
+        let items = mem_fread(out.as_mut_ptr() as *mut c_void, 2, 3, read_file);
+        assert_eq!(items, 2, "only 2 complete 2-byte items fit in 5 bytes");
+        assert_eq!(out[0..4], [1, 2, 3, 4]);
+
+        mem_fclose(read_file);
+        mem_fclose(write_file);
+    }
 }

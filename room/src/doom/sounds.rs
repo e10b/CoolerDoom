@@ -2216,3 +2216,80 @@ pub extern "C" fn S_InitSfxLinks() {
         S_sfx[sfx_chgun as usize].link = &mut S_sfx[sfx_pistol as usize] as *mut SfxInfo;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::CStr;
+
+    #[test]
+    fn sfx_table_has_correct_length() {
+        // The static array is sized by NUMSFX; this confirms no off-by-one.
+        unsafe {
+            assert_eq!(S_sfx.len(), NUMSFX);
+        }
+    }
+
+    #[test]
+    fn music_table_has_correct_length() {
+        unsafe {
+            assert_eq!(S_music.len(), NUMMUSIC);
+        }
+    }
+
+    /// Entry 0 is the "none" sentinel – priority and numchannels must be 0 / -1.
+    #[test]
+    fn sfx_entry_zero_is_none_sentinel() {
+        unsafe {
+            assert_eq!(S_sfx[0].priority, 0);
+            assert_eq!(S_sfx[0].numchannels, -1);
+            assert_eq!(S_sfx[0].lumpnum, 0);
+            // tagname and link are null initially
+            assert!(S_sfx[0].tagname.is_null());
+            assert!(S_sfx[0].link.is_null());
+        }
+    }
+
+    /// sfx_pistol is entry 1 with priority 64.
+    #[test]
+    fn sfx_pistol_is_entry_1_with_priority_64() {
+        unsafe {
+            let entry = &S_sfx[sfx_pistol as usize];
+            assert_eq!(entry.priority, 64);
+            // name must start with "pistol"
+            let name_bytes: Vec<u8> = entry.name.iter().map(|&c| c as u8).collect();
+            assert!(
+                name_bytes.starts_with(b"pistol"),
+                "name should start with 'pistol'"
+            );
+        }
+    }
+
+    /// sfx_chgun (entry 86) must link to sfx_pistol after S_InitSfxLinks.
+    #[test]
+    fn sfx_chgun_links_to_pistol_after_init() {
+        unsafe {
+            S_InitSfxLinks();
+            let pistol_ptr = &S_sfx[sfx_pistol as usize] as *const SfxInfo;
+            let chgun_link = S_sfx[sfx_chgun as usize].link as *const SfxInfo;
+            assert_eq!(
+                chgun_link, pistol_ptr,
+                "sfx_chgun.link must point to sfx_pistol"
+            );
+        }
+    }
+
+    #[test]
+    fn sfx_info_size_matches_c() {
+        // sizeof(sfxinfo_t) in C on 64-bit: tagname(8) + name[9](9) + pad(3)
+        // + priority(4) + link(8) + pitch(4) + volume(4) + usefulness(4)
+        // + lumpnum(4) + numchannels(4) + pad(4) + driver_data(8) = 64 bytes
+        assert_eq!(std::mem::size_of::<SfxInfo>(), 64);
+    }
+
+    #[test]
+    fn music_info_size_matches_c() {
+        // sizeof(musicinfo_t) is 32 on 64-bit (four pointer-sized fields).
+        assert_eq!(std::mem::size_of::<MusicInfo>(), 32);
+    }
+}

@@ -11,8 +11,6 @@ use crate::doom::m_fixed::fixed_t;
 use crate::doom::p_lights::{line_t, sector_t};
 use crate::doom::p_tick::{thinker_t, P_AddThinker, P_RemoveThinker};
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const PU_LEVSPEC: c_int = 5;
 const CEILSPEED: fixed_t = FRACUNIT;
 const FRACUNIT: fixed_t = 1 << 16;
@@ -35,8 +33,6 @@ const silentCrushAndRaise: c_int = 5;
 const sfx_pstop: c_int = 19;
 const sfx_stnmov: c_int = 22;
 
-// ── ceiling_t (from p_spec.h) ─────────────────────────────────────────
-
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct ceiling_t {
@@ -54,8 +50,6 @@ pub struct ceiling_t {
     _pad1: [u8; 4],
 }
 
-// ── Layout checks ─────────────────────────────────────────────────────
-
 #[cfg(target_pointer_width = "64")]
 mod layout_checks {
     use super::*;
@@ -72,12 +66,8 @@ mod layout_checks {
     const _: () = assert!(std::mem::offset_of!(ceiling_t, olddirection) == 64);
 }
 
-// ── Globals ───────────────────────────────────────────────────────────
-
 #[no_mangle]
 pub static mut activeceilings: [*mut ceiling_t; MAXCEILINGS] = [std::ptr::null_mut(); MAXCEILINGS];
-
-// ── External declarations ─────────────────────────────────────────────
 
 extern "C" {
     fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
@@ -95,8 +85,6 @@ extern "C" {
     static mut sectors: *mut sector_t;
     static mut leveltime: c_int;
 }
-
-// ── T_MoveCeiling ─────────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn T_MoveCeiling(ceiling: *mut ceiling_t) {
@@ -150,8 +138,6 @@ pub unsafe extern "C" fn T_MoveCeiling(ceiling: *mut ceiling_t) {
         }
     }
 }
-
-// ── EV_DoCeiling ──────────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn EV_DoCeiling(line: *mut line_t, ceilingtype: c_int) -> c_int {
@@ -226,8 +212,6 @@ pub unsafe extern "C" fn EV_DoCeiling(line: *mut line_t, ceilingtype: c_int) -> 
     rtn
 }
 
-// ── P_AddActiveCeiling ────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn P_AddActiveCeiling(c: *mut ceiling_t) {
     unsafe {
@@ -239,8 +223,6 @@ pub extern "C" fn P_AddActiveCeiling(c: *mut ceiling_t) {
         }
     }
 }
-
-// ── P_RemoveActiveCeiling ─────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn P_RemoveActiveCeiling(c: *mut ceiling_t) {
@@ -255,8 +237,6 @@ pub extern "C" fn P_RemoveActiveCeiling(c: *mut ceiling_t) {
         }
     }
 }
-
-// ── P_ActivateInStasisCeiling ─────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn P_ActivateInStasisCeiling(line: *mut line_t) {
@@ -275,8 +255,6 @@ pub extern "C" fn P_ActivateInStasisCeiling(line: *mut line_t) {
         }
     }
 }
-
-// ── EV_CeilingCrushStop ───────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn EV_CeilingCrushStop(line: *mut line_t) -> c_int {
@@ -297,8 +275,6 @@ pub extern "C" fn EV_CeilingCrushStop(line: *mut line_t) -> c_int {
     }
 }
 
-// ── Link Anchor ───────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn P_Ceilng_Link_Anchor() {
     let _ = T_MoveCeiling as *const () as usize;
@@ -308,8 +284,6 @@ pub extern "C" fn P_Ceilng_Link_Anchor() {
     let _ = P_ActivateInStasisCeiling as *const () as usize;
     let _ = EV_CeilingCrushStop as *const () as usize;
 }
-
-// ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {

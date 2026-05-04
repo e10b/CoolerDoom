@@ -8,8 +8,6 @@
 use std::ffi::c_char;
 use std::os::raw::c_int;
 
-// ── Enum sentinel values (mirrored from doomdef.h / p_pspr.h) ─────────
-
 pub const NUMPOWERS: usize = 6;
 pub const NUMCARDS: usize = 6;
 pub const NUMWEAPONS: usize = 9;
@@ -17,12 +15,8 @@ pub const NUMAMMO: usize = 4;
 pub const NUMPSPRITES: usize = 2;
 pub const MAXPLAYERS: usize = 4;
 
-// ── Opaque forward declarations ───────────────────────────────────────
-
 pub enum mobj_t {}
 pub enum state_t {}
-
-// ── ticcmd_t (from d_ticcmd.h) ────────────────────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -40,8 +34,6 @@ pub struct TiccmdT {
     _pad: [u8; 2],
 }
 
-// ── pspdef_t (from p_pspr.h) ─────────────────────────────────────────
-
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct PspdefT {
@@ -50,8 +42,6 @@ pub struct PspdefT {
     pub sx: c_int,
     pub sy: c_int,
 }
-
-// ── player_t (from d_player.h, lines 78–161) ─────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -93,21 +83,15 @@ pub struct PlayerT {
     pub didsecret: c_int,
 }
 
-// ── C globals ─────────────────────────────────────────────────────────
-
 extern "C" {
     pub static mut players: [PlayerT; MAXPLAYERS];
     pub static mut consoleplayer: c_int;
 }
 
-// ── M_Menu_SetPlayerMessage (replaces m_menu_shim.c) ──────────────────
-
 #[no_mangle]
 pub unsafe extern "C" fn M_Menu_SetPlayerMessage(msg: *const c_char) {
     (*players.as_mut_ptr().offset(consoleplayer as isize)).message = msg as *mut c_char;
 }
-
-// ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {

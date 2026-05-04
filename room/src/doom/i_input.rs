@@ -11,21 +11,15 @@ use std::os::raw::c_int;
 use crate::doom::d_event::event_t;
 use crate::doom::doomkeys::{KEY_BACKSPACE, KEY_ENTER, KEY_RSHIFT};
 
-// ── Globals ───────────────────────────────────────────────────────────
-
 #[no_mangle]
 pub static mut vanilla_keyboard_mapping: c_int = 1;
 
 static mut shiftdown: c_int = 0;
 
-// ── External declarations ─────────────────────────────────────────────
-
 extern "C" {
     fn DG_GetKey(pressed: *mut c_int, key: *mut u8) -> c_int;
     fn D_PostEvent(ev: *const event_t);
 }
-
-// ── Shift translation table ───────────────────────────────────────────
 
 static SHIFTXFORM: [u8; 128] = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
@@ -56,8 +50,6 @@ static SHIFTXFORM: [u8; 128] = [
     b'Q', b'R', b'S', b'T', b'U', b'V', b'W', b'X', b'Y', b'Z', b'{', b'|', b'}', b'~', 127,
 ];
 
-// ── Internal helpers ──────────────────────────────────────────────────
-
 fn TranslateKey(key: u8) -> u8 {
     // The platform layer (DG_GetKey) already returns Doom key codes,
     // so this is an identity function (matching the active code in
@@ -87,8 +79,6 @@ fn UpdateShiftStatus(pressed: c_int, key: u8) {
         }
     }
 }
-
-// ── Public API ────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn I_InitInput() {}
@@ -129,8 +119,6 @@ pub extern "C" fn I_GetEvent() {
         }
     }
 }
-
-// ── Link Anchor ───────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn I_Input_Link_Anchor() {

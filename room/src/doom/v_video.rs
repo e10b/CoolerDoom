@@ -7,14 +7,10 @@
 use std::ffi::{c_char, c_int, c_void};
 use std::ptr;
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const SCREENWIDTH: c_int = 320;
 const SCREENHEIGHT: c_int = 200;
 const PU_STATIC: c_int = 1;
 const PU_CACHE: c_int = 8;
-
-// ── Mirrored C structs ────────────────────────────────────────────────
 
 #[repr(C, packed)]
 #[derive(Clone, Copy)]
@@ -59,8 +55,6 @@ struct pcx_t {
     data: u8,
 }
 
-// ── Globals ───────────────────────────────────────────────────────────
-
 #[no_mangle]
 pub static mut tinttable: *mut u8 = ptr::null_mut();
 
@@ -72,8 +66,6 @@ pub static mut dirtybox: [c_int; 4] = [0; 4];
 
 static mut dest_screen: *mut u8 = ptr::null_mut();
 static mut patchclip_callback: vpatchclipfunc_t = None;
-
-// ── External declarations ─────────────────────────────────────────────
 
 extern "C" {
     fn I_Error(format: *const c_char, ...);
@@ -91,8 +83,6 @@ extern "C" {
     static mut mouse_acceleration: f32;
     static mut mouse_threshold: c_int;
 }
-
-// ── Public API ────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn V_MarkRect(x: c_int, y: c_int, width: c_int, height: c_int) {
@@ -503,8 +493,6 @@ pub extern "C" fn V_RestoreBuffer() {
     }
 }
 
-// ── Screenshots ───────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn WritePCXfile(
     filename: *mut c_char,
@@ -608,8 +596,6 @@ pub extern "C" fn V_ScreenShot(format: *mut c_char) {
     }
 }
 
-// ── Mouse speed box ───────────────────────────────────────────────────
-
 const MOUSE_SPEED_BOX_WIDTH: c_int = 120;
 const MOUSE_SPEED_BOX_HEIGHT: c_int = 9;
 
@@ -692,8 +678,6 @@ pub extern "C" fn V_DrawMouseSpeedBox(speed: c_int) {
         );
     }
 }
-
-// ── Anchor so linker doesn't discard ──────────────────────────────────
 
 extern "C" fn dummy_clip(_: *mut patch_t, _: c_int, _: c_int) -> c_int {
     0

@@ -12,8 +12,6 @@ use crate::doom::p_floor::side_t;
 use crate::doom::p_lights::{line_t, sector_t};
 use crate::doom::p_tick::{thinker_t, P_AddThinker, P_RemoveThinker};
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const PU_LEVSPEC: c_int = 5;
 const PLATSPEED: fixed_t = FRACUNIT;
 const PLATWAIT: c_int = 3;
@@ -44,8 +42,6 @@ const sfx_pstart: c_int = 18;
 const sfx_pstop: c_int = 19;
 const sfx_stnmov: c_int = 22;
 
-// ── plat_t (from p_spec.h) ────────────────────────────────────────────
-
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct plat_t {
@@ -62,8 +58,6 @@ pub struct plat_t {
     pub tag: c_int,
     pub r#type: c_int,
 }
-
-// ── Layout checks ─────────────────────────────────────────────────────
 
 #[cfg(target_pointer_width = "64")]
 mod layout_checks {
@@ -83,12 +77,8 @@ mod layout_checks {
     const _: () = assert!(std::mem::offset_of!(plat_t, r#type) == 68);
 }
 
-// ── Globals ───────────────────────────────────────────────────────────
-
 #[no_mangle]
 pub static mut activeplats: [*mut plat_t; MAXPLATS] = [std::ptr::null_mut(); MAXPLATS];
-
-// ── External declarations ─────────────────────────────────────────────
 
 extern "C" {
     fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
@@ -111,8 +101,6 @@ extern "C" {
     static mut sides: *mut side_t;
     static mut leveltime: c_int;
 }
-
-// ── T_PlatRaise ───────────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn T_PlatRaise(plat: *mut plat_t) {
@@ -193,8 +181,6 @@ pub unsafe extern "C" fn T_PlatRaise(plat: *mut plat_t) {
         _ => {}
     }
 }
-
-// ── EV_DoPlat ─────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn EV_DoPlat(line: *mut line_t, plattype: c_int, amount: c_int) -> c_int {
@@ -315,8 +301,6 @@ pub unsafe extern "C" fn EV_DoPlat(line: *mut line_t, plattype: c_int, amount: c
     rtn
 }
 
-// ── P_ActivateInStasis ────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn P_ActivateInStasis(tag: c_int) {
     unsafe {
@@ -335,8 +319,6 @@ pub extern "C" fn P_ActivateInStasis(tag: c_int) {
     }
 }
 
-// ── EV_StopPlat ───────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn EV_StopPlat(line: *mut line_t) {
     unsafe {
@@ -353,8 +335,6 @@ pub extern "C" fn EV_StopPlat(line: *mut line_t) {
     }
 }
 
-// ── P_AddActivePlat ───────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn P_AddActivePlat(plat: *mut plat_t) {
     unsafe {
@@ -367,8 +347,6 @@ pub extern "C" fn P_AddActivePlat(plat: *mut plat_t) {
         I_Error(b"P_AddActivePlat: no more plats!\0".as_ptr() as *const c_char);
     }
 }
-
-// ── P_RemoveActivePlat ────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn P_RemoveActivePlat(plat: *mut plat_t) {
@@ -385,8 +363,6 @@ pub extern "C" fn P_RemoveActivePlat(plat: *mut plat_t) {
     }
 }
 
-// ── Link Anchor ───────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn P_Plats_Link_Anchor() {
     let _ = T_PlatRaise as *const () as usize;
@@ -396,8 +372,6 @@ pub extern "C" fn P_Plats_Link_Anchor() {
     let _ = P_AddActivePlat as *const () as usize;
     let _ = P_RemoveActivePlat as *const () as usize;
 }
-
-// ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
