@@ -26,7 +26,7 @@ struct stdc_wad_file_t {
 }
 
 extern "C" {
-    fn Z_Malloc(size: usize, tag: c_int, user: *mut c_void) -> *mut c_void;
+    fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
     fn Z_Free(ptr: *mut c_void);
     fn M_FileLength(handle: *mut libc::c_void) -> c_long;
 }
@@ -40,7 +40,7 @@ unsafe extern "C" fn W_StdC_OpenFile(path: *mut c_char) -> *mut wad_file_t {
     }
 
     let result = Z_Malloc(
-        std::mem::size_of::<stdc_wad_file_t>(),
+        std::mem::size_of::<stdc_wad_file_t>() as c_int,
         PU_STATIC,
         ptr::null_mut(),
     ) as *mut stdc_wad_file_t;

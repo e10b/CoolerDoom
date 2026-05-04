@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 32 |
-| Total remaining LoC | 35,286 |
-| Already ported LoC | ~10,061 (est.) |
-| Port completeness | ~22% (by line count) |
+| Remaining C modules | 29 |
+| Total remaining LoC | 33,720 |
+| Already ported LoC | ~11,617 (est.) |
+| Port completeness | ~25% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -27,15 +27,11 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-**Recently ported**: `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC).
+**Recently ported**: `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC).
 
-### Medium-Small — 350–550 LoC (3 files, 1,566 LoC)
+### Medium-Small — 350–550 LoC (0 files, 0 LoC)
 
-| File | Lines | Category | Porting notes |
-|------|------:|----------|---------------|
-| `z_zone.c` | 488 | Memory | Zone memory allocator; critical path, many callers |
-| `i_video.c` | 495 | Platform | Video output; overlaps with Rust platform layer |
-| `r_bsp.c` | 573 | Renderer | BSP traversal |
+_All modules in this bucket have been ported._
 
 ### Medium — 550–900 LoC (12 files, 8,557 LoC)
 

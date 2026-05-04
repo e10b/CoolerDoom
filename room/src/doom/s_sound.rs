@@ -154,7 +154,7 @@ extern "C" {
     fn I_MusicIsPlaying() -> c_int;
     fn I_Error(fmt: *const c_char, ...);
     fn I_AtExit(func: extern "C" fn(), run_on_error: c_int);
-    fn Z_Malloc(size: usize, tag: c_int, user: *mut c_void) -> *mut c_void;
+    fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
     fn R_PointToAngle2(x1: c_int, y1: c_int, x2: c_int, y2: c_int) -> u32;
     fn FixedMul(a: c_int, b: c_int) -> c_int;
     fn W_GetNumForName(name: *const c_char) -> c_int;
@@ -203,7 +203,7 @@ pub extern "C" fn S_Init(sfx_volume: c_int, music_volume: c_int) {
         S_SetMusicVolume(music_volume);
 
         channels = Z_Malloc(
-            (snd_channels as usize) * std::mem::size_of::<channel_t>(),
+            (snd_channels as usize * std::mem::size_of::<channel_t>()) as c_int,
             PU_STATIC,
             std::ptr::null_mut(),
         ) as *mut channel_t;

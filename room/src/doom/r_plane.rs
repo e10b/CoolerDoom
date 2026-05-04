@@ -539,37 +539,40 @@ pub extern "C" fn R_DrawPlanes() {
                 planezlight = zlight[light_usize].as_ptr();
             }
 
-            // Set sentinel values at boundaries (uses padding bytes adjacent
-            // to the top[] array — matches C pointer-arithmetic behavior).
-            let top_base = (*pl).top.as_mut_ptr();
-            let bottom_base = (*pl).bottom.as_mut_ptr();
-            *top_base.add((*pl).maxx as usize + 1) = 0xFF;
-            *top_base.add((*pl).minx as usize).wrapping_sub(1) = 0xFF;
+            // Set sentinel values at the visplane boundaries. The C code does
+            // pl->top[pl->maxx+1] = 0xff and pl->top[pl->minx-1] = 0xff, which
+            // relies on padding bytes when at screen edges.
+            if (*pl).minx > 0 {
+                (*pl).top[((*pl).minx - 1) as usize] = 0xFF;
+            } else {
+                (*pl).pad1 = 0xFF;
+            }
+            if (*pl).maxx < SCREENWIDTH as c_int - 1 {
+                (*pl).top[((*pl).maxx + 1) as usize] = 0xFF;
+            } else {
+                (*pl).pad2 = 0xFF;
+            }
 
             let stop = (*pl).maxx + 1;
             for x in (*pl).minx..=stop {
                 let prev_x = x - 1;
                 let t_top = if prev_x < 0 {
-                    // Accesses pad1 before top[]
-                    *top_base.wrapping_sub(1)
+                    (*pl).pad1
                 } else {
                     (*pl).top[prev_x as usize]
                 };
                 let t_bottom = if prev_x < 0 {
-                    // Accesses pad3 before bottom[]
-                    *bottom_base.wrapping_sub(1)
+                    (*pl).pad3
                 } else {
                     (*pl).bottom[prev_x as usize]
                 };
                 let b_top = if x == SCREENWIDTH as c_int {
-                    // Accesses pad2 after top[]
-                    *top_base.add(SCREENWIDTH)
+                    (*pl).pad2
                 } else {
                     (*pl).top[x as usize]
                 };
                 let b_bottom = if x == SCREENWIDTH as c_int {
-                    // Accesses pad4 after bottom[]
-                    *bottom_base.add(SCREENWIDTH)
+                    (*pl).pad4
                 } else {
                     (*pl).bottom[x as usize]
                 };

@@ -85,7 +85,7 @@ use crate::doom::p_lights::line_t;
 // ── External declarations ─────────────────────────────────────────────
 
 extern "C" {
-    fn Z_Malloc(size: usize, tag: c_int, user: *mut c_void) -> *mut c_void;
+    fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
     fn P_FindSectorFromLineTag(line: *mut line_t, start: c_int) -> c_int;
     fn P_ChangeSector(sector: *mut sector_t, crunch: c_int) -> c_int;
     fn P_FindNextHighestFloor(sec: *mut sector_t, currentheight: c_int) -> fixed_t;
@@ -290,7 +290,7 @@ pub unsafe extern "C" fn EV_DoFloor(line: *mut line_t, floortype: c_int) -> c_in
 
         rtn = 1;
         let floor = Z_Malloc(
-            std::mem::size_of::<floormove_t>(),
+            std::mem::size_of::<floormove_t>() as c_int,
             PU_LEVSPEC,
             std::ptr::null_mut(),
         ) as *mut floormove_t;
@@ -452,7 +452,7 @@ pub unsafe extern "C" fn EV_BuildStairs(line: *mut line_t, stype: c_int) -> c_in
 
         rtn = 1;
         let mut floor = Z_Malloc(
-            std::mem::size_of::<floormove_t>(),
+            std::mem::size_of::<floormove_t>() as c_int,
             PU_LEVSPEC,
             std::ptr::null_mut(),
         ) as *mut floormove_t;
@@ -509,7 +509,7 @@ pub unsafe extern "C" fn EV_BuildStairs(line: *mut line_t, stype: c_int) -> c_in
                 sec = tsec;
                 let _secnum_new = newsecnum;
                 floor = Z_Malloc(
-                    std::mem::size_of::<floormove_t>(),
+                    std::mem::size_of::<floormove_t>() as c_int,
                     PU_LEVSPEC,
                     std::ptr::null_mut(),
                 ) as *mut floormove_t;

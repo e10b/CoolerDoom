@@ -47,7 +47,7 @@ extern "C" {
 }
 
 extern "C" {
-    fn Z_Malloc(size: usize, tag: c_int, user: *mut c_void) -> *mut c_void;
+    fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
 }
 
 unsafe fn errno() -> c_int {
@@ -108,7 +108,7 @@ pub extern "C" fn M_ReadFile(name: *mut c_char, buffer: *mut *mut c_char) -> c_i
             I_Error(b"Couldn't read file %s\0".as_ptr() as *const c_char, name);
         }
         let length = M_FileLength(handle);
-        let buf = Z_Malloc(length as usize, PU_STATIC, std::ptr::null_mut());
+        let buf = Z_Malloc(length as c_int, PU_STATIC, std::ptr::null_mut());
         let count = fread(buf, 1, length as usize, handle);
         fclose(handle);
         if count < length as usize {

@@ -142,8 +142,8 @@ fn main() {
         // "p_tick.c",
         // Player movement — ported to Rust (room/src/doom/p_user.rs)
         // "p_user.c",
-        // Binary space partitioner traversal
-        "r_bsp.c",
+        // Binary space partitioner traversal — ported to Rust (room/src/doom/r_bsp.rs)
+        // "r_bsp.c",
         // Texture / flat data
         "r_data.c",
         // Column / span drawing
@@ -185,12 +185,12 @@ fn main() {
         // "w_main.c",
         // WAD directory
         "w_wad.c",
-        // Zone memory allocator
-        "z_zone.c",
+        // Zone memory allocator — ported to Rust (room/src/doom/z_zone.rs)
+        // "z_zone.c",
         // Input handling (calls DG_GetKey)
         "i_input.c",
-        // Video output (calls DG_DrawFrame, DG_Init)
-        "i_video.c",
+        // Video output (calls DG_DrawFrame, DG_Init) — ported to Rust (room/src/doom/i_video.rs)
+        // "i_video.c",
         // doomgeneric glue — ported to Rust (room/src/doom/doomgeneric.rs)
         // "doomgeneric.c",
     ];

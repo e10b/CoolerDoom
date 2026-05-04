@@ -48,13 +48,13 @@ unsafe fn wipe_shitty_col_major_xform(array: *mut i16, width: c_int, height: c_i
         }
     }
 
-    std::ptr::copy_nonoverlapping(dest, array, total);
+    std::ptr::copy(dest, array, total);
     Z_Free(dest as *mut c_void);
 }
 
 unsafe extern "C" fn wipe_init_color_xform(width: c_int, height: c_int, _ticks: c_int) -> c_int {
     let len = (width * height) as usize;
-    std::ptr::copy_nonoverlapping(WIPE_SCR_START, WIPE_SCR, len);
+    std::ptr::copy(WIPE_SCR_START, WIPE_SCR, len);
     0
 }
 
@@ -101,7 +101,7 @@ unsafe extern "C" fn wipe_exit_color_xform(_width: c_int, _height: c_int, _ticks
 
 unsafe extern "C" fn wipe_init_melt(width: c_int, height: c_int, _ticks: c_int) -> c_int {
     let len = (width * height) as usize;
-    std::ptr::copy_nonoverlapping(WIPE_SCR_START, WIPE_SCR, len);
+    std::ptr::copy(WIPE_SCR_START, WIPE_SCR, len);
 
     wipe_shitty_col_major_xform(WIPE_SCR_START as *mut i16, width / 2, height);
     wipe_shitty_col_major_xform(WIPE_SCR_END as *mut i16, width / 2, height);

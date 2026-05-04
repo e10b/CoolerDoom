@@ -117,7 +117,7 @@ pub struct line_t {
 // ── External declarations ─────────────────────────────────────────────
 
 extern "C" {
-    fn Z_Malloc(size: usize, tag: c_int, user: *mut c_void) -> *mut c_void;
+    fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
     fn P_Random() -> c_int;
     fn P_FindMinSurroundingLight(sector: *mut sector_t, max: c_int) -> c_int;
     fn P_FindSectorFromLineTag(line: *mut line_t, start: c_int) -> c_int;
@@ -153,7 +153,7 @@ pub extern "C" fn P_SpawnFireFlicker(sector: *mut sector_t) {
         (*sector).special = 0;
 
         let flick = Z_Malloc(
-            std::mem::size_of::<fireflicker_t>(),
+            std::mem::size_of::<fireflicker_t>() as c_int,
             PU_LEVSPEC,
             std::ptr::null_mut(),
         ) as *mut fireflicker_t;
@@ -197,7 +197,7 @@ pub extern "C" fn P_SpawnLightFlash(sector: *mut sector_t) {
         (*sector).special = 0;
 
         let flash = Z_Malloc(
-            std::mem::size_of::<lightflash_t>(),
+            std::mem::size_of::<lightflash_t>() as c_int,
             PU_LEVSPEC,
             std::ptr::null_mut(),
         ) as *mut lightflash_t;
@@ -241,7 +241,7 @@ pub unsafe extern "C" fn T_StrobeFlash(flash: *mut strobe_t) {
 pub extern "C" fn P_SpawnStrobeFlash(sector: *mut sector_t, fastOrSlow: c_int, inSync: c_int) {
     unsafe {
         let flash = Z_Malloc(
-            std::mem::size_of::<strobe_t>(),
+            std::mem::size_of::<strobe_t>() as c_int,
             PU_LEVSPEC,
             std::ptr::null_mut(),
         ) as *mut strobe_t;
@@ -376,7 +376,7 @@ pub unsafe extern "C" fn T_Glow(g: *mut glow_t) {
 pub extern "C" fn P_SpawnGlowingLight(sector: *mut sector_t) {
     unsafe {
         let g = Z_Malloc(
-            std::mem::size_of::<glow_t>(),
+            std::mem::size_of::<glow_t>() as c_int,
             PU_LEVSPEC,
             std::ptr::null_mut(),
         ) as *mut glow_t;
