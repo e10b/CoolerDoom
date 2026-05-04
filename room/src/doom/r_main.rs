@@ -786,3 +786,125 @@ pub unsafe extern "C" fn R_Main_Link_Anchor() {
     let _ = R_SetupFrame as *const () as usize;
     let _ = R_RenderPlayerView as *const () as usize;
 }
+
+// ---------------------------------------------------------------------------
+// Regression tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::doom::m_fixed::FixedDiv;
+
+    /// The DBITS constant was once incorrectly set to 15 instead of
+    /// FRACBITS - SLOPEBITS = 16 - 11 = 5.  With the wrong value,
+    /// R_PointToDist indexes tantoangle with the wrong shift and
+    /// computes completely wrong distances, causing wall-offset /
+    /// sprite-clipping glitches.
+    #[test]
+    fn dbits_is_five() {
+        assert_eq!(DBITS, 5, "DBITS must be FRACBITS - SLOPEBITS = 5");
+    }
+
+    /// For a 45-degree line (dy == dx), FixedDiv(dy, dx) returns FRACUNIT.
+    /// With DBITS = 5 the index into tantoangle is FRACUNIT >> 5 == 2048,
+    /// the top of the table.  With DBITS = 15 the index would be 2,
+    /// which produces a garbage distance.
+    #[test]
+    fn r_point_to_dist_45_degree_index() {
+        let frac = FixedDiv(FRACUNIT, FRACUNIT); // dy == dx
+        let index = (frac as u32 >> DBITS) as usize;
+        assert_eq!(index, 2048, "frac>>DBITS for 45-degree case must index tantoangle[2048]");
+    }
+
+    #[test]
+    fn r_point_to_dist_reasonable_values() {
+        unsafe {
+            viewx = 0;
+            viewy = 0;
+
+            // Straight ahead: distance should be approximately FRACUNIT.
+            let dist_ahead = R_PointToDist(FRACUNIT, 0);
+            assert!(dist_ahead > 0, "distance straight ahead must be positive");
+            assert!(
+                (dist_ahead - FRACUNIT).abs() < FRACUNIT / 4,
+                "distance straight ahead should be near FRACUNIT, got {}",
+                dist_ahead
+            );
+
+            // 45-degree diagonal: distance should be larger than straight ahead.
+            let dist_diag = R_PointToDist(FRACUNIT, FRACUNIT);
+            assert!(
+                dist_diag > dist_ahead,
+                "diagonal distance ({}) must exceed straight-ahead distance ({})",
+                dist_diag,
+                dist_ahead
+            );
+
+            // Same point: distance must be exactly zero.
+            let dist_zero = R_PointToDist(0, 0);
+            assert_eq!(dist_zero, 0, "distance to view position must be zero");
+        }
+    }
+
+    #[test]
+    fn r_point_to_angle2_cardinals() {
+        unsafe {
+            // Due east is exact.
+            assert_eq!(R_PointToAngle2(0, 0, FRACUNIT, 0), 0);
+
+            // Due north quantizes to ANG90 - 1 in the fixed-point LUT.
+            assert_eq!(R_PointToAngle2(0, 0, 0, FRACUNIT), ANG90 - 1);
+
+            // Due west quantizes to ANG180 - 1.
+            assert_eq!(R_PointToAngle2(0, 0, -FRACUNIT, 0), ANG180 - 1);
+
+            // Due south is exact.
+            assert_eq!(R_PointToAngle2(0, 0, 0, -FRACUNIT), ANG270);
+        }
+    }
+
+    /// R_ScaleFromGlobalAngle previously used plain `+` and `-` on
+    /// angle_t values, which panics in debug builds on wraparound.
+    /// It must use wrapping_add / wrapping_sub.
+    #[test]
+    fn r_scale_from_global_angle_wraparound_no_panic() {
+        unsafe {
+            viewangle = 0;
+            rw_normalangle = 0;
+            projection = FRACUNIT;
+            rw_distance = FRACUNIT;
+            detailshift = 0;
+
+            // Angles near the u32 boundary must not panic.
+            let _ = R_ScaleFromGlobalAngle(u32::MAX);
+            let _ = R_ScaleFromGlobalAngle(0);
+            let _ = R_ScaleFromGlobalAngle(ANG90);
+            let _ = R_ScaleFromGlobalAngle(ANG180);
+            let _ = R_ScaleFromGlobalAngle(ANG270);
+            let _ = R_ScaleFromGlobalAngle(viewangle.wrapping_sub(1));
+            let _ = R_ScaleFromGlobalAngle(viewangle.wrapping_add(1));
+        }
+    }
+
+    #[test]
+    fn r_point_on_side_vertical_line() {
+        unsafe {
+            // Node with dx == 0, dy > 0 (vertical line, northward).
+            let node = node_t {
+                x: 0,
+                y: 0,
+                dx: 0,
+                dy: FRACUNIT,
+                bbox: [[0; 4]; 2],
+                children: [0; 2],
+            };
+            // Point to the left of the line -> side 1 (from C logic).
+            assert_eq!(R_PointOnSide(-FRACUNIT, 0, &node), 1);
+            // Point to the right of the line -> side 0.
+            assert_eq!(R_PointOnSide(FRACUNIT, 0, &node), 0);
+            // Point exactly on the line -> x <= node.x, side depends on dy > 0 -> 1.
+            assert_eq!(R_PointOnSide(0, 0, &node), 1);
+        }
+    }
+}
