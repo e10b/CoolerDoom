@@ -335,6 +335,8 @@ fn find_wad() -> PathBuf {
 
 #[test]
 fn demo_playthrough() {
+    let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
+        .try_init();
     let wad_path = find_wad();
     if !wad_path.exists() {
         panic!(

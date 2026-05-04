@@ -69,6 +69,34 @@ pub struct visplane_t {
     pub pad4: c_uchar,
 }
 
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(
+    std::mem::size_of::<visplane_t>() == 664,
+    "visplane_t size mismatch"
+);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, height) == 0);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, picnum) == 4);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, lightlevel) == 8);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, minx) == 12);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, maxx) == 16);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, pad1) == 20);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, top) == 21);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, pad2) == 341);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, pad3) == 342);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, bottom) == 343);
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(std::mem::offset_of!(visplane_t, pad4) == 663);
+
 impl Default for visplane_t {
     fn default() -> Self {
         Self {

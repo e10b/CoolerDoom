@@ -82,6 +82,29 @@ pub struct side_t {
 
 use crate::doom::p_lights::line_t;
 
+#[cfg(target_pointer_width = "64")]
+mod layout_checks {
+    use super::*;
+    const _: () = assert!(std::mem::size_of::<floormove_t>() == 64);
+    const _: () = assert!(std::mem::offset_of!(floormove_t, thinker) == 0);
+    const _: () = assert!(std::mem::offset_of!(floormove_t, r#type) == 24);
+    const _: () = assert!(std::mem::offset_of!(floormove_t, crush) == 28);
+    const _: () = assert!(std::mem::offset_of!(floormove_t, sector) == 32);
+    const _: () = assert!(std::mem::offset_of!(floormove_t, direction) == 40);
+    const _: () = assert!(std::mem::offset_of!(floormove_t, newspecial) == 44);
+    const _: () = assert!(std::mem::offset_of!(floormove_t, texture) == 48);
+    const _: () = assert!(std::mem::offset_of!(floormove_t, floordestheight) == 52);
+    const _: () = assert!(std::mem::offset_of!(floormove_t, speed) == 56);
+
+    const _: () = assert!(std::mem::size_of::<side_t>() == 24);
+    const _: () = assert!(std::mem::offset_of!(side_t, textureoffset) == 0);
+    const _: () = assert!(std::mem::offset_of!(side_t, rowoffset) == 4);
+    const _: () = assert!(std::mem::offset_of!(side_t, toptexture) == 8);
+    const _: () = assert!(std::mem::offset_of!(side_t, bottomtexture) == 10);
+    const _: () = assert!(std::mem::offset_of!(side_t, midtexture) == 12);
+    const _: () = assert!(std::mem::offset_of!(side_t, sector) == 16);
+}
+
 // ── External declarations ─────────────────────────────────────────────
 
 extern "C" {

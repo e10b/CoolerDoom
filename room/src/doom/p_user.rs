@@ -430,7 +430,7 @@ pub extern "C" fn P_User_Link_Anchor() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::doom::d_mode::{registered, retail, shareware, commercial};
+    use crate::doom::d_mode::{commercial, registered, retail, shareware};
     use crate::doom::d_player::{PspdefT, NUMPOWERS};
     use std::sync::Mutex;
 

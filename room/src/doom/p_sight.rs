@@ -464,6 +464,8 @@ mod tests {
     const SUBSECTOR_T_SIZEOF: usize = 16;
     const SEG_T_SIZEOF: usize = 56;
     const NODE_T_SIZEOF: usize = 52;
+    const SECTOR_T_SIZEOF: usize = 128;
+    const LINE_T_SIZEOF: usize = 88;
 
     #[test]
     fn divline_t_size() {
@@ -491,5 +493,47 @@ mod tests {
     fn node_t_size() {
         let _g = LOCK.lock().unwrap();
         assert_eq!(std::mem::size_of::<node_t>(), NODE_T_SIZEOF,);
+    }
+
+    #[test]
+    fn sector_t_layout() {
+        let _g = LOCK.lock().unwrap();
+        assert_eq!(std::mem::size_of::<sector_t>(), SECTOR_T_SIZEOF);
+        assert_eq!(std::mem::offset_of!(sector_t, floorheight), 0);
+        assert_eq!(std::mem::offset_of!(sector_t, ceilingheight), 4);
+        assert_eq!(std::mem::offset_of!(sector_t, floorpic), 8);
+        assert_eq!(std::mem::offset_of!(sector_t, ceilingpic), 10);
+        assert_eq!(std::mem::offset_of!(sector_t, lightlevel), 12);
+        assert_eq!(std::mem::offset_of!(sector_t, special), 14);
+        assert_eq!(std::mem::offset_of!(sector_t, tag), 16);
+        assert_eq!(std::mem::offset_of!(sector_t, soundtraversed), 20);
+        assert_eq!(std::mem::offset_of!(sector_t, soundtarget), 24);
+        assert_eq!(std::mem::offset_of!(sector_t, blockbox), 32);
+        assert_eq!(std::mem::offset_of!(sector_t, soundorg), 48);
+        assert_eq!(std::mem::offset_of!(sector_t, validcount), 88);
+        assert_eq!(std::mem::offset_of!(sector_t, thinglist), 96);
+        assert_eq!(std::mem::offset_of!(sector_t, specialdata), 104);
+        assert_eq!(std::mem::offset_of!(sector_t, linecount), 112);
+        assert_eq!(std::mem::offset_of!(sector_t, lines), 120);
+    }
+
+    #[test]
+    fn line_t_layout() {
+        let _g = LOCK.lock().unwrap();
+        assert_eq!(std::mem::size_of::<line_t>(), LINE_T_SIZEOF);
+        assert_eq!(std::mem::offset_of!(line_t, v1), 0);
+        assert_eq!(std::mem::offset_of!(line_t, v2), 8);
+        assert_eq!(std::mem::offset_of!(line_t, dx), 16);
+        assert_eq!(std::mem::offset_of!(line_t, dy), 20);
+        assert_eq!(std::mem::offset_of!(line_t, flags), 24);
+        assert_eq!(std::mem::offset_of!(line_t, special), 26);
+        assert_eq!(std::mem::offset_of!(line_t, tag), 28);
+        assert_eq!(std::mem::offset_of!(line_t, sidenum), 30);
+        assert_eq!(std::mem::offset_of!(line_t, bbox), 36);
+        assert_eq!(std::mem::offset_of!(line_t, slopetype), 52);
+        assert_eq!(std::mem::offset_of!(line_t, frontsector), 56);
+        assert_eq!(std::mem::offset_of!(line_t, backsector), 64);
+        assert_eq!(std::mem::offset_of!(line_t, validcount), 72);
+        assert_eq!(std::mem::offset_of!(line_t, specialdata), 80);
     }
 }

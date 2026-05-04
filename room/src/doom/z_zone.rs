@@ -219,11 +219,7 @@ pub unsafe extern "C" fn Z_DumpHeap(lowtag: c_int, hightag: c_int) {
     let sentinel = std::ptr::addr_of_mut!((*zone).blocklist);
 
     let msg = b"zone size: %i  location: %p\n\0";
-    libc::printf(
-        msg.as_ptr() as *const c_char,
-        (*zone).size,
-        zone,
-    );
+    libc::printf(msg.as_ptr() as *const c_char, (*zone).size, zone);
 
     let msg2 = b"tag range: %i to %i\n\0";
     libc::printf(msg2.as_ptr() as *const c_char, lowtag, hightag);
@@ -300,7 +296,12 @@ pub unsafe extern "C" fn Z_CheckHeap() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Z_ChangeTag2(ptr: *mut c_void, tag: c_int, _file: *const c_char, _line: c_int) {
+pub unsafe extern "C" fn Z_ChangeTag2(
+    ptr: *mut c_void,
+    tag: c_int,
+    _file: *const c_char,
+    _line: c_int,
+) {
     let block = (ptr as *mut u8).sub(std::mem::size_of::<memblock_t>()) as *mut memblock_t;
 
     if (*block).id as u32 != ZONEID {
@@ -308,7 +309,9 @@ pub unsafe extern "C" fn Z_ChangeTag2(ptr: *mut c_void, tag: c_int, _file: *cons
     }
 
     if tag >= PU_PURGELEVEL && (*block).user.is_null() {
-        I_Error(b"Z_ChangeTag: an owner is required for purgable blocks\0".as_ptr() as *const c_char);
+        I_Error(
+            b"Z_ChangeTag: an owner is required for purgable blocks\0".as_ptr() as *const c_char,
+        );
     }
 
     (*block).tag = tag;
@@ -319,7 +322,9 @@ pub unsafe extern "C" fn Z_ChangeUser(ptr: *mut c_void, user: *mut *mut c_void) 
     let block = (ptr as *mut u8).sub(std::mem::size_of::<memblock_t>()) as *mut memblock_t;
 
     if (*block).id as u32 != ZONEID {
-        I_Error(b"Z_ChangeUser: Tried to change user for invalid block!\0".as_ptr() as *const c_char);
+        I_Error(
+            b"Z_ChangeUser: Tried to change user for invalid block!\0".as_ptr() as *const c_char,
+        );
     }
 
     (*block).user = user;

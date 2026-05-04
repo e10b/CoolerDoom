@@ -300,4 +300,25 @@ mod tests {
     fn subsector_t_size() {
         assert_eq!(std::mem::size_of::<subsector_t>(), 16);
     }
+
+    #[test]
+    fn sector_t_layout() {
+        assert_eq!(std::mem::size_of::<sector_t>(), 128);
+        assert_eq!(std::mem::offset_of!(sector_t, floorheight), 0);
+        assert_eq!(std::mem::offset_of!(sector_t, ceilingheight), 4);
+        assert_eq!(std::mem::offset_of!(sector_t, floorpic), 8);
+        assert_eq!(std::mem::offset_of!(sector_t, ceilingpic), 10);
+        assert_eq!(std::mem::offset_of!(sector_t, lightlevel), 12);
+        assert_eq!(std::mem::offset_of!(sector_t, special), 14);
+        assert_eq!(std::mem::offset_of!(sector_t, tag), 16);
+        assert_eq!(std::mem::offset_of!(sector_t, soundtraversed), 20);
+        assert_eq!(std::mem::offset_of!(sector_t, soundtarget), 24);
+        assert_eq!(std::mem::offset_of!(sector_t, blockbox), 32);
+        assert_eq!(std::mem::offset_of!(sector_t, soundorg), 48);
+        assert_eq!(std::mem::offset_of!(sector_t, validcount), 88);
+        assert_eq!(std::mem::offset_of!(sector_t, thinglist), 96);
+        assert_eq!(std::mem::offset_of!(sector_t, specialdata), 104);
+        assert_eq!(std::mem::offset_of!(sector_t, linecount), 112);
+        assert_eq!(std::mem::offset_of!(sector_t, lines), 120);
+    }
 }

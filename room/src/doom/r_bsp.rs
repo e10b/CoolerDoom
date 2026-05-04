@@ -46,10 +46,16 @@ pub struct mobj_s {
 }
 pub type mobj_t = mobj_s;
 
+// thinker_t is 24 bytes in C (prev/next/function pointers).
+// r_bsp.rs never dereferences it, but it must have the correct size
+// so that sector_t (which contains degenmobj_t, which contains thinker_t)
+// matches the C layout of 128 bytes.
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct thinker_s {
-    _opaque: [u8; 0],
+    _prev: *mut c_void,
+    _next: *mut c_void,
+    _function: *mut c_void,
 }
 pub type thinker_t = thinker_s;
 
@@ -213,9 +219,96 @@ const ZERO_DRAWSEG: drawseg_t = drawseg_t {
     maskedtexturecol: ptr::null_mut(),
 };
 
-// Compile-time size check: 4 ptrs (32) + 4 c_int (16) + 4 fixed_t (16) = 64 on x86_64
+// Compile-time size and offset checks for structs that must match C layout
+// (values verified against vendor/doomgeneric C structs on x86_64 Linux)
 #[cfg(target_pointer_width = "64")]
-const _: () = assert!(std::mem::size_of::<drawseg_t>() == 64);
+mod layout_checks {
+    use super::*;
+    const _: () = assert!(std::mem::size_of::<vertex_t>() == 8);
+    const _: () = assert!(std::mem::size_of::<sector_t>() == 128);
+    const _: () = assert!(std::mem::offset_of!(sector_t, floorheight) == 0);
+    const _: () = assert!(std::mem::offset_of!(sector_t, ceilingheight) == 4);
+    const _: () = assert!(std::mem::offset_of!(sector_t, floorpic) == 8);
+    const _: () = assert!(std::mem::offset_of!(sector_t, ceilingpic) == 10);
+    const _: () = assert!(std::mem::offset_of!(sector_t, lightlevel) == 12);
+    const _: () = assert!(std::mem::offset_of!(sector_t, special) == 14);
+    const _: () = assert!(std::mem::offset_of!(sector_t, tag) == 16);
+    const _: () = assert!(std::mem::offset_of!(sector_t, soundtraversed) == 20);
+    const _: () = assert!(std::mem::offset_of!(sector_t, soundtarget) == 24);
+    const _: () = assert!(std::mem::offset_of!(sector_t, blockbox) == 32);
+    const _: () = assert!(std::mem::offset_of!(sector_t, soundorg) == 48);
+    const _: () = assert!(std::mem::offset_of!(sector_t, validcount) == 88);
+    const _: () = assert!(std::mem::offset_of!(sector_t, thinglist) == 96);
+    const _: () = assert!(std::mem::offset_of!(sector_t, specialdata) == 104);
+    const _: () = assert!(std::mem::offset_of!(sector_t, linecount) == 112);
+    const _: () = assert!(std::mem::offset_of!(sector_t, lines) == 120);
+
+    const _: () = assert!(std::mem::size_of::<side_t>() == 24);
+    const _: () = assert!(std::mem::offset_of!(side_t, textureoffset) == 0);
+    const _: () = assert!(std::mem::offset_of!(side_t, rowoffset) == 4);
+    const _: () = assert!(std::mem::offset_of!(side_t, toptexture) == 8);
+    const _: () = assert!(std::mem::offset_of!(side_t, bottomtexture) == 10);
+    const _: () = assert!(std::mem::offset_of!(side_t, midtexture) == 12);
+    const _: () = assert!(std::mem::offset_of!(side_t, sector) == 16);
+
+    const _: () = assert!(std::mem::size_of::<slopetype_t>() == 4);
+
+    const _: () = assert!(std::mem::size_of::<line_t>() == 88);
+    const _: () = assert!(std::mem::offset_of!(line_t, v1) == 0);
+    const _: () = assert!(std::mem::offset_of!(line_t, v2) == 8);
+    const _: () = assert!(std::mem::offset_of!(line_t, dx) == 16);
+    const _: () = assert!(std::mem::offset_of!(line_t, dy) == 20);
+    const _: () = assert!(std::mem::offset_of!(line_t, flags) == 24);
+    const _: () = assert!(std::mem::offset_of!(line_t, special) == 26);
+    const _: () = assert!(std::mem::offset_of!(line_t, tag) == 28);
+    const _: () = assert!(std::mem::offset_of!(line_t, sidenum) == 30);
+    const _: () = assert!(std::mem::offset_of!(line_t, bbox) == 36);
+    const _: () = assert!(std::mem::offset_of!(line_t, slopetype) == 52);
+    const _: () = assert!(std::mem::offset_of!(line_t, frontsector) == 56);
+    const _: () = assert!(std::mem::offset_of!(line_t, backsector) == 64);
+    const _: () = assert!(std::mem::offset_of!(line_t, validcount) == 72);
+    const _: () = assert!(std::mem::offset_of!(line_t, specialdata) == 80);
+
+    const _: () = assert!(std::mem::size_of::<subsector_t>() == 16);
+    const _: () = assert!(std::mem::offset_of!(subsector_t, sector) == 0);
+    const _: () = assert!(std::mem::offset_of!(subsector_t, numlines) == 8);
+    const _: () = assert!(std::mem::offset_of!(subsector_t, firstline) == 10);
+
+    const _: () = assert!(std::mem::size_of::<seg_t>() == 56);
+    const _: () = assert!(std::mem::offset_of!(seg_t, v1) == 0);
+    const _: () = assert!(std::mem::offset_of!(seg_t, v2) == 8);
+    const _: () = assert!(std::mem::offset_of!(seg_t, offset) == 16);
+    const _: () = assert!(std::mem::offset_of!(seg_t, angle) == 20);
+    const _: () = assert!(std::mem::offset_of!(seg_t, sidedef) == 24);
+    const _: () = assert!(std::mem::offset_of!(seg_t, linedef) == 32);
+    const _: () = assert!(std::mem::offset_of!(seg_t, frontsector) == 40);
+    const _: () = assert!(std::mem::offset_of!(seg_t, backsector) == 48);
+
+    const _: () = assert!(std::mem::size_of::<node_t>() == 52);
+    const _: () = assert!(std::mem::offset_of!(node_t, x) == 0);
+    const _: () = assert!(std::mem::offset_of!(node_t, y) == 4);
+    const _: () = assert!(std::mem::offset_of!(node_t, dx) == 8);
+    const _: () = assert!(std::mem::offset_of!(node_t, dy) == 12);
+    const _: () = assert!(std::mem::offset_of!(node_t, bbox) == 16);
+    const _: () = assert!(std::mem::offset_of!(node_t, children) == 48);
+
+    const _: () = assert!(std::mem::size_of::<drawseg_t>() == 64);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, curline) == 0);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, x1) == 8);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, x2) == 12);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, scale1) == 16);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, scale2) == 20);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, scalestep) == 24);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, silhouette) == 28);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, bsilheight) == 32);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, tsilheight) == 36);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, sprtopclip) == 40);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, sprbottomclip) == 48);
+    const _: () = assert!(std::mem::offset_of!(drawseg_t, maskedtexturecol) == 56);
+
+    const _: () = assert!(std::mem::size_of::<thinker_t>() == 24);
+    const _: () = assert!(std::mem::size_of::<degenmobj_s>() == 40);
+}
 
 // ---------------------------------------------------------------------------
 // cliprange_t (internal)
@@ -338,6 +431,13 @@ pub unsafe extern "C" fn R_ClearClipSegs() {
 
 #[no_mangle]
 pub unsafe extern "C" fn R_ClipSolidWallSegment(first: c_int, last: c_int) {
+    if first > last {
+        log::debug!(
+            "R_ClipSolidWallSegment INVALID: first={} > last={}",
+            first,
+            last
+        );
+    }
     let solidsegs_base = solidsegs.as_mut_ptr();
 
     let mut start = solidsegs_base;
@@ -426,6 +526,13 @@ pub unsafe extern "C" fn R_ClipSolidWallSegment(first: c_int, last: c_int) {
 
 #[no_mangle]
 pub unsafe extern "C" fn R_ClipPassWallSegment(first: c_int, last: c_int) {
+    if first > last {
+        log::debug!(
+            "R_ClipPassWallSegment INVALID: first={} > last={}",
+            first,
+            last
+        );
+    }
     let solidsegs_base = solidsegs.as_mut_ptr();
 
     let mut start = solidsegs_base;
@@ -470,19 +577,25 @@ pub unsafe extern "C" fn R_ClipPassWallSegment(first: c_int, last: c_int) {
 unsafe fn R_AddLine(line: *mut seg_t) {
     curline = line;
 
-    let angle1 = R_PointToAngle((*(*line).v1).x, (*(*line).v1).y);
-    let angle2 = R_PointToAngle((*(*line).v2).x, (*(*line).v2).y);
+    let orig_angle1 = R_PointToAngle((*(*line).v1).x, (*(*line).v1).y);
+    let orig_angle2 = R_PointToAngle((*(*line).v2).x, (*(*line).v2).y);
 
-    let span = angle1.wrapping_sub(angle2);
+    let span = orig_angle1.wrapping_sub(orig_angle2);
 
     // Back side?
     if span >= 0x8000_0000 {
+        log::debug!(
+            "R_AddLine SKIP backface: orig_a1={:#x} orig_a2={:#x} va={:#x}",
+            orig_angle1,
+            orig_angle2,
+            viewangle
+        );
         return;
     }
 
-    rw_angle1 = angle1;
-    let mut angle1 = angle1.wrapping_sub(viewangle);
-    let mut angle2 = angle2.wrapping_sub(viewangle);
+    rw_angle1 = orig_angle1;
+    let mut angle1 = orig_angle1.wrapping_sub(viewangle);
+    let mut angle2 = orig_angle2.wrapping_sub(viewangle);
 
     let clipangle_d2 = clipangle.wrapping_mul(2);
 
@@ -490,6 +603,7 @@ unsafe fn R_AddLine(line: *mut seg_t) {
     if tspan > clipangle_d2 {
         tspan = tspan.wrapping_sub(clipangle_d2);
         if tspan >= span {
+            log::debug!("R_AddLine SKIP off-left: orig_a1={:#x} orig_a2={:#x} va={:#x} a1={:#x} a2={:#x} span={:#x} tspan={:#x}", orig_angle1, orig_angle2, viewangle, angle1, angle2, span, tspan);
             return;
         }
         angle1 = clipangle;
@@ -499,15 +613,33 @@ unsafe fn R_AddLine(line: *mut seg_t) {
     if tspan > clipangle_d2 {
         tspan = tspan.wrapping_sub(clipangle_d2);
         if tspan >= span {
+            log::debug!("R_AddLine SKIP off-right: orig_a1={:#x} orig_a2={:#x} va={:#x} a1={:#x} a2={:#x} span={:#x} tspan={:#x}", orig_angle1, orig_angle2, viewangle, angle1, angle2, span, tspan);
             return;
         }
         angle2 = 0u32.wrapping_sub(clipangle);
     }
 
-    let x1 = viewangletox[((angle1.wrapping_add(ANG90)) >> ANGLETOFINESHIFT) as usize];
-    let x2 = viewangletox[((angle2.wrapping_add(ANG90)) >> ANGLETOFINESHIFT) as usize];
+    let idx1 = ((angle1.wrapping_add(ANG90)) >> ANGLETOFINESHIFT) as usize;
+    let idx2 = ((angle2.wrapping_add(ANG90)) >> ANGLETOFINESHIFT) as usize;
+    let x1 = viewangletox[idx1];
+    let x2 = viewangletox[idx2];
+
+    // Log walls that land in the right portion of the screen
+    if x2 >= 200 || x1 >= 200 {
+        log::debug!(
+            "R_AddLine wall: orig_a1={:#x} orig_a2={:#x} va={:#x} clip={:#x} a1={:#x} a2={:#x} idx1={} idx2={} x1={} x2={}",
+            orig_angle1, orig_angle2, viewangle, clipangle, angle1, angle2, idx1, idx2, x1, x2
+        );
+    }
 
     if x1 == x2 {
+        log::debug!(
+            "R_AddLine SKIP x1==x2: orig_a1={:#x} orig_a2={:#x} x1={} x2={}",
+            orig_angle1,
+            orig_angle2,
+            x1,
+            x2
+        );
         return;
     }
 

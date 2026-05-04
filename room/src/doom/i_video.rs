@@ -74,7 +74,12 @@ pub static mut usemouse: c_int = 0;
 
 // ── Module-local state ────────────────────────────────────────────────
 
-static mut COLORS: [Color; 256] = [Color { b: 0, g: 0, r: 0, a: 0 }; 256];
+static mut COLORS: [Color; 256] = [Color {
+    b: 0,
+    g: 0,
+    r: 0,
+    a: 0,
+}; 256];
 
 static mut s_Fb: FB_ScreenInfo = FB_ScreenInfo {
     xres: 0,
@@ -82,10 +87,22 @@ static mut s_Fb: FB_ScreenInfo = FB_ScreenInfo {
     xres_virtual: 0,
     yres_virtual: 0,
     bits_per_pixel: 0,
-    red: FB_BitField { offset: 0, length: 0 },
-    green: FB_BitField { offset: 0, length: 0 },
-    blue: FB_BitField { offset: 0, length: 0 },
-    transp: FB_BitField { offset: 0, length: 0 },
+    red: FB_BitField {
+        offset: 0,
+        length: 0,
+    },
+    green: FB_BitField {
+        offset: 0,
+        length: 0,
+    },
+    blue: FB_BitField {
+        offset: 0,
+        length: 0,
+    },
+    transp: FB_BitField {
+        offset: 0,
+        length: 0,
+    },
 };
 
 // ── External declarations ─────────────────────────────────────────────
@@ -145,9 +162,7 @@ unsafe fn cmap_to_rgb565(out: *mut u8, inp: *mut u8, in_pixels: c_int) {
         let idx = *inp_ptr as usize;
         let c = COLORS[idx];
 
-        let p = (((c.r as u16) & 0xF8) << 8)
-            | (((c.g as u16) & 0xFC) << 3)
-            | ((c.b as u16) >> 3);
+        let p = (((c.r as u16) & 0xF8) << 8) | (((c.g as u16) & 0xFC) << 3) | ((c.b as u16) >> 3);
 
         for _ in 0..fb_scaling {
             *out_ptr = p;
@@ -206,7 +221,10 @@ pub unsafe extern "C" fn I_InitGraphics() {
                 s_Fb.red.offset = 0;
                 s_Fb.transp.offset = 16;
             } else {
-                I_Error(b"Unknown gfxmode value: %s\n\0".as_ptr() as *const c_char, mode);
+                I_Error(
+                    b"Unknown gfxmode value: %s\n\0".as_ptr() as *const c_char,
+                    mode,
+                );
             }
         }
     }
@@ -267,11 +285,11 @@ pub unsafe extern "C" fn I_FinishUpdate() {
     let y_offset = (((s_Fb.yres as i32 - (SCREENHEIGHT as c_int * fb_scaling))
         * (s_Fb.bits_per_pixel as c_int / 8))
         / 2)
-        .max(0) as u32;
+    .max(0) as u32;
     let x_offset = (((s_Fb.xres as i32 - (SCREENWIDTH as c_int * fb_scaling))
         * (s_Fb.bits_per_pixel as c_int / 8))
         / 2)
-        .max(0) as u32;
+    .max(0) as u32;
     let x_offset_end = ((s_Fb.xres as i32 - (SCREENWIDTH as c_int * fb_scaling))
         * (s_Fb.bits_per_pixel as c_int / 8)
         - x_offset as i32)
