@@ -148,8 +148,8 @@ fn main() {
         "r_data.c",
         // Column / span drawing
         "r_draw.c",
-        // Renderer main
-        "r_main.c",
+        // Renderer main — ported to Rust (room/src/doom/r_main.rs)
+        // "r_main.c",
         // Visplane rendering — ported to Rust (room/src/doom/r_plane.rs)
         // "r_plane.c",
         // Segment rendering

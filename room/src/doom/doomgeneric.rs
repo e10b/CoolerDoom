@@ -14,6 +14,7 @@ use super::p_plats::P_Plats_Link_Anchor;
 use super::p_sight::P_Sight_Link_Anchor;
 use super::p_telept::P_Telept_Link_Anchor;
 use super::p_user::P_User_Link_Anchor;
+use super::r_main::R_Main_Link_Anchor;
 
 // Constants matching DOOMGENERIC_RESX * DOOMGENERIC_RESY from doomgeneric.h
 const DOOMGENERIC_RESX: usize = 640;
@@ -44,6 +45,7 @@ pub unsafe extern "C" fn doomgeneric_Create(argc: c_int, argv: *mut *mut c_char)
     P_Telept_Link_Anchor();
     P_User_Link_Anchor();
     I_Input_Link_Anchor();
+    R_Main_Link_Anchor();
     let _ = HUlib_init as *const () as usize;
 
     myargc = argc;

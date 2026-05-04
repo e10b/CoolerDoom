@@ -138,7 +138,7 @@ recommended porting order.
 - [x] `r_bsp.c`
 - [ ] `r_data.c`
 - [ ] `r_draw.c`
-- [ ] `r_main.c`
+- [x] `r_main.c`
 - [x] `r_plane.c`
 - [ ] `r_segs.c`
 - [x] `r_sky.c`
