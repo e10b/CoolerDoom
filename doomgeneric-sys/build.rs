@@ -172,8 +172,8 @@ fn main() {
         // s_sound   — ported to Rust (room/src/doom/s_sound.rs)
         // Trigonometry tables
         // tables — ported to Rust (room/src/doom/tables.rs)
-        // Video / screen buffer management
-        "v_video.c",
+        // Video / screen buffer management — ported to Rust (room/src/doom/v_video.rs)
+        // "v_video.c",
         // Intermission / victory screens
         "wi_stuff.c",
         // WAD checksum

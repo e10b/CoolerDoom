@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 27 |
-| Total remaining LoC | 32,530 |
-| Already ported LoC | ~12,807 (est.) |
-| Port completeness | ~28% (by line count) |
+| Remaining C modules | 26 |
+| Total remaining LoC | 31,598 |
+| Already ported LoC | ~13,739 (est.) |
+| Port completeness | ~30% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -27,7 +27,7 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-**Recently ported**: `i_system.c` (578 LoC), `w_wad.c` (612 LoC), `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC).
+**Recently ported**: `v_video.c` (932 LoC), `i_system.c` (578 LoC), `w_wad.c` (612 LoC), `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC).
 
 ### Medium-Small — 350–550 LoC (0 files, 0 LoC)
 
@@ -48,12 +48,11 @@ _All modules in this bucket have been ported._
 | `p_pspr.c` | 888 | Game logic | Player weapon sprite (psprite) logic |
 | `r_main.c` | 891 | Renderer | Renderer main loop and view setup |
 
-### Medium-Large — 900–1,100 LoC (6 files, 5,747 LoC)
+### Medium-Large — 900–1,100 LoC (5 files, 4,815 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
 | `r_data.c` | 912 | Renderer | Texture/flat/colormap data management |
-| `v_video.c` | 932 | Video | Screen buffer / drawing primitives |
 | `p_inter.c` | 922 | Game logic | Player/item interactions and damage |
 | `r_draw.c` | 975 | Renderer | Column/span drawing (inner loop) |
 | `r_things.c` | 982 | Renderer | Sprite rendering and scaling |
@@ -84,7 +83,7 @@ _All modules in this bucket have been ported._
 
 1. **Quick wins** — Only `p_sight.c` remains in Small tier (needs geometry struct mirrors).
 2. **Self-contained modules** — `p_user.c`, `r_plane.c`, `r_bsp.c`.
-3. **Building blocks** — `z_zone.c` (memory), `v_video.c` (video).
+3. **Building blocks** — `z_zone.c` and `v_video.c` are now ported. Next: `r_data.c`.
 4. **Renderer pipeline** — `r_data.c`, `r_draw.c`, `r_segs.c`, `r_things.c`, `r_main.c`.
 5. **Game logic** — Start with smaller `p_*` modules, work up to `p_map.c`, `p_mobj.c`, `p_spec.c`.
 6. **Large orchestrators** — `d_main.c`, `g_game.c`, `p_enemy.c`, `p_saveg.c` last (most dependencies).

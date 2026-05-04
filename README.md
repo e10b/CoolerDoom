@@ -180,7 +180,7 @@ recommended porting order.
 - [x] `i_sound.c`
 - [x] `i_system.c`
 - [x] `i_timer.c`
-- [ ] `i_video.c`
+- [x] `i_video.c`
 
 ### Sound tables / sound subsystem (stubbed today)
 
@@ -189,7 +189,7 @@ recommended porting order.
 
 ### Video / WAD / memory / utilities
 
-- [ ] `v_video.c`
+- [x] `v_video.c`
 - [x] `w_checksum.c`
 - [x] `w_file.c`
 - [x] `w_file_stdc.c`
@@ -197,7 +197,7 @@ recommended porting order.
 - [x] `w_wad.c`
 - [x] `memio.c`
 - [x] `sha1.c`
-- [ ] `z_zone.c`
+- [x] `z_zone.c`
 
 ## License
 

@@ -8,6 +8,8 @@ use std::ffi::c_char;
 use std::ffi::c_void;
 use std::os::raw::c_int;
 
+use crate::doom::v_video::patch_t;
+
 // ── Constants ─────────────────────────────────────────────────────────
 
 const PU_STATIC: c_int = 1;
@@ -19,19 +21,6 @@ const ST_Y: c_int = 200 - ST_HEIGHT; // 168
 #[inline(always)]
 fn short_swap(v: i16) -> i16 {
     v
-}
-
-// ── patch_t (packed, from v_patch.h) ─────────────────────────────────
-//
-// Only the first four fields are accessed by st_lib.c.
-
-#[repr(C, packed)]
-#[derive(Clone, Copy)]
-pub struct patch_t {
-    pub width: i16,
-    pub height: i16,
-    pub leftoffset: i16,
-    pub topoffset: i16,
 }
 
 // ── Widget structs (from st_lib.h) ────────────────────────────────────
