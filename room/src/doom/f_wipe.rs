@@ -9,13 +9,9 @@ use std::os::raw::c_int;
 
 use crate::doom::m_random::M_Random;
 
-// ── Constants (from doomdef.h / i_video.h / z_zone.h) ────────────────
-
 const SCREENWIDTH: c_int = 320;
 const SCREENHEIGHT: c_int = 200;
 const PU_STATIC: c_int = 1;
-
-// ── External declarations ─────────────────────────────────────────────
 
 extern "C" {
     fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
@@ -26,15 +22,11 @@ extern "C" {
     static mut I_VideoBuffer: *mut u8;
 }
 
-// ── Module-local state ────────────────────────────────────────────────
-
 static mut GO: c_int = 0;
 static mut WIPE_SCR_START: *mut u8 = std::ptr::null_mut();
 static mut WIPE_SCR_END: *mut u8 = std::ptr::null_mut();
 static mut WIPE_SCR: *mut u8 = std::ptr::null_mut();
 static mut Y: *mut c_int = std::ptr::null_mut();
-
-// ── Internal helpers ──────────────────────────────────────────────────
 
 /// Transpose a width×height array of i16 from row-major to column-major
 /// in-place.  Equivalent to `wipe_shittyColMajorXform`.
@@ -185,8 +177,6 @@ unsafe extern "C" fn wipe_exit_melt(_width: c_int, _height: c_int, _ticks: c_int
     0
 }
 
-// ── Wipe function dispatch table ──────────────────────────────────────
-
 type WipeFn = unsafe extern "C" fn(c_int, c_int, c_int) -> c_int;
 
 const WIPES: [WipeFn; 6] = [
@@ -197,8 +187,6 @@ const WIPES: [WipeFn; 6] = [
     wipe_do_melt,
     wipe_exit_melt,
 ];
-
-// ── Public API ────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn wipe_StartScreen(_x: c_int, _y: c_int, _width: c_int, _height: c_int) -> c_int {
@@ -252,8 +240,6 @@ pub extern "C" fn wipe_ScreenWipe(
         }
     }
 }
-
-// ── Tests ─────────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {

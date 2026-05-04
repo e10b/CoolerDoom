@@ -6,8 +6,6 @@ use crate::doom::d_mode;
 use crate::doom::sounds::{MusicInfo, S_InitSfxLinks, S_music, S_sfx, SfxInfo, NUMMUSIC, NUMSFX};
 use crate::doom::tables::finesine;
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const FRACBITS: u32 = 16;
 const FRACUNIT: c_int = 65536;
 const S_CLIPPING_DIST: c_int = 1200 * FRACUNIT;
@@ -20,8 +18,6 @@ const NORM_SEP: c_int = 128;
 const ANGLETOFINESHIFT: u32 = 19;
 
 const MAXPLAYERS: usize = 4;
-
-// ── Music enum values (index into S_music[]) ──────────────────────────
 
 const mus_None: c_int = 0;
 const mus_e1m1: c_int = 1;
@@ -92,16 +88,10 @@ const mus_read_m: c_int = 65;
 const mus_dm2ttl: c_int = 66;
 const mus_dm2int: c_int = 67;
 
-// ── Sound device constants ────────────────────────────────────────────
-
 const SNDDEVICE_ADLIB: c_int = 2;
 const SNDDEVICE_SB: c_int = 3;
 
-// ── Z_Alloc tags ──────────────────────────────────────────────────────
-
 const PU_STATIC: c_int = 1;
-
-// ── channel_t ─────────────────────────────────────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -110,8 +100,6 @@ pub struct channel_t {
     pub origin: *mut MobjStub,
     pub handle: c_int,
 }
-
-// ── Stub types for C structs whose full layout lives in C ─────────────
 
 #[repr(C)]
 pub struct MobjStub {
@@ -124,8 +112,6 @@ pub struct MobjStub {
 struct PlayerStub {
     mo: *mut MobjStub,
 }
-
-// ── Extern globals from C ─────────────────────────────────────────────
 
 extern "C" {
     static mut gamemode: c_int;
@@ -166,8 +152,6 @@ extern "C" {
 
 use super::m_misc::m_snprintf_clamp;
 
-// ── Statics ───────────────────────────────────────────────────────────
-
 static mut channels: *mut channel_t = std::ptr::null_mut();
 
 #[no_mangle]
@@ -189,8 +173,6 @@ pub static mut snd_MusicVolume: c_int = 8;
 pub static mut mus_paused: c_int = 0;
 
 static mut mus_playing: *mut MusicInfo = std::ptr::null_mut();
-
-// ── S_Init ────────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn S_Init(sfx_volume: c_int, music_volume: c_int) {
@@ -223,8 +205,6 @@ pub extern "C" fn S_Init(sfx_volume: c_int, music_volume: c_int) {
     }
 }
 
-// ── S_Shutdown ────────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn S_Shutdown() {
     unsafe {
@@ -232,8 +212,6 @@ pub extern "C" fn S_Shutdown() {
         I_ShutdownMusic();
     }
 }
-
-// ── S_StopChannel ─────────────────────────────────────────────────────
 
 unsafe fn S_StopChannel(cnum: c_int) {
     let c = &mut *channels.offset(cnum as isize);
@@ -256,8 +234,6 @@ unsafe fn S_StopChannel(cnum: c_int) {
         c.sfxinfo = std::ptr::null_mut();
     }
 }
-
-// ── S_Start ───────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn S_Start() {
@@ -291,8 +267,6 @@ pub extern "C" fn S_Start() {
     }
 }
 
-// ── S_StopSound ───────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn S_StopSound(origin: *mut MobjStub) {
     unsafe {
@@ -305,8 +279,6 @@ pub extern "C" fn S_StopSound(origin: *mut MobjStub) {
         }
     }
 }
-
-// ── S_GetChannel ──────────────────────────────────────────────────────
 
 unsafe fn S_GetChannel(origin: *mut MobjStub, sfxinfo: *mut SfxInfo) -> c_int {
     let mut cnum: c_int = 0;
@@ -345,8 +317,6 @@ unsafe fn S_GetChannel(origin: *mut MobjStub, sfxinfo: *mut SfxInfo) -> c_int {
 
     cnum
 }
-
-// ── S_AdjustSoundParams ───────────────────────────────────────────────
 
 unsafe fn S_AdjustSoundParams(
     listener: *mut MobjStub,
@@ -394,8 +364,6 @@ unsafe fn S_AdjustSoundParams(
 
     (*vol > 0) as c_int
 }
-
-// ── S_StartSound ──────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn S_StartSound(origin_p: *mut c_void, sfx_id: c_int) {
@@ -458,8 +426,6 @@ pub extern "C" fn S_StartSound(origin_p: *mut c_void, sfx_id: c_int) {
     }
 }
 
-// ── S_PauseSound ──────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn S_PauseSound() {
     unsafe {
@@ -470,8 +436,6 @@ pub extern "C" fn S_PauseSound() {
     }
 }
 
-// ── S_ResumeSound ─────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn S_ResumeSound() {
     unsafe {
@@ -481,8 +445,6 @@ pub extern "C" fn S_ResumeSound() {
         }
     }
 }
-
-// ── S_UpdateSounds ────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn S_UpdateSounds(listener: *mut MobjStub) {
@@ -526,8 +488,6 @@ pub extern "C" fn S_UpdateSounds(listener: *mut MobjStub) {
     }
 }
 
-// ── S_SetMusicVolume ──────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn S_SetMusicVolume(volume: c_int) {
     unsafe {
@@ -538,8 +498,6 @@ pub extern "C" fn S_SetMusicVolume(volume: c_int) {
         I_SetMusicVolume(volume);
     }
 }
-
-// ── S_SetSfxVolume ────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn S_SetSfxVolume(volume: c_int) {
@@ -552,14 +510,10 @@ pub extern "C" fn S_SetSfxVolume(volume: c_int) {
     }
 }
 
-// ── S_StartMusic ──────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn S_StartMusic(m_id: c_int) {
     S_ChangeMusic(m_id, 0);
 }
-
-// ── S_ChangeMusic ─────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn S_ChangeMusic(musicnum: c_int, looping: c_int) {
@@ -608,14 +562,10 @@ pub extern "C" fn S_ChangeMusic(musicnum: c_int, looping: c_int) {
     }
 }
 
-// ── S_MusicPlaying ────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn S_MusicPlaying() -> c_int {
     unsafe { I_MusicIsPlaying() }
 }
-
-// ── S_StopMusic ───────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn S_StopMusic() {

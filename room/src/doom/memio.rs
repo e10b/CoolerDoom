@@ -293,8 +293,6 @@ mod tests {
         mem_fclose(write_file);
     }
 
-    // ── Additional error-path and edge-case tests ─────────────────────
-
     /// Reading from a write-mode stream must return 0 items.
     #[test]
     fn fread_on_write_mode_returns_zero() {
@@ -314,8 +312,7 @@ mod tests {
     fn fwrite_on_read_mode_returns_zero() {
         // Create a small backing buffer on the stack.
         let mut backing = [1u8, 2, 3, 4];
-        let read_file =
-            mem_fopen_read(backing.as_mut_ptr() as *mut c_void, backing.len());
+        let read_file = mem_fopen_read(backing.as_mut_ptr() as *mut c_void, backing.len());
 
         let payload = [0xFFu8; 4];
         let items = mem_fwrite(payload.as_ptr() as *const c_void, 1, 4, read_file);
@@ -388,8 +385,7 @@ mod tests {
         // Verify all bytes round-trip correctly.
         let read_file = mem_fopen_read(buf_ptr, buflen);
         let mut out = vec![0u8; 2048];
-        let items_read =
-            mem_fread(out.as_mut_ptr() as *mut c_void, 1, out.len(), read_file);
+        let items_read = mem_fread(out.as_mut_ptr() as *mut c_void, 1, out.len(), read_file);
         assert_eq!(items_read, 2048);
         assert_eq!(out, data);
 

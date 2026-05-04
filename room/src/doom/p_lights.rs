@@ -9,15 +9,11 @@ use std::os::raw::c_int;
 
 use crate::doom::p_tick::{thinker_t, P_AddThinker};
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const PU_LEVSPEC: c_int = 5;
 const GLOWSPEED: c_int = 8;
 const STROBEBRIGHT: c_int = 5;
 const FASTDARK: c_int = 15;
 const SLOWDARK: c_int = 35;
-
-// ── Sector mirror (partial layout from r_defs.h) ─────────────────────
 //
 // We only need fields up to `specialdata`.  Verified against C layout
 // on x86_64 Linux via layout_probe:
@@ -44,8 +40,6 @@ pub struct sector_t {
     pub linecount: c_int,
     pub lines: *mut *mut line_t,
 }
-
-// ── Light thinker structs (from p_spec.h) ─────────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -93,8 +87,6 @@ pub struct glow_t {
     _pad: [u8; 4],
 }
 
-// ── line_t mirror (from r_defs.h) ─────────────────────────────────────
-
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct line_t {
@@ -114,8 +106,6 @@ pub struct line_t {
     pub specialdata: *mut c_void,
 }
 
-// ── External declarations ─────────────────────────────────────────────
-
 extern "C" {
     fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
     fn P_Random() -> c_int;
@@ -125,8 +115,6 @@ extern "C" {
     static mut numsectors: c_int;
     static mut sectors: *mut sector_t;
 }
-
-// ── FIRELIGHT FLICKER ─────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn T_FireFlicker(flick: *mut fireflicker_t) {
@@ -171,8 +159,6 @@ pub extern "C" fn P_SpawnFireFlicker(sector: *mut sector_t) {
     }
 }
 
-// ── BROKEN LIGHT FLASHING ─────────────────────────────────────────────
-
 #[no_mangle]
 pub unsafe extern "C" fn T_LightFlash(flash: *mut lightflash_t) {
     (*flash).count -= 1;
@@ -216,8 +202,6 @@ pub extern "C" fn P_SpawnLightFlash(sector: *mut sector_t) {
         (*flash).count = (P_Random() & (*flash).maxtime) + 1;
     }
 }
-
-// ── STROBE LIGHT FLASHING ─────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn T_StrobeFlash(flash: *mut strobe_t) {
@@ -290,8 +274,6 @@ pub extern "C" fn EV_StartLightStrobing(line: *mut line_t) {
     }
 }
 
-// ── TURN LINE'S TAG LIGHTS OFF ────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn EV_TurnTagLightsOff(line: *mut line_t) {
     unsafe {
@@ -317,8 +299,6 @@ pub extern "C" fn EV_TurnTagLightsOff(line: *mut line_t) {
         }
     }
 }
-
-// ── TURN LINE'S TAG LIGHTS ON ─────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn EV_LightTurnOn(line: *mut line_t, bright: c_int) {
@@ -347,8 +327,6 @@ pub extern "C" fn EV_LightTurnOn(line: *mut line_t, bright: c_int) {
         }
     }
 }
-
-// ── GLOWING LIGHT ─────────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn T_Glow(g: *mut glow_t) {
@@ -413,8 +391,6 @@ pub unsafe extern "C" fn P_Lights_Link_Anchor() {
     let _ = EV_LightTurnOn as *const () as usize;
     let _ = P_SpawnGlowingLight as *const () as usize;
 }
-
-// ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {

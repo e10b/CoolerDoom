@@ -339,16 +339,7 @@ mod tests {
     use std::ffi::c_char;
 
     fn make_ctx() -> SHA1Context {
-        let mut ctx = SHA1Context {
-            h0: 0,
-            h1: 0,
-            h2: 0,
-            h3: 0,
-            h4: 0,
-            nblocks: 0,
-            buf: [0; 64],
-            count: 0,
-        };
+        let mut ctx: SHA1Context = unsafe { std::mem::zeroed() };
         SHA1_Init(&mut ctx);
         ctx
     }
@@ -374,15 +365,10 @@ mod tests {
         assert_eq!(sha1_hex(msg), "84983e441c3bd26ebaae4aa1f95129e5e54670f1");
     }
 
-    // ── Additional tests ──────────────────────────────────────────────
-
     /// SHA1("") = da39a3ee5e6b4b0d3255bfef95601890afd80709
     #[test]
     fn empty_input() {
-        assert_eq!(
-            sha1_hex(b""),
-            "da39a3ee5e6b4b0d3255bfef95601890afd80709"
-        );
+        assert_eq!(sha1_hex(b""), "da39a3ee5e6b4b0d3255bfef95601890afd80709");
     }
 
     /// SHA1_UpdateInt32 sends the value in big-endian byte order, so its
@@ -450,7 +436,7 @@ mod tests {
     #[test]
     fn exactly_one_block() {
         let data = [0x61u8; 64]; // 64 × 'a'
-        // Must not panic and must produce a non-zero digest.
+                                 // Must not panic and must produce a non-zero digest.
         let hex = sha1_hex(&data);
         assert_eq!(hex.len(), 40);
         assert_ne!(hex, "da39a3ee5e6b4b0d3255bfef95601890afd80709"); // != empty

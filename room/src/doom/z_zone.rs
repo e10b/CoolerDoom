@@ -9,19 +9,13 @@
 use std::ffi::{c_char, c_int, c_void};
 use std::ptr;
 
-// ── PU_* tag enum (must match z_zone.h) ─────────────────────────────
-
 // const PU_STATIC: c_int = 1;
 const PU_FREE: c_int = 4;
 const PU_PURGELEVEL: c_int = 7;
 
-// ── Internal constants ──────────────────────────────────────────────
-
 const ZONEID: u32 = 0x1d4a11;
 const MINFRAGMENT: c_int = 64;
 const MEM_ALIGN: usize = std::mem::size_of::<*mut ()>();
-
-// ── Mirrored C structs ──────────────────────────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -41,18 +35,12 @@ struct memzone_t {
     rover: *mut memblock_t,
 }
 
-// ── Global state ────────────────────────────────────────────────────
-
 static mut mainzone: *mut memzone_t = ptr::null_mut();
-
-// ── External declarations ───────────────────────────────────────────
 
 extern "C" {
     fn I_ZoneBase(size: *mut c_int) -> *mut u8;
     fn I_Error(format: *const c_char, ...);
 }
-
-// ── Internal helpers ────────────────────────────────────────────────
 
 unsafe fn Z_ClearZone(zone: *mut memzone_t) {
     let block = (zone as *mut u8).add(std::mem::size_of::<memzone_t>()) as *mut memblock_t;
@@ -68,8 +56,6 @@ unsafe fn Z_ClearZone(zone: *mut memzone_t) {
     (*block).tag = PU_FREE;
     (*block).size = (*zone).size - std::mem::size_of::<memzone_t>() as c_int;
 }
-
-// ── Public API ──────────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn Z_Init() {
@@ -352,8 +338,6 @@ pub unsafe extern "C" fn Z_FreeMemory() -> c_int {
 pub unsafe extern "C" fn Z_ZoneSize() -> u32 {
     (*mainzone).size as u32
 }
-
-// ── Anchor so linker doesn't discard ────────────────────────────────
 #[no_mangle]
 pub unsafe extern "C" fn Z_Zone_Link_Anchor() {
     Z_Init();

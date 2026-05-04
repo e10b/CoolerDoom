@@ -80,8 +80,6 @@ mod tests {
         );
     }
 
-    // ── Additional coverage ───────────────────────────────────────────
-
     /// Every entry in both tables must be NUL-terminated and non-empty.
     #[test]
     fn all_doom1_entries_are_valid_c_strings() {
@@ -107,9 +105,16 @@ mod tests {
     #[test]
     fn doom1_and_doom2_differ_at_index_1() {
         use std::ffi::CStr;
-        let s1 = unsafe { CStr::from_ptr(doom1_endmsg[1].0) }.to_str().unwrap();
-        let s2 = unsafe { CStr::from_ptr(doom2_endmsg[1].0) }.to_str().unwrap();
-        assert_ne!(s1, s2, "index 1 messages should differ between doom1 and doom2");
+        let s1 = unsafe { CStr::from_ptr(doom1_endmsg[1].0) }
+            .to_str()
+            .unwrap();
+        let s2 = unsafe { CStr::from_ptr(doom2_endmsg[1].0) }
+            .to_str()
+            .unwrap();
+        assert_ne!(
+            s1, s2,
+            "index 1 messages should differ between doom1 and doom2"
+        );
     }
 
     /// The last entry in each table is accessible.

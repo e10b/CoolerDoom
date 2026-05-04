@@ -139,30 +139,22 @@ impl GpuState {
     /// Returns an error string if any wgpu initialisation step fails.
     pub fn new(window: Arc<Window>) -> Result<Self, String> {
         let size = window.inner_size();
-
-        // --- Instance ---
         // Use the default backends (Vulkan, Metal, DX12, OpenGL).
         // The `new_without_display_handle` constructor is used here for simplicity;
         // a more complete implementation would pass the display handle from winit
         // to enable Wayland GLES compositing.
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
-
-        // --- Surface ---
         // `Surface<'static>` requires the window to outlive the surface.
         // `Arc<Window>` is `'static`, so this is sound.
         let surface = instance
             .create_surface(window)
             .map_err(|e| format!("create_surface: {e}"))?;
-
-        // --- Adapter ---
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::default(),
             compatible_surface: Some(&surface),
             force_fallback_adapter: false,
         }))
         .map_err(|e| format!("no suitable GPU adapter found: {e}"))?;
-
-        // --- Device & Queue ---
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("doom_device"),
             required_features: wgpu::Features::empty(),
@@ -173,8 +165,6 @@ impl GpuState {
             trace: wgpu::Trace::Off,
         }))
         .map_err(|e| format!("request_device: {e}"))?;
-
-        // --- Surface configuration ---
         let surface_caps = surface.get_capabilities(&adapter);
         // Prefer a non-sRGB format so colours match the palette exactly.
         let surface_format = surface_caps
@@ -195,8 +185,6 @@ impl GpuState {
             desired_maximum_frame_latency: 2,
         };
         surface.configure(&device, &config);
-
-        // --- Doom frame texture ---
         // Created with BGRA8Unorm to match the pixel format written by the
         // engine's I_FinishUpdate function.
         let doom_texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -224,8 +212,6 @@ impl GpuState {
             min_filter: wgpu::FilterMode::Nearest,
             ..Default::default()
         });
-
-        // --- Bind group layout ---
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("doom_bind_group_layout"),
             entries: &[
@@ -249,8 +235,6 @@ impl GpuState {
                 },
             ],
         });
-
-        // --- Bind group ---
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("doom_bind_group"),
             layout: &bind_group_layout,
@@ -265,21 +249,15 @@ impl GpuState {
                 },
             ],
         });
-
-        // --- Shader module ---
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("doom_shader"),
             source: wgpu::ShaderSource::Wgsl(SHADER_SOURCE.into()),
         });
-
-        // --- Pipeline layout ---
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("doom_pipeline_layout"),
             bind_group_layouts: &[Some(&bind_group_layout)],
             immediate_size: 0,
         });
-
-        // --- Render pipeline ---
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("doom_render_pipeline"),
             layout: Some(&pipeline_layout),
@@ -345,7 +323,6 @@ impl GpuState {
     /// Returns an error string if the swapchain texture cannot be acquired
     /// (e.g. the surface is lost or the window is minimised).
     pub fn render(&self, pixels: &[u8]) -> Result<(), String> {
-        // --- Upload pixels to the intermediate texture ---
         self.queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: &self.doom_texture,
@@ -365,8 +342,6 @@ impl GpuState {
                 depth_or_array_layers: 1,
             },
         );
-
-        // --- Acquire the next swapchain image ---
         let output = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(t) => t,
             wgpu::CurrentSurfaceTexture::Suboptimal(t) => {
@@ -391,8 +366,6 @@ impl GpuState {
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-
-        // --- Record commands ---
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -422,8 +395,6 @@ impl GpuState {
             // Draw 6 vertices (2 triangles) without a vertex buffer.
             render_pass.draw(0..6, 0..1);
         }
-
-        // --- Submit and present ---
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
 

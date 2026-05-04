@@ -2257,7 +2257,7 @@ mod tests {
             let entry = &S_sfx[sfx_pistol as usize];
             assert_eq!(entry.priority, 64);
             // name must start with "pistol"
-            let name_bytes: &[u8] = &*(entry.name.as_ptr() as *const [u8; 9]);
+            let name_bytes: Vec<u8> = entry.name.iter().map(|&c| c as u8).collect();
             assert!(
                 name_bytes.starts_with(b"pistol"),
                 "name should start with 'pistol'"
@@ -2293,4 +2293,3 @@ mod tests {
         assert_eq!(std::mem::size_of::<MusicInfo>(), 32);
     }
 }
-

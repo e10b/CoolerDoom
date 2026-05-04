@@ -8,13 +8,9 @@ use std::ffi::{c_char, c_int, c_uint, c_void};
 
 use crate::doom::v_video::patch_t;
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const HU_MAXLINES: usize = 4;
 const HU_MAXLINELENGTH: usize = 80;
 const SCREENWIDTH: c_int = 320;
-
-// ── Widget structs (from hu_lib.h) ────────────────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -50,8 +46,6 @@ pub struct hu_itext_t {
     _pad1: [u8; 4],
 }
 
-// ── Layout checks ─────────────────────────────────────────────────────
-
 #[cfg(target_pointer_width = "64")]
 mod layout_checks {
     use super::*;
@@ -78,8 +72,6 @@ mod layout_checks {
     const _: () = assert!(std::mem::offset_of!(hu_itext_t, laston) == 128);
 }
 
-// ── External declarations ─────────────────────────────────────────────
-
 extern "C" {
     fn V_DrawPatchDirect(x: c_int, y: c_int, patch: *mut patch_t);
     fn R_VideoErase(ofs: c_uint, count: c_int);
@@ -95,8 +87,6 @@ extern "C" {
 fn short_swap(v: i16) -> i16 {
     v
 }
-
-// ── textline code ─────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn HUlib_init() {}
@@ -213,8 +203,6 @@ pub extern "C" fn HUlib_eraseTextLine(l: *mut hu_textline_t) {
     }
 }
 
-// ── Scrolling Text window widget routines ─────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn HUlib_initSText(
     s: *mut hu_stext_t,
@@ -310,8 +298,6 @@ pub extern "C" fn HUlib_eraseSText(s: *mut hu_stext_t) {
     }
 }
 
-// ── Input Text Line widget routines ───────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn HUlib_initIText(
     it: *mut hu_itext_t,
@@ -403,8 +389,6 @@ pub extern "C" fn HUlib_eraseIText(it: *mut hu_itext_t) {
     }
 }
 
-// ── Layout assertions ─────────────────────────────────────────────────
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -449,8 +433,6 @@ mod tests {
         assert_eq!(std::mem::offset_of!(hu_itext_t, on), 120);
         assert_eq!(std::mem::offset_of!(hu_itext_t, laston), 128);
     }
-
-    // ── Behavioral tests for textline helpers ─────────────────────────
 
     /// Build a zero-initialised hu_textline_t without a valid font pointer.
     /// Safe to use with clear/add/del because those don't dereference `f`.

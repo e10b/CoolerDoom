@@ -25,8 +25,6 @@ fn logical_gamemission() -> c_int {
     }
 }
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const LINEHEIGHT: c_int = 16;
 const SKULLXOFF: c_int = -32;
 
@@ -84,8 +82,6 @@ const fn make_gamma_msg(s: &str) -> [c_char; 26] {
     arr
 }
 
-// ── Menu data structures ──────────────────────────────────────────────
-
 #[repr(C)]
 pub struct menuitem_t {
     pub status: i16,
@@ -116,8 +112,6 @@ struct patch_stub {
     width: i16,
     height: i16,
 }
-
-// ── Extern C functions ────────────────────────────────────────────────
 
 extern "C" {
     fn V_DrawPatchDirect(x: c_int, y: c_int, patch: *mut c_void);
@@ -170,8 +164,6 @@ extern "C" {
     static mut doom2_endmsg: [*const c_char; 8];
 }
 
-// ── sfx constants (matching sounds.h enum discriminants) ──────────────
-
 const SFX_PISTOL: c_int = 1;
 const SFX_PSTOP: c_int = 19;
 const SFX_STNMOV: c_int = 22;
@@ -192,8 +184,6 @@ const SFX_BSPACT: c_int = 78;
 const SFX_VILACT: c_int = 80;
 const SFX_GETPOW: c_int = 93;
 const SFX_BOSCUB: c_int = 95;
-
-// ── Globals owned by this module ──────────────────────────────────────
 
 #[no_mangle]
 pub static mut mouseSensitivity: c_int = 5;
@@ -248,8 +238,6 @@ static mut skullName: [*const c_char; 2] = [
 #[no_mangle]
 pub static mut currentMenu: *mut menu_t = ptr::null_mut();
 
-// ── Menu enums ────────────────────────────────────────────────────────
-
 const newgame: usize = 0;
 const options: usize = 1;
 const loadgame: usize = 2;
@@ -287,8 +275,6 @@ const load_end: usize = 6;
 
 const read1_end: usize = 1;
 const read2_end: usize = 1;
-
-// ── Static menu item arrays ───────────────────────────────────────────
 
 static mut MainMenu: [menuitem_t; 6] = [
     mi(1, b"M_NGAME\0\0\0", Some(M_NewGame), b'n'),
@@ -353,8 +339,6 @@ static mut SaveMenu: [menuitem_t; 6] = [
     mi(1, b"", Some(M_SaveSelect), b'5'),
     mi(1, b"", Some(M_SaveSelect), b'6'),
 ];
-
-// ── Static menu defs (prevMenu set at runtime in M_Init) ──────────────
 
 static mut MainDef: menu_t = menu_t {
     numitems: main_end as i16,
@@ -446,8 +430,6 @@ static mut SaveDef: menu_t = menu_t {
     lastOn: 0,
 };
 
-// ── M_ReadSaveStrings ────────────────────────────────────────────────
-
 fn M_ReadSaveStrings() {
     unsafe {
         for i in 0..load_end {
@@ -480,8 +462,6 @@ fn M_ReadSaveStrings() {
     }
 }
 
-// ── M_DrawLoad ───────────────────────────────────────────────────────
-
 extern "C" fn M_DrawLoad() {
     unsafe {
         V_DrawPatchDirect(
@@ -503,8 +483,6 @@ extern "C" fn M_DrawLoad() {
         }
     }
 }
-
-// ── M_DrawSaveLoadBorder ─────────────────────────────────────────────
 
 fn M_DrawSaveLoadBorder(x: c_int, y: c_int) {
     unsafe {
@@ -532,8 +510,6 @@ fn M_DrawSaveLoadBorder(x: c_int, y: c_int) {
     }
 }
 
-// ── M_LoadSelect ─────────────────────────────────────────────────────
-
 extern "C" fn M_LoadSelect(choice: c_int) {
     unsafe {
         let mut name: [c_char; 256] = [0; 256];
@@ -542,8 +518,6 @@ extern "C" fn M_LoadSelect(choice: c_int) {
         M_ClearMenus();
     }
 }
-
-// ── M_LoadGame ───────────────────────────────────────────────────────
 
 extern "C" fn M_LoadGame(_choice: c_int) {
     unsafe {
@@ -559,8 +533,6 @@ extern "C" fn M_LoadGame(_choice: c_int) {
     }
     M_ReadSaveStrings();
 }
-
-// ── M_DrawSave ───────────────────────────────────────────────────────
 
 extern "C" fn M_DrawSave() {
     unsafe {
@@ -592,8 +564,6 @@ extern "C" fn M_DrawSave() {
     }
 }
 
-// ── M_DoSave ─────────────────────────────────────────────────────────
-
 fn M_DoSave(slot: c_int) {
     unsafe {
         G_SaveGame(slot, savegamestrings[slot as usize].as_ptr());
@@ -603,8 +573,6 @@ fn M_DoSave(slot: c_int) {
         }
     }
 }
-
-// ── M_SaveSelect ─────────────────────────────────────────────────────
 
 extern "C" fn M_SaveSelect(choice: c_int) {
     unsafe {
@@ -626,8 +594,6 @@ extern "C" fn M_SaveSelect(choice: c_int) {
     }
 }
 
-// ── M_SaveGame ───────────────────────────────────────────────────────
-
 extern "C" fn M_SaveGame(_choice: c_int) {
     const GS_LEVEL: c_int = 0;
     unsafe {
@@ -646,8 +612,6 @@ extern "C" fn M_SaveGame(_choice: c_int) {
     }
     M_ReadSaveStrings();
 }
-
-// ── M_QuickSave ──────────────────────────────────────────────────────
 
 fn M_QuickSave() {
     const GS_LEVEL: c_int = 0;
@@ -687,8 +651,6 @@ extern "C" fn M_QuickSaveResponse(key: c_int) {
         }
     }
 }
-
-// ── M_QuickLoad ──────────────────────────────────────────────────────
 
 fn M_QuickLoad() {
     unsafe {
@@ -731,8 +693,6 @@ extern "C" fn M_QuickLoadResponse(key: c_int) {
         }
     }
 }
-
-// ── M_DrawReadThis1 ──────────────────────────────────────────────────
 
 extern "C" fn M_DrawReadThis1() {
     unsafe {
@@ -780,8 +740,6 @@ extern "C" fn M_DrawReadThis1() {
     }
 }
 
-// ── M_DrawReadThis2 ──────────────────────────────────────────────────
-
 extern "C" fn M_DrawReadThis2() {
     unsafe {
         inhelpscreens = 1;
@@ -792,8 +750,6 @@ extern "C" fn M_DrawReadThis2() {
         );
     }
 }
-
-// ── M_DrawSound ──────────────────────────────────────────────────────
 
 extern "C" fn M_DrawSound() {
     use super::s_sound::{musicVolume, sfxVolume};
@@ -856,8 +812,6 @@ extern "C" fn M_MusicVol(choice: c_int) {
     }
 }
 
-// ── M_DrawMainMenu ───────────────────────────────────────────────────
-
 extern "C" fn M_DrawMainMenu() {
     unsafe {
         V_DrawPatchDirect(
@@ -867,8 +821,6 @@ extern "C" fn M_DrawMainMenu() {
         );
     }
 }
-
-// ── M_DrawNewGame ────────────────────────────────────────────────────
 
 extern "C" fn M_DrawNewGame() {
     unsafe {
@@ -903,8 +855,6 @@ extern "C" fn M_NewGame(_choice: c_int) {
         }
     }
 }
-
-// ── M_DrawEpisode ────────────────────────────────────────────────────
 
 extern "C" fn M_DrawEpisode() {
     unsafe {
@@ -966,8 +916,6 @@ extern "C" fn M_Episode(choice: c_int) {
     }
 }
 
-// ── M_DrawOptions ────────────────────────────────────────────────────
-
 extern "C" fn M_DrawOptions() {
     unsafe {
         V_DrawPatchDirect(
@@ -1017,8 +965,6 @@ extern "C" fn M_Options(_choice: c_int) {
     unsafe { M_SetupNextMenu(&mut OptionsDef) };
 }
 
-// ── M_ChangeMessages ─────────────────────────────────────────────────
-
 extern "C" fn M_ChangeMessages(_choice: c_int) {
     unsafe {
         showMessages = 1 - showMessages;
@@ -1030,8 +976,6 @@ extern "C" fn M_ChangeMessages(_choice: c_int) {
         message_dontfuckwithme = 1;
     }
 }
-
-// ── M_EndGame ────────────────────────────────────────────────────────
 
 extern "C" fn M_EndGameResponse(key: c_int) {
     use super::m_controls::key_menu_confirm;
@@ -1067,8 +1011,6 @@ extern "C" fn M_EndGame(_choice: c_int) {
     }
 }
 
-// ── M_ReadThis ───────────────────────────────────────────────────────
-
 extern "C" fn M_ReadThis(_choice: c_int) {
     unsafe { M_SetupNextMenu(&mut ReadDef1) };
 }
@@ -1086,8 +1028,6 @@ extern "C" fn M_ReadThis2(_choice: c_int) {
 extern "C" fn M_FinishReadThis(_choice: c_int) {
     unsafe { M_SetupNextMenu(&mut MainDef) };
 }
-
-// ── M_QuitDOOM ───────────────────────────────────────────────────────
 
 static mut quitsounds: [c_int; 8] = [
     SFX_PLDETH, SFX_DMPAIN, SFX_POPAIN, SFX_SLOP, SFX_TELEPT, SFX_POSIT1, SFX_POSIT3, SFX_SGTATK,
@@ -1138,8 +1078,6 @@ extern "C" fn M_QuitDOOM(_choice: c_int) {
     }
 }
 
-// ── M_ChangeSensitivity ──────────────────────────────────────────────
-
 extern "C" fn M_ChangeSensitivity(choice: c_int) {
     unsafe {
         match choice {
@@ -1154,8 +1092,6 @@ extern "C" fn M_ChangeSensitivity(choice: c_int) {
     }
 }
 
-// ── M_ChangeDetail ───────────────────────────────────────────────────
-
 extern "C" fn M_ChangeDetail(_choice: c_int) {
     unsafe {
         detailLevel = 1 - detailLevel;
@@ -1167,8 +1103,6 @@ extern "C" fn M_ChangeDetail(_choice: c_int) {
         }
     }
 }
-
-// ── M_SizeDisplay ────────────────────────────────────────────────────
 
 extern "C" fn M_SizeDisplay(choice: c_int) {
     unsafe {
@@ -1186,8 +1120,6 @@ extern "C" fn M_SizeDisplay(choice: c_int) {
         R_SetViewSize(screenblocks, detailLevel);
     }
 }
-
-// ── M_DrawThermo ─────────────────────────────────────────────────────
 
 fn M_DrawThermo(x: c_int, y: c_int, thermWidth: c_int, thermDot: c_int) {
     unsafe {
@@ -1220,12 +1152,8 @@ fn M_DrawThermo(x: c_int, y: c_int, thermWidth: c_int, thermDot: c_int) {
     }
 }
 
-// ── M_DrawEmptyCell / M_DrawSelCell (no-ops, same as C) ──────────────
-
 fn M_DrawEmptyCell(_menu: *mut menu_t, _item: c_int) {}
 fn M_DrawSelCell(_menu: *mut menu_t, _item: c_int) {}
-
-// ── M_StartMessage / M_StopMessage ───────────────────────────────────
 
 fn M_StartMessage(string: *mut c_char, routine: Option<extern "C" fn(c_int)>, input: c_int) {
     unsafe {
@@ -1245,8 +1173,6 @@ fn M_StopMessage() {
     }
 }
 
-// ── M_StringWidth ────────────────────────────────────────────────────
-
 fn M_StringWidth(string: *mut c_char) -> c_int {
     unsafe {
         let len = strlen(string);
@@ -1264,8 +1190,6 @@ fn M_StringWidth(string: *mut c_char) -> c_int {
     }
 }
 
-// ── M_StringHeight ───────────────────────────────────────────────────
-
 fn M_StringHeight(string: *mut c_char) -> c_int {
     unsafe {
         let patch = hu_font[0] as *const patch_stub;
@@ -1280,8 +1204,6 @@ fn M_StringHeight(string: *mut c_char) -> c_int {
         h
     }
 }
-
-// ── M_WriteText ──────────────────────────────────────────────────────
 
 fn M_WriteText(x: c_int, y: c_int, string: *mut c_char) {
     unsafe {
@@ -1318,13 +1240,9 @@ fn M_WriteText(x: c_int, y: c_int, string: *mut c_char) {
     }
 }
 
-// ── IsNullKey ────────────────────────────────────────────────────────
-
 fn IsNullKey(key: c_int) -> bool {
     key == KEY_PAUSE || key == KEY_CAPSLOCK || key == KEY_SCRLCK || key == KEY_NUMLOCK
 }
-
-// ── M_Responder static locals ────────────────────────────────────────
 
 static mut RESP_joywait: c_int = 0;
 static mut RESP_mousewait: c_int = 0;
@@ -1332,8 +1250,6 @@ static mut RESP_mousey: c_int = 0;
 static mut RESP_lasty: c_int = 0;
 static mut RESP_mousex: c_int = 0;
 static mut RESP_lastx: c_int = 0;
-
-// ── M_Responder ──────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn M_Responder(ev: *mut event_t) -> c_int {
@@ -1699,8 +1615,6 @@ pub extern "C" fn M_Responder(ev: *mut event_t) -> c_int {
     }
 }
 
-// ── M_StartControlPanel ──────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn M_StartControlPanel() {
     unsafe {
@@ -1712,8 +1626,6 @@ pub extern "C" fn M_StartControlPanel() {
         itemOn = (*currentMenu).lastOn;
     }
 }
-
-// ── M_Drawer ─────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn M_Drawer() {
@@ -1778,15 +1690,11 @@ pub extern "C" fn M_Drawer() {
     }
 }
 
-// ── M_ClearMenus ─────────────────────────────────────────────────────
-
 fn M_ClearMenus() {
     unsafe {
         menuactive = 0;
     }
 }
-
-// ── M_SetupNextMenu ──────────────────────────────────────────────────
 
 fn M_SetupNextMenu(menudef: *mut menu_t) {
     unsafe {
@@ -1794,8 +1702,6 @@ fn M_SetupNextMenu(menudef: *mut menu_t) {
         itemOn = (*currentMenu).lastOn;
     }
 }
-
-// ── M_Ticker ─────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn M_Ticker() {
@@ -1807,8 +1713,6 @@ pub extern "C" fn M_Ticker() {
         }
     }
 }
-
-// ── M_Init ───────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn M_Init() {

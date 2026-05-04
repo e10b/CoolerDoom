@@ -108,8 +108,6 @@ mod tests {
         }
     }
 
-    // ── Additional coverage ───────────────────────────────────────────
-
     #[test]
     fn p_random_increments_prndindex() {
         let _g = LOCK.lock().unwrap();

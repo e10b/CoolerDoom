@@ -10,13 +10,9 @@ use std::ffi::{c_char, c_float, c_int, c_void};
 use std::mem;
 use std::ptr;
 
-// ── Constants ──────────────────────────────────────────────────────────
-
 const SCREENWIDTH: usize = 320;
 const SCREENHEIGHT: usize = 200;
 const PU_STATIC: c_int = 1;
-
-// ── Color struct matching C bitfield layout (BGRA byte order) ─────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -26,8 +22,6 @@ struct Color {
     r: u8,
     a: u8,
 }
-
-// ── FB_ScreenInfo (internal, not exposed to C) ────────────────────────
 
 struct FB_BitField {
     offset: u32,
@@ -45,8 +39,6 @@ struct FB_ScreenInfo {
     blue: FB_BitField,
     transp: FB_BitField,
 }
-
-// ── Globals exported with #[no_mangle] ────────────────────────────────
 
 #[no_mangle]
 pub static mut I_VideoBuffer: *mut u8 = ptr::null_mut();
@@ -71,8 +63,6 @@ pub static mut fb_scaling: c_int = 1;
 
 #[no_mangle]
 pub static mut usemouse: c_int = 0;
-
-// ── Module-local state ────────────────────────────────────────────────
 
 static mut COLORS: [Color; 256] = [Color {
     b: 0,
@@ -105,8 +95,6 @@ static mut s_Fb: FB_ScreenInfo = FB_ScreenInfo {
     },
 };
 
-// ── External declarations ─────────────────────────────────────────────
-
 extern "C" {
     fn DG_DrawFrame();
     fn DG_SetWindowTitle(title: *const c_char);
@@ -119,8 +107,6 @@ extern "C" {
     fn Z_Free(ptr: *mut c_void);
     fn I_Error(format: *const c_char, ...);
 }
-
-// ── Palette expansion ─────────────────────────────────────────────────
 
 unsafe fn cmap_to_fb(out: *mut u8, inp: *mut u8, in_pixels: c_int) {
     let bpp = s_Fb.bits_per_pixel;
@@ -172,8 +158,6 @@ unsafe fn cmap_to_rgb565(out: *mut u8, inp: *mut u8, in_pixels: c_int) {
         inp_ptr = inp_ptr.add(1);
     }
 }
-
-// ── Public API ────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn I_InitGraphics() {
@@ -368,8 +352,6 @@ pub unsafe extern "C" fn I_DisplayFPSDots(_dots_on: c_int) {}
 
 #[no_mangle]
 pub unsafe extern "C" fn I_CheckIsScreensaver() {}
-
-// ── Anchor ───────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub unsafe extern "C" fn I_Video_Link_Anchor() {

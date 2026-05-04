@@ -9,12 +9,8 @@ use std::ptr;
 
 use crate::doom::w_file::{wad_file_t, W_OpenFile, W_Read};
 
-// ── Tag constants (z_zone.h) ────────────────────────────────────────
-
 const PU_STATIC: c_int = 1;
 const PU_CACHE: c_int = 8;
-
-// ── Mirrored C structs ──────────────────────────────────────────────
 
 #[repr(C)]
 pub struct lumpinfo_t {
@@ -40,8 +36,6 @@ struct filelump_t {
     name: [c_char; 8],
 }
 
-// ── Globals ─────────────────────────────────────────────────────────
-
 #[no_mangle]
 pub static mut lumpinfo: *mut lumpinfo_t = ptr::null_mut();
 
@@ -49,8 +43,6 @@ pub static mut lumpinfo: *mut lumpinfo_t = ptr::null_mut();
 pub static mut numlumps: c_uint = 0;
 
 static mut lumphash: *mut *mut lumpinfo_t = ptr::null_mut();
-
-// ── External declarations ───────────────────────────────────────────
 
 extern "C" {
     fn I_Error(format: *const c_char, ...);
@@ -77,8 +69,6 @@ extern "C" {
     fn D_SuggestGameName(mission: c_int, mode: c_int) -> *mut c_char;
     fn D_GameMissionString(mission: c_int) -> *mut c_char;
 }
-
-// ── Internal helpers ────────────────────────────────────────────────
 
 unsafe fn ExtendLumpInfo(newnumlumps: c_uint) {
     let newlumpinfo =
@@ -108,8 +98,6 @@ unsafe fn ExtendLumpInfo(newnumlumps: c_uint) {
     lumpinfo = newlumpinfo;
     numlumps = newnumlumps;
 }
-
-// ── Public API ──────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn W_LumpNameHash(s: *const c_char) -> c_uint {
@@ -446,8 +434,6 @@ pub extern "C" fn W_CheckCorrectIWAD(mission: c_int) {
         }
     }
 }
-
-// ── Anchor so linker doesn't discard ────────────────────────────────
 #[no_mangle]
 pub unsafe extern "C" fn W_Wad_Link_Anchor() {
     W_LumpNameHash(ptr::null());
@@ -464,8 +450,6 @@ pub unsafe extern "C" fn W_Wad_Link_Anchor() {
     W_GenerateHashTable();
     W_CheckCorrectIWAD(0);
 }
-
-// ── Layout assertions ───────────────────────────────────────────────
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -10,15 +10,11 @@ use std::os::raw::c_int;
 use crate::doom::d_player::PlayerT;
 use crate::doom::p_tick::thinker_t;
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const ANGLETOFINESHIFT: u32 = 19;
 const MF_MISSILE: c_int = 0x10000;
 const MT_TELEPORTMAN: c_int = 41;
 const MT_TFOG: c_int = 39;
 const SFX_TELEPT: c_int = 35; // sfx_telept enum value
-
-// ── Subsector mirror (from r_defs.h) ─────────────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -27,8 +23,6 @@ pub struct subsector_t {
     pub numlines: i16,
     pub firstline: i16,
 }
-
-// ── Sector mirror (partial, from r_defs.h / p_lights.rs) ─────────────
 // Re-export the same layout as p_lights.rs so pointer casts work.
 
 #[repr(C)]
@@ -53,8 +47,6 @@ pub struct sector_t {
     pub lines: *mut *mut c_void,
 }
 
-// ── Mapthing mirror (from doomdata.h, packed) ────────────────────────
-
 #[repr(C, packed)]
 #[derive(Clone, Copy)]
 pub struct mapthing_t {
@@ -65,13 +57,9 @@ pub struct mapthing_t {
     pub options: i16,
 }
 
-// ── Opaque forward declarations ──────────────────────────────────────
-
 pub enum player_s {}
 pub enum state_t {}
 pub enum mobjinfo_t {}
-
-// ── mobj_t mirror (from p_mobj.h, 224 bytes on x86_64) ───────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -118,8 +106,6 @@ pub struct mobj_t {
     pub tracer: *mut mobj_t,
 }
 
-// ── line_t mirror (same as p_lights.rs) ──────────────────────────────
-
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct line_t {
@@ -139,11 +125,7 @@ pub struct line_t {
     pub specialdata: *mut c_void,
 }
 
-// ── GameVersion_t enum values ─────────────────────────────────────────
-
 const EXE_FINAL: c_int = 7;
-
-// ── Extern declarations ──────────────────────────────────────────────
 
 extern "C" {
     fn P_TeleportMove(thing: *mut mobj_t, x: c_int, y: c_int) -> c_int;
@@ -156,12 +138,8 @@ extern "C" {
     static mut finecosine: [c_int; 4096];
     static mut finesine: [c_int; 4096];
 }
-
-// ── PlayerT partial mirror (just viewz and viewheight) ───────────────
 // We already have PlayerT in d_player.rs but can't use it here
 // because the C player_s is different. Use pointer casts.
-
-// ── Public API ────────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn EV_Teleport(line: *mut line_t, side: c_int, thing: *mut mobj_t) -> c_int {
@@ -271,8 +249,6 @@ extern "C" {
 pub extern "C" fn P_Telept_Link_Anchor() {
     let _ = EV_Teleport as *const () as usize;
 }
-
-// ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {

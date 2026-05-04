@@ -75,8 +75,6 @@ mod tests {
         let _ = FixedDiv(i32::MIN, 1 << 16);
     }
 
-    // ── Additional FixedMul edge cases ────────────────────────────────
-
     #[test]
     fn mul_zero() {
         assert_eq!(FixedMul(0, 1 << 16), 0);
@@ -109,8 +107,6 @@ mod tests {
         let _ = FixedMul(i32::MIN, i32::MIN);
         let _ = FixedMul(i32::MAX, i32::MIN);
     }
-
-    // ── Additional FixedDiv edge cases ────────────────────────────────
 
     #[test]
     fn div_half() {

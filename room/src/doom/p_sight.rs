@@ -8,13 +8,9 @@ use std::os::raw::c_int;
 
 use crate::doom::m_fixed::{FixedDiv, FixedMul};
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const NF_SUBSECTOR: u32 = 0x8000;
 const ML_TWOSIDED: i16 = 4;
 const FRACBITS: u32 = 16;
-
-// ── divline_t mirror (from p_local.h) ────────────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -25,16 +21,12 @@ pub struct divline_t {
     pub dy: c_int,
 }
 
-// ── vertex_t mirror (from r_defs.h) ──────────────────────────────────
-
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct vertex_t {
     pub x: c_int,
     pub y: c_int,
 }
-
-// ── subsector_t mirror (from r_defs.h, same as p_telept.rs) ──────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -44,8 +36,6 @@ pub struct subsector_t {
     pub firstline: i16,
     _pad: [u8; 4],
 }
-
-// ── seg_t mirror (from r_defs.h) ─────────────────────────────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -60,8 +50,6 @@ pub struct seg_t {
     pub backsector: *mut sector_t,
 }
 
-// ── node_t mirror (from r_defs.h) ────────────────────────────────────
-
 // NOTE: The first 4 fields of node_t have the same layout as divline_t.
 // C code casts (divline_t*)node for P_DivlineSide calls. We replicate
 // the divline_t header here so we can safely transmute.
@@ -75,8 +63,6 @@ pub struct node_t {
     pub bbox: [[c_int; 4]; 2],
     pub children: [u16; 2],
 }
-
-// ── sector_t mirror (from r_defs.h / p_lights.rs) ────────────────────
 
 use std::ffi::c_void;
 
@@ -102,8 +88,6 @@ pub struct sector_t {
     pub lines: *mut *mut c_void,
 }
 
-// ── line_t mirror (from r_defs.h / p_lights.rs) ──────────────────────
-
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct line_t {
@@ -122,8 +106,6 @@ pub struct line_t {
     pub validcount: c_int,
     pub specialdata: *mut c_void,
 }
-
-// ── Globals (mutable, matching C static variables) ───────────────────
 
 #[no_mangle]
 pub static mut sightzstart: c_int = 0;
@@ -145,8 +127,6 @@ pub static mut t2y: c_int = 0;
 #[no_mangle]
 pub static mut sightcounts: [c_int; 2] = [0, 0];
 
-// ── Extern declarations ──────────────────────────────────────────────
-
 extern "C" {
     static mut numsubsectors: c_int;
     static mut subsectors: *mut subsector_t;
@@ -159,13 +139,9 @@ extern "C" {
     static mut sectors: *mut sector_t;
     fn I_Error(format: *const i8, ...) -> !;
 }
-
-// ── mobj_t re-export (verified layout in p_telept.rs) ────────────────
 // Reuse the authoritative mobj_t mirror from p_telept.rs to guarantee
 // field offsets match the C layout (x=24, subsector=88, height=108).
 pub use crate::doom::p_telept::mobj_t;
-
-// ── P_DivlineSide ─────────────────────────────────────────────────────
 // Returns side 0 (front), 1 (back), or 2 (on).
 
 fn P_DivlineSide(x: c_int, y: c_int, node: &divline_t) -> c_int {
@@ -208,8 +184,6 @@ fn P_DivlineSide(x: c_int, y: c_int, node: &divline_t) -> c_int {
     }
     1 // back side
 }
-
-// ── P_InterceptVector2 ────────────────────────────────────────────────
 // Returns the fractional intercept point along the first divline.
 
 fn P_InterceptVector2(v2: &divline_t, v1: &divline_t) -> c_int {
@@ -223,8 +197,6 @@ fn P_InterceptVector2(v2: &divline_t, v1: &divline_t) -> c_int {
 
     unsafe { FixedDiv(num, den) }
 }
-
-// ── P_CrossSubsector ──────────────────────────────────────────────────
 
 fn P_CrossSubsector(num: c_int) -> bool {
     unsafe {
@@ -350,8 +322,6 @@ fn P_CrossSubsector(num: c_int) -> bool {
     }
 }
 
-// ── P_CrossBSPNode ────────────────────────────────────────────────────
-
 /// Extract the first 4 fields of a node_t as a divline_t.
 /// The C code casts `(divline_t*)node` for P_DivlineSide calls;
 /// since both structs share the same header layout (x, y, dx, dy),
@@ -397,8 +367,6 @@ fn P_CrossBSPNode(bspnum: c_int) -> bool {
         P_CrossBSPNode(bsp.children[(side ^ 1) as usize] as c_int)
     }
 }
-
-// ── P_CheckSight ──────────────────────────────────────────────────────
 
 /// Returns C `boolean` (= `unsigned int`, 4 bytes), not Rust `bool` (1 byte).
 /// Doom's `typedef unsigned int boolean` means the C caller reads a 32-bit
@@ -449,8 +417,6 @@ pub extern "C" fn P_CheckSight(t1: *mut mobj_t, t2: *mut mobj_t) -> c_int {
 pub extern "C" fn P_Sight_Link_Anchor() {
     let _ = P_CheckSight as *const () as usize;
 }
-
-// ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {

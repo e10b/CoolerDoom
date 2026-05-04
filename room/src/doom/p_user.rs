@@ -14,8 +14,6 @@ use crate::doom::p_telept::mobj_t;
 use crate::doom::p_tick::leveltime;
 use crate::doom::tables::{finecosine, finesine, FINEANGLES};
 
-// ── Constants ─────────────────────────────────────────────────────────
-
 const MAXBOB: c_int = 0x100000;
 const ANGLETOFINESHIFT: u32 = 19;
 const VIEWHEIGHT: fixed_t = 41 * FRACUNIT;
@@ -77,14 +75,10 @@ const S_PLAY_RUN1: c_int = 150;
 /// + nextstate+misc1+misc2=12 + 4 pad = 40 bytes).
 const STATE_T_SIZEOF: usize = 40;
 
-// ── Globals ───────────────────────────────────────────────────────────
-
 /// Whether the player is on ground (boolean → c_int for 4-byte ABI).
 /// Read by not-yet-ported C modules (e.g. p_pspr.c).
 #[no_mangle]
 pub static mut onground: c_int = 0;
-
-// ── External declarations ─────────────────────────────────────────────
 
 extern "C" {
     fn P_SetMobjState(thing: *mut mobj_t, state: c_int) -> c_int;
@@ -104,8 +98,6 @@ extern "C" {
     fn P_CalcSwirl();
 }
 
-// ── P_Thrust ──────────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn P_Thrust(player: *mut PlayerT, angle: u32, move_: fixed_t) {
     unsafe {
@@ -115,8 +107,6 @@ pub extern "C" fn P_Thrust(player: *mut PlayerT, angle: u32, move_: fixed_t) {
         (*mo).momy += FixedMul(move_, finesine[angle]);
     }
 }
-
-// ── P_CalcHeight ──────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn P_CalcHeight(player: *mut PlayerT) {
@@ -179,8 +169,6 @@ pub extern "C" fn P_CalcHeight(player: *mut PlayerT) {
     }
 }
 
-// ── P_MovePlayer ──────────────────────────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn P_MovePlayer(player: *mut PlayerT) {
     unsafe {
@@ -213,8 +201,6 @@ pub extern "C" fn P_MovePlayer(player: *mut PlayerT) {
         }
     }
 }
-
-// ── P_DeathThink ──────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn P_DeathThink(player: *mut PlayerT) {
@@ -265,8 +251,6 @@ pub extern "C" fn P_DeathThink(player: *mut PlayerT) {
         }
     }
 }
-
-// ── P_PlayerThink ─────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn P_PlayerThink(player: *mut PlayerT) {
@@ -424,8 +408,6 @@ pub extern "C" fn P_User_Link_Anchor() {
     let _ = P_DeathThink as *const () as usize;
     let _ = P_PlayerThink as *const () as usize;
 }
-
-// ── Layout assertions ─────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {

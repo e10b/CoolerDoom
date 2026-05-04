@@ -8,12 +8,8 @@
 use std::ffi::{c_char, c_int, c_uint, c_void, CStr};
 use std::ptr;
 
-// ── Constants ───────────────────────────────────────────────────────
-
 const DEFAULT_RAM: c_int = 6; // MiB
 const MIN_RAM: c_int = 6; // MiB
-
-// ─-- Internal types ─────────────────────────────────────────────────
 
 type atexit_func_t = extern "C" fn();
 
@@ -24,11 +20,7 @@ struct atexit_listentry_t {
     next: *mut atexit_listentry_t,
 }
 
-// ── Globals ─────────────────────────────────────────────────────────
-
 static mut exit_funcs: *mut atexit_listentry_t = ptr::null_mut();
-
-// ── External declarations ───────────────────────────────────────────
 
 extern "C" {
     fn M_CheckParmWithArgs(check: *mut c_char, num_args: c_int) -> c_int;
@@ -38,8 +30,6 @@ extern "C" {
     static mut myargc: c_int;
     static mut myargv: *mut *mut c_char;
 }
-
-// ── Internal helpers ────────────────────────────────────────────────
 
 unsafe fn AutoAllocMemory(size: *mut c_int, mut default_ram: c_int, min_ram: c_int) -> *mut u8 {
     let mut zonemem: *mut u8 = ptr::null_mut();
@@ -66,8 +56,6 @@ unsafe fn AutoAllocMemory(size: *mut c_int, mut default_ram: c_int, min_ram: c_i
 
     zonemem
 }
-
-// ── Public API ──────────────────────────────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn I_AtExit(func: atexit_func_t, run_on_error: c_int) {
@@ -160,8 +148,6 @@ pub extern "C" fn I_Quit() {
     }
 }
 
-// ── Error handling ──────────────────────────────────────────────────
-
 unsafe fn ZenityAvailable() -> bool {
     std::process::Command::new("/usr/bin/zenity")
         .arg("--help")
@@ -233,8 +219,6 @@ pub extern "C" fn I_Error(msg: *const c_char) {
 pub extern "C" fn I_ErrorV(msg: *const c_char) {
     I_Error(msg);
 }
-
-// ── DOS memory dump emulation ───────────────────────────────────────
 
 const DOS_MEM_DUMP_SIZE: usize = 10;
 
@@ -330,8 +314,6 @@ pub extern "C" fn I_GetMemoryValue(offset: c_uint, value: *mut c_void, size: c_i
         }
     }
 }
-
-// ── Anchor so linker doesn't discard ────────────────────────────────
 extern "C" fn dummy_atexit() {}
 
 #[no_mangle]

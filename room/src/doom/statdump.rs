@@ -89,7 +89,8 @@ mod tests {
     #[test]
     fn wbstartstruct_t_size_matches_c() {
         // epsd(4) + last(4) + partime(4) + plyr[4] (4 × 36 = 144) = 156
-        let expected = 3 * std::mem::size_of::<c_int>() + 4 * std::mem::size_of::<wbplayerstruct_t>();
+        let expected =
+            3 * std::mem::size_of::<c_int>() + 4 * std::mem::size_of::<wbplayerstruct_t>();
         assert_eq!(std::mem::size_of::<wbstartstruct_t>(), expected);
     }
 

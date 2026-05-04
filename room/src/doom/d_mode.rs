@@ -6,8 +6,6 @@
 
 use std::ffi::{c_char, c_int};
 
-// ── GameMission_t enum values (d_mode.h:28-40) ──────────────────────
-
 pub const none: c_int = 9;
 pub const doom: c_int = 0;
 pub const doom2: c_int = 1;
@@ -19,15 +17,11 @@ pub const heretic: c_int = 6;
 pub const hexen: c_int = 7;
 pub const strife: c_int = 8;
 
-// ── GameMode_t enum values (d_mode.h:47-53) ─────────────────────────
-
 pub const shareware: c_int = 0;
 pub const registered: c_int = 1;
 pub const commercial: c_int = 2;
 pub const retail: c_int = 3;
 pub const indetermined: c_int = 4;
-
-// ── GameVersion_t enum values (d_mode.h:57-75) ──────────────────────
 
 pub const exe_doom_1_2: c_int = 0;
 pub const exe_doom_1_666: c_int = 1;
@@ -43,8 +37,6 @@ pub const exe_heretic_1_3: c_int = 10;
 pub const exe_hexen_1_1: c_int = 11;
 pub const exe_strife_1_2: c_int = 12;
 pub const exe_strife_1_31: c_int = 13;
-
-// ── valid_modes table (d_mode.c:26-46) ──────────────────────────────
 
 struct ValidMode {
     mission: c_int,
@@ -134,8 +126,6 @@ static VALID_MODES: [ValidMode; 13] = [
     },
 ];
 
-// ── valid_versions table (d_mode.c:119-133) ─────────────────────────
-
 struct ValidVersion {
     mission: c_int,
     version: c_int,
@@ -184,8 +174,6 @@ static VALID_VERSIONS: [ValidVersion; 10] = [
     },
 ];
 
-// ── D_ValidGameMode (d_mode.c:50-63) ────────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn D_ValidGameMode(mission: c_int, mode: c_int) -> c_int {
     for vm in &VALID_MODES {
@@ -195,8 +183,6 @@ pub extern "C" fn D_ValidGameMode(mission: c_int, mode: c_int) -> c_int {
     }
     0 // false
 }
-
-// ── D_ValidEpisodeMap (d_mode.c:65-99) ──────────────────────────────
 
 #[no_mangle]
 pub extern "C" fn D_ValidEpisodeMap(
@@ -227,8 +213,6 @@ pub extern "C" fn D_ValidEpisodeMap(
     0 // Unknown mode/mission combination
 }
 
-// ── D_GetNumEpisodes (d_mode.c:103-115) ─────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn D_GetNumEpisodes(mission: c_int, mode: c_int) -> c_int {
     let mut episode = 1;
@@ -237,8 +221,6 @@ pub extern "C" fn D_GetNumEpisodes(mission: c_int, mode: c_int) -> c_int {
     }
     episode - 1
 }
-
-// ── D_ValidGameVersion (d_mode.c:135-157) ───────────────────────────
 
 #[no_mangle]
 pub extern "C" fn D_ValidGameVersion(mission: c_int, version: c_int) -> c_int {
@@ -262,8 +244,6 @@ pub extern "C" fn D_ValidGameVersion(mission: c_int, version: c_int) -> c_int {
     0 // false
 }
 
-// ── D_IsEpisodeMap (d_mode.c:161-180) ───────────────────────────────
-
 #[no_mangle]
 pub extern "C" fn D_IsEpisodeMap(mission: c_int) -> c_int {
     match mission {
@@ -271,8 +251,6 @@ pub extern "C" fn D_IsEpisodeMap(mission: c_int) -> c_int {
         _ => 0,                          // false
     }
 }
-
-// ── D_GameMissionString (d_mode.c:182-208) ──────────────────────────
 
 macro_rules! cstr {
     ($s:literal) => {
@@ -360,8 +338,6 @@ mod tests {
     fn valid_episode_map_doom_retail_ep5_map1_invalid() {
         assert_eq!(D_ValidEpisodeMap(doom, retail, 5, 1), 0);
     }
-
-    // ── Additional coverage ───────────────────────────────────────────
 
     /// Heretic retail secret episode 6 allows maps 1-3 only.
     #[test]
