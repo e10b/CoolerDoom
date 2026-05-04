@@ -52,7 +52,16 @@ ticcmd_t* I_BaseTiccmd (void);
 // Clean exit, displays sell blurb.
 void I_Quit (void);
 
-void I_Error (char *error, ...);
+#include <stdio.h>
+
+void I_Error(const char *msg);
+void I_ErrorV(const char *msg);
+
+#define I_Error(fmt, ...) do { \
+    char _i_err_buf[512]; \
+    snprintf(_i_err_buf, sizeof(_i_err_buf), fmt, ##__VA_ARGS__); \
+    I_ErrorV(_i_err_buf); \
+} while(0)
 
 void I_Tactile (int on, int off, int total);
 

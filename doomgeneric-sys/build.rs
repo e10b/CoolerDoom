@@ -82,8 +82,8 @@ fn main() {
         "i_scale.c",
         // Sound stub
         // i_sound   — ported to Rust (room/src/doom/i_sound.rs)
-        // System functions (error handling, etc.)
-        "i_system.c",
+        // System functions (error handling, etc.) — ported to Rust (room/src/doom/i_system.rs)
+        // "i_system.c",
         // Timer
         // i_timer   — ported to Rust (room/src/doom/i_timer.rs)
         // Miscellaneous I/O

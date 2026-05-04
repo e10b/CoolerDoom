@@ -178,7 +178,7 @@ recommended porting order.
 - [x] `i_joystick.c`
 - [ ] `i_scale.c`
 - [x] `i_sound.c`
-- [ ] `i_system.c`
+- [x] `i_system.c`
 - [x] `i_timer.c`
 - [ ] `i_video.c`
 

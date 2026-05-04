@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 28 |
-| Total remaining LoC | 33,108 |
-| Already ported LoC | ~12,229 (est.) |
-| Port completeness | ~27% (by line count) |
+| Remaining C modules | 27 |
+| Total remaining LoC | 32,530 |
+| Already ported LoC | ~12,807 (est.) |
+| Port completeness | ~28% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -27,17 +27,16 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-**Recently ported**: `w_wad.c` (612 LoC), `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC).
+**Recently ported**: `i_system.c` (578 LoC), `w_wad.c` (612 LoC), `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC).
 
 ### Medium-Small — 350–550 LoC (0 files, 0 LoC)
 
 _All modules in this bucket have been ported._
 
-### Medium — 550–900 LoC (11 files, 7,945 LoC)
+### Medium — 550–900 LoC (10 files, 7,367 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `i_system.c` | 578 | Platform | Error handling, I_Error, I_Quit |
 | `hu_stuff.c` | 641 | HUD | Heads-up display logic |
 | `p_switch.c` | 648 | Game logic | Switch/button action specials |
 | `f_finale.c` | 718 | Finale | End-of-episode text/screens |
@@ -85,7 +84,7 @@ _All modules in this bucket have been ported._
 
 1. **Quick wins** — Only `p_sight.c` remains in Small tier (needs geometry struct mirrors).
 2. **Self-contained modules** — `p_user.c`, `r_plane.c`, `r_bsp.c`.
-3. **Building blocks** — `z_zone.c` (memory), `v_video.c` (video), `i_system.c` (platform).
+3. **Building blocks** — `z_zone.c` (memory), `v_video.c` (video).
 4. **Renderer pipeline** — `r_data.c`, `r_draw.c`, `r_segs.c`, `r_things.c`, `r_main.c`.
 5. **Game logic** — Start with smaller `p_*` modules, work up to `p_map.c`, `p_mobj.c`, `p_spec.c`.
 6. **Large orchestrators** — `d_main.c`, `g_game.c`, `p_enemy.c`, `p_saveg.c` last (most dependencies).
