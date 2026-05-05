@@ -814,7 +814,10 @@ mod tests {
     fn r_point_to_dist_45_degree_index() {
         let frac = FixedDiv(FRACUNIT, FRACUNIT); // dy == dx
         let index = (frac as u32 >> DBITS) as usize;
-        assert_eq!(index, 2048, "frac>>DBITS for 45-degree case must index tantoangle[2048]");
+        assert_eq!(
+            index, 2048,
+            "frac>>DBITS for 45-degree case must index tantoangle[2048]"
+        );
     }
 
     #[test]

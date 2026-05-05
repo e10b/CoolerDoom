@@ -4,6 +4,8 @@
 //! Functions are exported with `#[no_mangle] extern "C"` so the
 //! remaining C code resolves them at final link time.
 
+pub mod c_ffi;
+
 pub mod d_event;
 pub mod d_items;
 pub mod d_mode;
@@ -59,3 +61,6 @@ pub mod w_file;
 pub mod w_main;
 pub mod w_wad;
 pub mod z_zone;
+
+#[cfg(test)]
+mod c_tests;
