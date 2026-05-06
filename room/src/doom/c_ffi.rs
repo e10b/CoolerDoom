@@ -7,7 +7,7 @@
 
 #![allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
-use std::ffi::{c_char, c_int, c_short, c_uint, c_void};
+use std::ffi::{c_char, c_int, c_short, c_uint, c_ushort, c_void};
 
 // ---------------------------------------------------------------------------
 // Opaque types — we only need pointers to these for many FFI signatures.
@@ -355,3 +355,149 @@ pub const ST_HORIZONTAL: c_int = 0;
 pub const ST_VERTICAL: c_int = 1;
 pub const ST_POSITIVE: c_int = 2;
 pub const ST_NEGATIVE: c_int = 3;
+
+// ---------------------------------------------------------------------------
+// WAD lump-order indices (doomdata.h anonymous enum).
+// These are the fixed positions of each data lump within a map's group of
+// WAD lumps.  p_setup.c indexes directly into the lump list using these.
+// ---------------------------------------------------------------------------
+
+pub const ML_LABEL: c_int = 0; // ExMx / MAPxx separator
+pub const ML_THINGS: c_int = 1; // Monster/item placement
+pub const ML_LINEDEFS: c_int = 2; // Line definitions
+pub const ML_SIDEDEFS: c_int = 3; // Side (texture) definitions
+pub const ML_VERTEXES: c_int = 4; // Vertex coordinates
+pub const ML_SEGS: c_int = 5; // BSP line segments
+pub const ML_SSECTORS: c_int = 6; // BSP sub-sectors
+pub const ML_NODES: c_int = 7; // BSP nodes
+pub const ML_SECTORS: c_int = 8; // Sector definitions
+pub const ML_REJECT: c_int = 9; // Sector-to-sector visibility table
+pub const ML_BLOCKMAP: c_int = 10; // Motion-clipping blockmap
+
+// ---------------------------------------------------------------------------
+// LineDef flag bits (ML_* defines from doomdata.h).
+// Used by p_map.c, p_spec.c, and the renderer to determine line properties.
+// ---------------------------------------------------------------------------
+
+pub const ML_BLOCKING: u16 = 1; // Solid obstacle
+pub const ML_BLOCKMONSTERS: u16 = 2; // Blocks monsters only
+pub const ML_TWOSIDED: u16 = 4; // Has a back sector
+pub const ML_DONTPEGTOP: u16 = 8; // Upper texture is unpegged
+pub const ML_DONTPEGBOTTOM: u16 = 16; // Lower texture is unpegged
+pub const ML_SECRET: u16 = 32; // Secret on automap
+pub const ML_SOUNDBLOCK: u16 = 64; // Sound propagation barrier
+pub const ML_DONTDRAW: u16 = 128; // Hidden on automap
+pub const ML_MAPPED: u16 = 256; // Already revealed on automap
+
+// ---------------------------------------------------------------------------
+// Screen constants (from i_video.h / st_stuff.h)
+// ---------------------------------------------------------------------------
+
+pub const SCREENWIDTH: c_int = 320;
+pub const SCREENHEIGHT: c_int = 200;
+/// Status-bar height (ST_HEIGHT from st_stuff.h).
+pub const SBARHEIGHT: c_int = 32;
+
+// ---------------------------------------------------------------------------
+// r_draw.c constants
+// ---------------------------------------------------------------------------
+
+/// Number of entries in the fuzz offset lookup table (FUZZTABLE in r_draw.c).
+pub const FUZZTABLE: usize = 50;
+/// Column offset used when rendering the fuzz/spectre effect (FUZZOFF = SCREENWIDTH).
+pub const FUZZOFF: c_int = SCREENWIDTH;
+
+// ---------------------------------------------------------------------------
+// Runtime renderer types (r_defs.h) — used by unported r_segs.c / r_things.c
+// ---------------------------------------------------------------------------
+
+/// SideDef: visual appearance of a wall segment.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct side_t {
+    pub textureoffset: c_int,
+    pub rowoffset: c_int,
+    pub toptexture: c_short,
+    pub bottomtexture: c_short,
+    pub midtexture: c_short,
+    _pad: [u8; 2],
+    pub sector: *mut sector_t,
+}
+
+/// LineSeg: a BSP-split segment of a line definition.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct seg_t {
+    pub v1: *mut vertex_t,
+    pub v2: *mut vertex_t,
+    pub offset: c_int,
+    pub angle: c_uint,
+    pub sidedef: *mut side_t,
+    pub linedef: *mut line_t,
+    pub frontsector: *mut sector_t,
+    pub backsector: *mut sector_t,
+}
+
+/// BSP node: partitions space into two sub-trees.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct node_t {
+    pub x: c_int,
+    pub y: c_int,
+    pub dx: c_int,
+    pub dy: c_int,
+    pub bbox: [[c_int; 4]; 2],
+    pub children: [c_ushort; 2],
+}
+
+/// Draw segment: one visible wall segment produced by the BSP traversal.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct drawseg_t {
+    pub curline: *mut seg_t,
+    pub x1: c_int,
+    pub x2: c_int,
+    pub scale1: c_int,
+    pub scale2: c_int,
+    pub scalestep: c_int,
+    pub silhouette: c_int,
+    pub bsilheight: c_int,
+    pub tsilheight: c_int,
+    pub sprtopclip: *mut c_short,
+    pub sprbottomclip: *mut c_short,
+    pub maskedtexturecol: *mut c_short,
+}
+
+/// Visible sprite: a thing that is (partly) visible in the current frame.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct vissprite_t {
+    pub prev: *mut vissprite_t,
+    pub next: *mut vissprite_t,
+    pub x1: c_int,
+    pub x2: c_int,
+    pub gx: c_int,
+    pub gy: c_int,
+    pub gz: c_int,
+    pub gzt: c_int,
+    pub startfrac: c_int,
+    pub scale: c_int,
+    pub xiscale: c_int,
+    pub texturemid: c_int,
+    pub patch: c_int,
+    _pad: [u8; 4],
+    pub colormap: *mut u8,
+    pub mobjflags: c_int,
+    _pad2: [u8; 4],
+}
+
+// ---------------------------------------------------------------------------
+// r_draw.c additional externs
+// ---------------------------------------------------------------------------
+
+extern "C" {
+    /// The fuzz column-offset lookup table; length == FUZZTABLE.
+    pub static mut fuzzoffset: [c_int; FUZZTABLE];
+    /// Scaled (actual) view width; set alongside viewwidth in R_ExecuteSetViewSize.
+    pub static mut scaledviewwidth: c_int;
+}
