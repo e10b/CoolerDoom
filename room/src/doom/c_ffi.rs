@@ -271,11 +271,13 @@ extern "C" {
     pub static mut viewheight: c_int;
     pub static mut viewwindowx: c_int;
     pub static mut viewwindowy: c_int;
+    pub static mut dc_colormap: *mut u8;
     pub static mut dc_x: c_int;
     pub static mut dc_yl: c_int;
     pub static mut dc_yh: c_int;
     pub static mut dc_iscale: c_int;
     pub static mut dc_texturemid: c_int;
+    pub static mut dc_source: *mut u8;
     pub static mut fuzzpos: c_int;
     pub static mut ds_y: c_int;
     pub static mut ds_x1: c_int;
@@ -1151,9 +1153,9 @@ pub const ST_NUMSPECIALFACES: c_int = 3;
 /// Number of extra face frames beyond the pain table (ST_NUMEXTRAFACES = 2: god, dead).
 pub const ST_NUMEXTRAFACES: c_int = 2;
 /// Total face sprite count = pain × stride + extra.
-pub const ST_NUMFACES: c_int =
-    ST_NUMPAINFACES * (ST_NUMSTRAIGHTFACES + ST_NUMTURNFACES + ST_NUMSPECIALFACES)
-        + ST_NUMEXTRAFACES;
+pub const ST_NUMFACES: c_int = ST_NUMPAINFACES
+    * (ST_NUMSTRAIGHTFACES + ST_NUMTURNFACES + ST_NUMSPECIALFACES)
+    + ST_NUMEXTRAFACES;
 /// Tics of evil-grin display (ST_EVILGRINCOUNT = 2 × TICRATE).
 pub const ST_EVILGRINCOUNT: c_int = 2 * TICRATE;
 /// Tics of straight-face display (ST_STRAIGHTFACECOUNT = TICRATE / 2).

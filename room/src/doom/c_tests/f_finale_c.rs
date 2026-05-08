@@ -81,7 +81,11 @@ fn castnum_default_zero() {
 #[test]
 fn casttics_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::casttics, 0, "casttics should be 0 before F_StartCast");
+        assert_eq!(
+            c_ffi::casttics,
+            0,
+            "casttics should be 0 before F_StartCast"
+        );
     }
 }
 
@@ -89,7 +93,11 @@ fn casttics_default_zero() {
 #[test]
 fn castdeath_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::castdeath, 0, "castdeath should be false before F_StartCast");
+        assert_eq!(
+            c_ffi::castdeath,
+            0,
+            "castdeath should be false before F_StartCast"
+        );
     }
 }
 
@@ -97,7 +105,11 @@ fn castdeath_default_zero() {
 #[test]
 fn castframes_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::castframes, 0, "castframes should be 0 before F_StartCast");
+        assert_eq!(
+            c_ffi::castframes,
+            0,
+            "castframes should be 0 before F_StartCast"
+        );
     }
 }
 
@@ -106,7 +118,11 @@ fn castframes_default_zero() {
 #[test]
 fn castonmelee_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::castonmelee, 0, "castonmelee should be false before F_StartCast");
+        assert_eq!(
+            c_ffi::castonmelee,
+            0,
+            "castonmelee should be false before F_StartCast"
+        );
     }
 }
 

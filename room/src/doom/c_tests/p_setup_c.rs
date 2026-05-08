@@ -37,7 +37,11 @@ fn max_deathmatch_starts_is_10() {
 #[test]
 fn numvertexes_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::numvertexes, 0, "numvertexes should be 0 before level load");
+        assert_eq!(
+            c_ffi::numvertexes,
+            0,
+            "numvertexes should be 0 before level load"
+        );
     }
 }
 
@@ -53,7 +57,11 @@ fn numsegs_default_zero() {
 #[test]
 fn numsectors_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::numsectors, 0, "numsectors should be 0 before level load");
+        assert_eq!(
+            c_ffi::numsectors,
+            0,
+            "numsectors should be 0 before level load"
+        );
     }
 }
 

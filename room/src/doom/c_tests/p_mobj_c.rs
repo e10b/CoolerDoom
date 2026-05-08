@@ -43,7 +43,10 @@ fn friction_is_0xe800() {
 #[test]
 fn friction_is_less_than_fracunit() {
     // 0xe800 = 59392 < 65536 = FRACUNIT, so every tic reduces velocity.
-    assert!(c_ffi::FRICTION < c_ffi::FRACUNIT, "FRICTION must be < FRACUNIT for deceleration");
+    assert!(
+        c_ffi::FRICTION < c_ffi::FRACUNIT,
+        "FRICTION must be < FRACUNIT for deceleration"
+    );
 }
 
 /// STOPSPEED is much smaller than FRACUNIT (1 map unit = FRACUNIT);
@@ -95,7 +98,8 @@ fn iquetail_default_zero() {
 fn itemque_starts_empty() {
     unsafe {
         assert_eq!(
-            c_ffi::iquehead, c_ffi::iquetail,
+            c_ffi::iquehead,
+            c_ffi::iquetail,
             "item queue must be empty (head == tail) at startup"
         );
     }

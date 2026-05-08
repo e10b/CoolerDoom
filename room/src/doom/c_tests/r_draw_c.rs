@@ -55,9 +55,9 @@ fn fuzzoff_equals_screenwidth() {
 
 /// Expected fuzzoffset values, verbatim from the C source.
 const EXPECTED_FUZZ: [c_int; 50] = [
-    320, -320, 320, -320, 320, 320, -320, 320, 320, -320, 320, 320, 320, -320, 320, 320, 320,
-    -320, -320, -320, -320, 320, -320, -320, 320, 320, 320, 320, -320, 320, -320, 320, 320, -320,
-    -320, 320, 320, -320, -320, -320, -320, 320, 320, 320, 320, -320, 320, 320, -320, 320,
+    320, -320, 320, -320, 320, 320, -320, 320, 320, -320, 320, 320, 320, -320, 320, 320, 320, -320,
+    -320, -320, -320, 320, -320, -320, 320, 320, 320, 320, -320, 320, -320, 320, 320, -320, -320,
+    320, 320, -320, -320, -320, -320, 320, 320, 320, 320, -320, 320, 320, -320, 320,
 ];
 
 #[test]
@@ -83,7 +83,11 @@ fn fuzzoffset_all_values_are_plus_or_minus_fuzzoff() {
 #[test]
 fn fuzzoffset_exact_values() {
     unsafe {
-        for (i, (&got, &want)) in c_ffi::fuzzoffset.iter().zip(EXPECTED_FUZZ.iter()).enumerate() {
+        for (i, (&got, &want)) in c_ffi::fuzzoffset
+            .iter()
+            .zip(EXPECTED_FUZZ.iter())
+            .enumerate()
+        {
             assert_eq!(
                 got, want,
                 "fuzzoffset[{i}] mismatch: got {got}, want {want}"
@@ -98,8 +102,14 @@ fn fuzzoffset_positive_count() {
     unsafe {
         let pos = c_ffi::fuzzoffset.iter().filter(|&&v| v > 0).count();
         let neg = c_ffi::fuzzoffset.iter().filter(|&&v| v < 0).count();
-        assert_eq!(pos, 29, "expected 29 positive fuzzoffset entries, got {pos}");
-        assert_eq!(neg, 21, "expected 21 negative fuzzoffset entries, got {neg}");
+        assert_eq!(
+            pos, 29,
+            "expected 29 positive fuzzoffset entries, got {pos}"
+        );
+        assert_eq!(
+            neg, 21,
+            "expected 21 negative fuzzoffset entries, got {neg}"
+        );
     }
 }
 
@@ -118,8 +128,16 @@ fn r_init_buffer_fullscreen_sets_zero_offsets() {
     // Full-screen view: width == SCREENWIDTH → both offsets must be 0.
     unsafe {
         c_ffi::R_InitBuffer(c_ffi::SCREENWIDTH, 168);
-        assert_eq!(c_ffi::viewwindowx, 0, "viewwindowx should be 0 for full-width view");
-        assert_eq!(c_ffi::viewwindowy, 0, "viewwindowy should be 0 for full-width view");
+        assert_eq!(
+            c_ffi::viewwindowx,
+            0,
+            "viewwindowx should be 0 for full-width view"
+        );
+        assert_eq!(
+            c_ffi::viewwindowy,
+            0,
+            "viewwindowy should be 0 for full-width view"
+        );
     }
 }
 

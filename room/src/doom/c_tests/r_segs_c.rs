@@ -183,7 +183,10 @@ fn frac_step_globals_default_zero() {
 #[test]
 fn walllights_initially_null() {
     unsafe {
-        assert!(c_ffi::walllights.is_null(), "walllights should be NULL before rendering");
+        assert!(
+            c_ffi::walllights.is_null(),
+            "walllights should be NULL before rendering"
+        );
     }
 }
 

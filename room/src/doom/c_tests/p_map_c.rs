@@ -61,7 +61,11 @@ fn tmbbox_length_is_4() {
 #[test]
 fn tmflags_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::tmflags, 0, "tmflags should be 0 before P_CheckPosition");
+        assert_eq!(
+            c_ffi::tmflags,
+            0,
+            "tmflags should be 0 before P_CheckPosition"
+        );
     }
 }
 
@@ -78,7 +82,11 @@ fn tmx_tmy_default_zero() {
 #[test]
 fn floatok_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::floatok, 0, "floatok should be false before P_CheckPosition");
+        assert_eq!(
+            c_ffi::floatok,
+            0,
+            "floatok should be false before P_CheckPosition"
+        );
     }
 }
 
@@ -98,7 +106,11 @@ fn tm_z_globals_default_zero() {
 #[test]
 fn numspechit_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::numspechit, 0, "numspechit should be 0 before P_CheckPosition");
+        assert_eq!(
+            c_ffi::numspechit,
+            0,
+            "numspechit should be 0 before P_CheckPosition"
+        );
     }
 }
 

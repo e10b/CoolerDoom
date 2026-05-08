@@ -141,7 +141,11 @@ fn scale_mode_heights_are_multiples_of_screenheight() {
             (5, c_ffi::mode_scale_5x.height),
         ];
         for (n, h) in modes {
-            assert_eq!(h, n * c_ffi::SCREENHEIGHT, "mode_scale_{n}x height mismatch");
+            assert_eq!(
+                h,
+                n * c_ffi::SCREENHEIGHT,
+                "mode_scale_{n}x height mismatch"
+            );
         }
     }
 }
@@ -152,11 +156,31 @@ fn scale_mode_heights_are_multiples_of_screenheight() {
 #[test]
 fn scale_modes_not_poor_quality() {
     unsafe {
-        assert_eq!(c_ffi::mode_scale_1x.poor_quality, 0, "mode_scale_1x.poor_quality");
-        assert_eq!(c_ffi::mode_scale_2x.poor_quality, 0, "mode_scale_2x.poor_quality");
-        assert_eq!(c_ffi::mode_scale_3x.poor_quality, 0, "mode_scale_3x.poor_quality");
-        assert_eq!(c_ffi::mode_scale_4x.poor_quality, 0, "mode_scale_4x.poor_quality");
-        assert_eq!(c_ffi::mode_scale_5x.poor_quality, 0, "mode_scale_5x.poor_quality");
+        assert_eq!(
+            c_ffi::mode_scale_1x.poor_quality,
+            0,
+            "mode_scale_1x.poor_quality"
+        );
+        assert_eq!(
+            c_ffi::mode_scale_2x.poor_quality,
+            0,
+            "mode_scale_2x.poor_quality"
+        );
+        assert_eq!(
+            c_ffi::mode_scale_3x.poor_quality,
+            0,
+            "mode_scale_3x.poor_quality"
+        );
+        assert_eq!(
+            c_ffi::mode_scale_4x.poor_quality,
+            0,
+            "mode_scale_4x.poor_quality"
+        );
+        assert_eq!(
+            c_ffi::mode_scale_5x.poor_quality,
+            0,
+            "mode_scale_5x.poor_quality"
+        );
     }
 }
 
@@ -261,7 +285,11 @@ fn stretch_mode_widths_are_n_times_screenwidth() {
             (5, c_ffi::mode_stretch_5x.width),
         ];
         for (n, w) in modes {
-            assert_eq!(w, n * c_ffi::SCREENWIDTH, "mode_stretch_{n}x width mismatch");
+            assert_eq!(
+                w,
+                n * c_ffi::SCREENWIDTH,
+                "mode_stretch_{n}x width mismatch"
+            );
         }
     }
 }
@@ -373,7 +401,11 @@ fn squash_mode_widths_are_n_times_screenwidth_4_3() {
             );
         }
         // The 3x quirk: 800 ≠ 3 × 256
-        assert_eq!(c_ffi::mode_squash_3x.width, 800, "mode_squash_3x.width quirk");
+        assert_eq!(
+            c_ffi::mode_squash_3x.width,
+            800,
+            "mode_squash_3x.width quirk"
+        );
         assert_ne!(
             c_ffi::mode_squash_3x.width,
             3 * c_ffi::SCREENWIDTH_4_3,
@@ -394,7 +426,11 @@ fn squash_mode_heights_are_n_times_screenheight() {
             (5, c_ffi::mode_squash_5x.height),
         ];
         for (n, h) in modes {
-            assert_eq!(h, n * c_ffi::SCREENHEIGHT, "mode_squash_{n}x height mismatch");
+            assert_eq!(
+                h,
+                n * c_ffi::SCREENHEIGHT,
+                "mode_squash_{n}x height mismatch"
+            );
         }
     }
 }

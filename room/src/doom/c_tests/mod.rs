@@ -3,12 +3,12 @@
 //! Each submodule tests a specific unported C module, establishing
 //! behavioral baselines before the module is ported to Rust.
 
-mod harness;
 mod am_map_c;
 mod d_loop_c;
 mod d_main_c;
 mod f_finale_c;
 mod g_game_c;
+mod harness;
 mod hu_stuff_c;
 mod i_scale_c;
 mod lookup_tables;

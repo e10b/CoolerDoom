@@ -8,7 +8,10 @@
 
 use std::mem::{offset_of, size_of};
 
-use crate::doom::c_ffi::{divline_t, drawseg_t, intercept_t, line_t, mobj_t, node_t, sector_t, seg_t, side_t, vertex_t, vissprite_t};
+use crate::doom::c_ffi::{
+    divline_t, drawseg_t, intercept_t, line_t, mobj_t, node_t, sector_t, seg_t, side_t, vertex_t,
+    vissprite_t,
+};
 
 // ---------------------------------------------------------------------------
 // vertex_t

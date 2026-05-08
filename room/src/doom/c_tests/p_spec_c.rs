@@ -25,7 +25,11 @@ use crate::doom::c_ffi;
 #[test]
 fn leveltime_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::leveltime, 0, "leveltime should be 0 before level load");
+        assert_eq!(
+            c_ffi::leveltime,
+            0,
+            "leveltime should be 0 before level load"
+        );
     }
 }
 

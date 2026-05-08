@@ -70,11 +70,7 @@ fn maxammo_missiles_is_50() {
 #[test]
 fn maxammo_exact_values() {
     unsafe {
-        assert_eq!(
-            c_ffi::maxammo,
-            [200, 50, 300, 50],
-            "maxammo array mismatch"
-        );
+        assert_eq!(c_ffi::maxammo, [200, 50, 300, 50], "maxammo array mismatch");
     }
 }
 
@@ -118,11 +114,7 @@ fn clipammo_missiles_is_1() {
 #[test]
 fn clipammo_exact_values() {
     unsafe {
-        assert_eq!(
-            c_ffi::clipammo,
-            [10, 4, 20, 1],
-            "clipammo array mismatch"
-        );
+        assert_eq!(c_ffi::clipammo, [10, 4, 20, 1], "clipammo array mismatch");
     }
 }
 

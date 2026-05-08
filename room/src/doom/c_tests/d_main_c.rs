@@ -23,7 +23,11 @@ use crate::doom::c_ffi;
 #[test]
 fn devparm_default_false() {
     unsafe {
-        assert_eq!(c_ffi::devparm, 0, "devparm should be false without -devparm");
+        assert_eq!(
+            c_ffi::devparm,
+            0,
+            "devparm should be false without -devparm"
+        );
     }
 }
 
@@ -57,11 +61,7 @@ fn respawnparm_default_false() {
 #[test]
 fn fastparm_default_false() {
     unsafe {
-        assert_eq!(
-            c_ffi::fastparm,
-            0,
-            "fastparm should be false without -fast"
-        );
+        assert_eq!(c_ffi::fastparm, 0, "fastparm should be false without -fast");
     }
 }
 
@@ -79,7 +79,11 @@ fn autostart_default_false() {
 #[test]
 fn advancedemo_default_false() {
     unsafe {
-        assert_eq!(c_ffi::advancedemo, 0, "advancedemo should be false at startup");
+        assert_eq!(
+            c_ffi::advancedemo,
+            0,
+            "advancedemo should be false at startup"
+        );
     }
 }
 
@@ -125,7 +129,11 @@ fn main_loop_started_default_false() {
 #[test]
 fn show_endoom_default_one() {
     unsafe {
-        assert_eq!(c_ffi::show_endoom, 1, "show_endoom should be 1 (enabled) by default");
+        assert_eq!(
+            c_ffi::show_endoom,
+            1,
+            "show_endoom should be 1 (enabled) by default"
+        );
     }
 }
 
@@ -138,8 +146,16 @@ fn show_endoom_default_one() {
 #[test]
 fn start_episode_and_map_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::startepisode, 0, "startepisode should be 0 before command-line parse");
-        assert_eq!(c_ffi::startmap, 0, "startmap should be 0 before command-line parse");
+        assert_eq!(
+            c_ffi::startepisode,
+            0,
+            "startepisode should be 0 before command-line parse"
+        );
+        assert_eq!(
+            c_ffi::startmap,
+            0,
+            "startmap should be 0 before command-line parse"
+        );
     }
 }
 

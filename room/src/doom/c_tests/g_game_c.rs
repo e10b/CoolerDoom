@@ -24,7 +24,11 @@ use crate::doom::c_ffi;
 #[test]
 fn forwardmove_slow_is_0x19() {
     unsafe {
-        assert_eq!(c_ffi::forwardmove[0], 0x19, "slow forwardmove should be 0x19 (25)");
+        assert_eq!(
+            c_ffi::forwardmove[0],
+            0x19,
+            "slow forwardmove should be 0x19 (25)"
+        );
     }
 }
 
@@ -32,7 +36,11 @@ fn forwardmove_slow_is_0x19() {
 #[test]
 fn forwardmove_fast_is_0x32() {
     unsafe {
-        assert_eq!(c_ffi::forwardmove[1], 0x32, "fast forwardmove should be 0x32 (50)");
+        assert_eq!(
+            c_ffi::forwardmove[1],
+            0x32,
+            "fast forwardmove should be 0x32 (50)"
+        );
     }
 }
 
@@ -57,7 +65,11 @@ fn forwardmove_fast_is_double_slow() {
 #[test]
 fn sidemove_slow_is_0x18() {
     unsafe {
-        assert_eq!(c_ffi::sidemove[0], 0x18, "slow sidemove should be 0x18 (24)");
+        assert_eq!(
+            c_ffi::sidemove[0],
+            0x18,
+            "slow sidemove should be 0x18 (24)"
+        );
     }
 }
 
@@ -65,7 +77,11 @@ fn sidemove_slow_is_0x18() {
 #[test]
 fn sidemove_fast_is_0x28() {
     unsafe {
-        assert_eq!(c_ffi::sidemove[1], 0x28, "fast sidemove should be 0x28 (40)");
+        assert_eq!(
+            c_ffi::sidemove[1],
+            0x28,
+            "fast sidemove should be 0x28 (40)"
+        );
     }
 }
 
@@ -193,7 +209,11 @@ fn vanilla_demo_limit_is_one() {
 #[test]
 fn precache_is_true_by_default() {
     unsafe {
-        assert_ne!(c_ffi::precache, 0, "precache should be true (non-zero) by default");
+        assert_ne!(
+            c_ffi::precache,
+            0,
+            "precache should be true (non-zero) by default"
+        );
     }
 }
 

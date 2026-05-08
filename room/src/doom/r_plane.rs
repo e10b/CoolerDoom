@@ -221,6 +221,14 @@ extern "C" {
     static mut ds_ystep: fixed_t;
     static mut ds_source: *const c_uchar;
 
+    static mut dc_x: c_int;
+    static mut dc_yl: c_int;
+    static mut dc_yh: c_int;
+    static mut dc_iscale: fixed_t;
+    static mut dc_texturemid: fixed_t;
+    static mut dc_source: *const c_uchar;
+    static mut dc_colormap: *const lighttable_t;
+
     static mut colfunc: Option<unsafe extern "C" fn()>;
     static mut spanfunc: Option<unsafe extern "C" fn()>;
 
@@ -527,18 +535,26 @@ pub extern "C" fn R_DrawPlanes() {
 
             // Sky flat
             if (*pl).picnum == r_sky::skyflatnum {
-                let _iscale = pspriteiscale >> detailshift;
+                dc_iscale = pspriteiscale >> detailshift;
+                // Sky is always drawn full bright,
+                // i.e. colormaps[0] is used.
+                // Because of this hack, sky is not affected
+                // by INVUL inverse mapping.
+                dc_colormap = colormaps;
+                dc_texturemid = skytexturemid;
 
                 for x in (*pl).minx..=(*pl).maxx {
-                    let y_top = (*pl).top[x as usize] as c_int;
-                    let y_bot = (*pl).bottom[x as usize] as c_int;
+                    dc_yl = (*pl).top[x as usize] as c_int;
+                    dc_yh = (*pl).bottom[x as usize] as c_int;
 
-                    if y_top <= y_bot {
+                    if dc_yl <= dc_yh {
                         let angle =
                             viewangle.wrapping_add(xtoviewangle[x as usize]) >> ANGLETOSKYSHIFT;
-                        // Would call column drawing
-                        // TODO: integrate with r_draw column functions
-                        let _col = R_GetColumn(skytexture, angle as c_int);
+                        dc_x = x;
+                        dc_source = R_GetColumn(skytexture, angle as c_int);
+                        if let Some(func) = colfunc {
+                            func();
+                        }
                     }
                 }
                 pl = pl.add(1);

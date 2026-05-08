@@ -320,7 +320,11 @@ fn ml_linedef_flags() {
     // No two flags may share a bit.
     let mut combined: u16 = 0;
     for f in all_flags {
-        assert_eq!(combined & f, 0, "flag {f:#x} overlaps with already-seen flags");
+        assert_eq!(
+            combined & f,
+            0,
+            "flag {f:#x} overlaps with already-seen flags"
+        );
         combined |= f;
     }
 

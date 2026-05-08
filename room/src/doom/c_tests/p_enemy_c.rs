@@ -149,7 +149,10 @@ fn skullspeed_is_20_fracunits() {
 fn braintargets_initially_null() {
     unsafe {
         for (i, &ptr) in c_ffi::braintargets.iter().enumerate() {
-            assert!(ptr.is_null(), "braintargets[{i}] should be NULL before spawn");
+            assert!(
+                ptr.is_null(),
+                "braintargets[{i}] should be NULL before spawn"
+            );
         }
     }
 }

@@ -117,7 +117,10 @@ fn spritelights_initially_null() {
 #[test]
 fn sprites_pointer_initially_null() {
     unsafe {
-        assert!(c_ffi::sprites.is_null(), "sprites should be NULL before R_InitSprites");
+        assert!(
+            c_ffi::sprites.is_null(),
+            "sprites should be NULL before R_InitSprites"
+        );
     }
 }
 

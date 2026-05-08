@@ -43,7 +43,10 @@ fn versionsize_is_16() {
 #[test]
 fn versionsize_is_power_of_two() {
     let n = c_ffi::VERSIONSIZE;
-    assert!(n > 0 && (n & (n - 1)) == 0, "VERSIONSIZE={n} should be a power of two");
+    assert!(
+        n > 0 && (n & (n - 1)) == 0,
+        "VERSIONSIZE={n} should be a power of two"
+    );
 }
 
 // ---------------------------------------------------------------------------

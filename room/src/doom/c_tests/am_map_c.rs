@@ -26,7 +26,11 @@ use crate::doom::c_ffi;
 #[test]
 fn automapactive_default_false() {
     unsafe {
-        assert_eq!(c_ffi::automapactive, 0, "automapactive should be false at startup");
+        assert_eq!(
+            c_ffi::automapactive,
+            0,
+            "automapactive should be false at startup"
+        );
     }
 }
 

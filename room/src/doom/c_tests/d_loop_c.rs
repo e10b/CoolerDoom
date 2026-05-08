@@ -28,7 +28,10 @@ fn backuptics_is_128() {
 #[test]
 fn backuptics_is_power_of_two() {
     let n = c_ffi::BACKUPTICS;
-    assert!(n > 0 && (n & (n - 1)) == 0, "BACKUPTICS={n} should be a power of two");
+    assert!(
+        n > 0 && (n & (n - 1)) == 0,
+        "BACKUPTICS={n} should be a power of two"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -64,7 +67,11 @@ fn ticdup_default_zero() {
 #[test]
 fn singletics_default_false() {
     unsafe {
-        assert_eq!(c_ffi::singletics, 0, "singletics should be false at startup");
+        assert_eq!(
+            c_ffi::singletics,
+            0,
+            "singletics should be false at startup"
+        );
     }
 }
 

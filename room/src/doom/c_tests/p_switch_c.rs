@@ -77,7 +77,11 @@ fn switchlist_default_zero() {
 #[test]
 fn numswitches_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::numswitches, 0, "numswitches should be 0 before P_InitSwitchList");
+        assert_eq!(
+            c_ffi::numswitches,
+            0,
+            "numswitches should be 0 before P_InitSwitchList"
+        );
     }
 }
 

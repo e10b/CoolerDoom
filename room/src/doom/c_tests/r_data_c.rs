@@ -70,4 +70,3 @@ fn fracbits_is_16() {
 fn fracunit_is_65536() {
     assert_eq!(c_ffi::FRACUNIT, 65536);
 }
-
