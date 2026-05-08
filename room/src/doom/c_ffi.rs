@@ -889,34 +889,6 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// f_finale.c — end-of-episode cast/finale globals and constants
-// ---------------------------------------------------------------------------
-
-/// Speed at which text crawls during the text finale (TEXTSPEED = 3 tics/char).
-pub const TEXTSPEED: c_int = 3;
-/// Tics to wait after the text is fully displayed (TEXTWAIT = 250).
-pub const TEXTWAIT: c_int = 250;
-
-extern "C" {
-    /// Pointer to the current finale text string (NULL before F_StartFinale).
-    pub static mut finaletext: *mut c_char;
-    /// Name of the flat used as the finale background.
-    pub static mut finaleflat: *mut c_char;
-    /// Index of the current cast-roll monster (0-based).
-    pub static mut castnum: c_int;
-    /// Tics remaining in the current cast frame.
-    pub static mut casttics: c_int;
-    /// True when the current cast monster is playing its death animation.
-    pub static mut castdeath: c_int; // boolean
-    /// Current frame number within the cast animation.
-    pub static mut castframes: c_int;
-    /// True when the cast monster is on a melee-attack frame.
-    pub static mut castonmelee: c_int; // boolean
-    /// True while the cast monster is playing an attack animation.
-    pub static mut castattacking: c_int; // boolean
-}
-
-// ---------------------------------------------------------------------------
 // d_loop.c — main game-loop state globals and constants
 // ---------------------------------------------------------------------------
 

@@ -61,8 +61,8 @@ fn main() {
         // d_mode   — ported to Rust (room/src/doom/d_mode.rs)
         // Networking stub — ported to Rust (room/src/doom/d_net.rs)
         // "d_net.c",
-        // Finale / end screens
-        "f_finale.c",
+        // Finale / end screens — ported to Rust (room/src/doom/f_finale.rs)
+        // "f_finale.c",
         // Screen wipe effect — ported to Rust (room/src/doom/f_wipe.rs)
         // "f_wipe.c",
         // Core game logic

@@ -16,6 +16,7 @@ pub mod doomkeys;
 pub mod doomstat;
 pub mod dstrings;
 pub mod dummy;
+pub mod f_finale;
 pub mod f_wipe;
 pub mod hu_lib;
 pub mod hu_stuff;
