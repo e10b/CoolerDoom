@@ -16,6 +16,7 @@
 #![allow(non_snake_case)]
 
 use crate::doom::c_ffi;
+use crate::doom::p_switch;
 
 // ---------------------------------------------------------------------------
 // Switch / button size constants
@@ -24,26 +25,26 @@ use crate::doom::c_ffi;
 /// `MAXSWITCHES = 50`: the alpha switch list has room for 50 texture pairs.
 #[test]
 fn maxswitches_is_50() {
-    assert_eq!(c_ffi::MAXSWITCHES, 50);
+    assert_eq!(p_switch::MAXSWITCHES, 50);
 }
 
 /// `MAXBUTTONS = 16`: at most 16 simultaneously pressed timed buttons.
 #[test]
 fn maxbuttons_is_16() {
-    assert_eq!(c_ffi::MAXBUTTONS, 16);
+    assert_eq!(p_switch::MAXBUTTONS, 16);
 }
 
 /// `BUTTONTIME = 35` tics = 1 second (TICRATE).
 /// A button pressed by the player reverts after exactly one second.
 #[test]
 fn buttontime_is_35() {
-    assert_eq!(c_ffi::BUTTONTIME, 35);
+    assert_eq!(p_switch::BUTTONTIME, 35);
 }
 
 /// `BUTTONTIME` equals `TICRATE` — one second of press duration.
 #[test]
 fn buttontime_equals_ticrate() {
-    assert_eq!(c_ffi::BUTTONTIME, c_ffi::TICRATE);
+    assert_eq!(p_switch::BUTTONTIME, c_ffi::TICRATE);
 }
 
 // ---------------------------------------------------------------------------
@@ -54,8 +55,8 @@ fn buttontime_equals_ticrate() {
 #[test]
 fn switchlist_length_is_maxswitches_times_2() {
     unsafe {
-        assert_eq!(c_ffi::switchlist.len(), c_ffi::MAXSWITCHES * 2);
-        assert_eq!(c_ffi::switchlist.len(), 100);
+        assert_eq!(p_switch::switchlist.len(), p_switch::MAXSWITCHES * 2);
+        assert_eq!(p_switch::switchlist.len(), 100);
     }
 }
 
@@ -63,7 +64,7 @@ fn switchlist_length_is_maxswitches_times_2() {
 #[test]
 fn switchlist_default_zero() {
     unsafe {
-        for (i, &v) in c_ffi::switchlist.iter().enumerate() {
+        for (i, &v) in p_switch::switchlist.iter().enumerate() {
             assert_eq!(v, 0, "switchlist[{i}] should be 0 before P_InitSwitchList");
         }
     }
@@ -78,7 +79,7 @@ fn switchlist_default_zero() {
 fn numswitches_default_zero() {
     unsafe {
         assert_eq!(
-            c_ffi::numswitches,
+            p_switch::numswitches,
             0,
             "numswitches should be 0 before P_InitSwitchList"
         );
@@ -95,7 +96,7 @@ fn switch_globals_are_c_int_width() {
     use std::ffi::c_int;
     const _: () = assert!(std::mem::size_of::<c_int>() == 4);
     unsafe {
-        let _: c_int = c_ffi::switchlist[0];
-        let _: c_int = c_ffi::numswitches;
+        let _: c_int = p_switch::switchlist[0];
+        let _: c_int = p_switch::numswitches;
     }
 }

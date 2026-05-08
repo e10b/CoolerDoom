@@ -846,26 +846,6 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// p_switch.c — switch/button constants and globals
-// ---------------------------------------------------------------------------
-
-/// Maximum number of switch texture pairs in the alpha switch list
-/// (MAXSWITCHES in p_spec.h = 50).
-pub const MAXSWITCHES: usize = 50;
-/// Maximum number of simultaneously active timed buttons
-/// (MAXBUTTONS in p_spec.h = 16).
-pub const MAXBUTTONS: usize = 16;
-/// Duration a button stays pressed before reverting (BUTTONTIME = 35 = 1 sec).
-pub const BUTTONTIME: c_int = 35;
-
-extern "C" {
-    /// Flat array of (texture1, texture2) pairs; length = numswitches × 2.
-    pub static mut switchlist: [c_int; 100]; // MAXSWITCHES * 2
-    /// Number of valid switch pairs initialised by P_InitSwitchList.
-    pub static mut numswitches: c_int;
-}
-
-// ---------------------------------------------------------------------------
 // p_map.c — collision detection globals and constants
 // ---------------------------------------------------------------------------
 

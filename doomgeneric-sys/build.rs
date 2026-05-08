@@ -133,8 +133,8 @@ fn main() {
         // "p_sight.c",
         // Special actions
         "p_spec.c",
-        // Switch actions
-        "p_switch.c",
+        // Switch actions — ported to Rust (room/src/doom/p_switch.rs)
+        // "p_switch.c",
         // Teleporter — ported to Rust (room/src/doom/p_telept.rs)
         // "p_telept.c",
         // Thinker / object tick — ported to Rust (room/src/doom/p_tick.rs)
