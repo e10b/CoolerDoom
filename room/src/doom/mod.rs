@@ -18,6 +18,7 @@ pub mod dstrings;
 pub mod dummy;
 pub mod f_wipe;
 pub mod hu_lib;
+pub mod hu_stuff;
 pub mod i_cdmus;
 pub mod i_endoom;
 pub mod i_input;

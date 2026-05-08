@@ -148,7 +148,7 @@ recommended porting order.
 
 - [ ] `am_map.c`
 - [x] `hu_lib.c`
-- [ ] `hu_stuff.c`
+- [x] `hu_stuff.c`
 - [x] `st_lib.c`
 - [ ] `st_stuff.c`
 - [ ] `f_finale.c`

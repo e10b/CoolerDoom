@@ -69,7 +69,6 @@ fn main() {
         "g_game.c",
         // HUD text library — ported to Rust (room/src/doom/hu_lib.rs)
         // "hu_lib.c",
-        "hu_stuff.c",
         // Thing info tables
         // info      — ported to Rust (room/src/doom/info.rs)
         // CD music stub

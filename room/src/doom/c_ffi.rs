@@ -677,29 +677,6 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// hu_stuff.c
-// HUD globals – string tables and toggle flags.
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    /// The 10 pre-defined chat macro strings (Ctrl+1 … Ctrl+0).
-    /// Pointers to string literals from d_englsh.h; never NULL.
-    pub static mut chat_macros: [*mut c_char; 10];
-    /// The 4 per-player name-prefix strings ("Green: ", "Indigo: ", …).
-    pub static mut player_names: [*mut c_char; 4];
-    /// The most-recently dequeued chat character (internal use).
-    pub static mut chat_char: c_char;
-    /// True while a chat message is being composed.
-    pub static mut chat_on: c_int;
-    /// When true, the "message_dontfuckwithme" flag suppresses the next msg.
-    pub static mut message_dontfuckwithme: c_int;
-    /// Level-name strings for DOOM shareware/registered/retail (36 real + 9 placeholder).
-    pub static mut mapnames: [*mut c_char; 45];
-    /// Level-name strings for commercial IWADs (32 DOOM2 + 32 Plutonia + 32 TNT).
-    pub static mut mapnames_commercial: [*mut c_char; 96];
-}
-
-// ---------------------------------------------------------------------------
 // am_map.c
 // ---------------------------------------------------------------------------
 
@@ -770,20 +747,6 @@ pub const SCREENHEIGHT_4_3: c_int = 240;
 
 /// Ticks per second (TICRATE in i_timer.h).
 pub const TICRATE: c_int = 35;
-
-/// First printable character in the HUD font (HU_FONTSTART in hu_stuff.h).
-pub const HU_FONTSTART: u8 = b'!'; // 33
-/// Last printable character in the HUD font (HU_FONTEND in hu_stuff.h).
-pub const HU_FONTEND: u8 = b'_'; // 95
-/// Number of glyphs in the HUD font (HU_FONTSIZE = HU_FONTEND - HU_FONTSTART + 1).
-pub const HU_FONTSIZE: usize = (HU_FONTEND - HU_FONTSTART + 1) as usize; // 63
-
-/// Broadcast player index (HU_BROADCAST in hu_stuff.h).
-pub const HU_BROADCAST: c_int = 5;
-/// HUD message area width in characters (HU_MSGWIDTH in hu_stuff.h).
-pub const HU_MSGWIDTH: c_int = 64;
-/// HUD message area height in lines (HU_MSGHEIGHT in hu_stuff.h).
-pub const HU_MSGHEIGHT: c_int = 1;
 
 /// Size of the body-object circular queue (BODYQUESIZE in g_game.c).
 pub const BODYQUESIZE: usize = 32;

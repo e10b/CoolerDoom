@@ -16,7 +16,7 @@
 
 use std::ffi::{c_char, CStr};
 
-use crate::doom::c_ffi;
+use crate::doom::hu_stuff;
 
 // ---------------------------------------------------------------------------
 // HUD font constants
@@ -25,15 +25,19 @@ use crate::doom::c_ffi;
 /// The font starts at '!' (ASCII 33) — the first printable non-space character.
 #[test]
 fn hu_fontstart_is_exclamation() {
-    assert_eq!(c_ffi::HU_FONTSTART, b'!', "HU_FONTSTART should be '!' (33)");
-    assert_eq!(c_ffi::HU_FONTSTART, 33);
+    assert_eq!(
+        hu_stuff::HU_FONTSTART,
+        b'!',
+        "HU_FONTSTART should be '!' (33)"
+    );
+    assert_eq!(hu_stuff::HU_FONTSTART, 33);
 }
 
 /// The font ends at '_' (ASCII 95) — last character in the original bitmap font.
 #[test]
 fn hu_fontend_is_underscore() {
-    assert_eq!(c_ffi::HU_FONTEND, b'_', "HU_FONTEND should be '_' (95)");
-    assert_eq!(c_ffi::HU_FONTEND, 95);
+    assert_eq!(hu_stuff::HU_FONTEND, b'_', "HU_FONTEND should be '_' (95)");
+    assert_eq!(hu_stuff::HU_FONTEND, 95);
 }
 
 /// `HU_FONTSIZE = HU_FONTEND − HU_FONTSTART + 1 = 63`.
@@ -41,11 +45,11 @@ fn hu_fontend_is_underscore() {
 /// `hu_font[]` patch array in `HU_Init`.
 #[test]
 fn hu_fontsize_is_63() {
-    assert_eq!(c_ffi::HU_FONTSIZE, 63);
+    assert_eq!(hu_stuff::HU_FONTSIZE, 63);
     // Verify the derivation
     assert_eq!(
-        c_ffi::HU_FONTSIZE,
-        (c_ffi::HU_FONTEND - c_ffi::HU_FONTSTART + 1) as usize
+        hu_stuff::HU_FONTSIZE,
+        (hu_stuff::HU_FONTEND - hu_stuff::HU_FONTSTART + 1) as usize
     );
 }
 
@@ -57,19 +61,19 @@ fn hu_fontsize_is_63() {
 /// multi-player chat (everyone hears it).
 #[test]
 fn hu_broadcast_is_5() {
-    assert_eq!(c_ffi::HU_BROADCAST, 5);
+    assert_eq!(hu_stuff::HU_BROADCAST, 5);
 }
 
 /// `HU_MSGWIDTH = 64`: maximum number of characters per HUD message line.
 #[test]
 fn hu_msgwidth_is_64() {
-    assert_eq!(c_ffi::HU_MSGWIDTH, 64);
+    assert_eq!(hu_stuff::HU_MSGWIDTH, 64);
 }
 
 /// `HU_MSGHEIGHT = 1`: the message area is exactly one line tall.
 #[test]
 fn hu_msgheight_is_1() {
-    assert_eq!(c_ffi::HU_MSGHEIGHT, 1);
+    assert_eq!(hu_stuff::HU_MSGHEIGHT, 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -80,7 +84,7 @@ fn hu_msgheight_is_1() {
 #[test]
 fn chat_macros_count_is_10() {
     unsafe {
-        assert_eq!(c_ffi::chat_macros.len(), 10);
+        assert_eq!(hu_stuff::chat_macros.len(), 10);
     }
 }
 
@@ -89,7 +93,7 @@ fn chat_macros_count_is_10() {
 #[test]
 fn chat_macros_all_non_null() {
     unsafe {
-        for (i, &ptr) in c_ffi::chat_macros.iter().enumerate() {
+        for (i, &ptr) in hu_stuff::chat_macros.iter().enumerate() {
             assert!(!ptr.is_null(), "chat_macros[{i}] should be non-null");
         }
     }
@@ -114,7 +118,11 @@ fn chat_macros_default_strings() {
         "Yes",
     ];
     unsafe {
-        for (i, (&ptr, &want)) in c_ffi::chat_macros.iter().zip(expected.iter()).enumerate() {
+        for (i, (&ptr, &want)) in hu_stuff::chat_macros
+            .iter()
+            .zip(expected.iter())
+            .enumerate()
+        {
             let got = CStr::from_ptr(ptr as *const c_char).to_str().unwrap();
             assert_eq!(got, want, "chat_macros[{i}] mismatch");
         }
@@ -130,7 +138,7 @@ fn chat_macros_default_strings() {
 #[test]
 fn player_names_count_is_4() {
     unsafe {
-        assert_eq!(c_ffi::player_names.len(), 4);
+        assert_eq!(hu_stuff::player_names.len(), 4);
     }
 }
 
@@ -142,7 +150,11 @@ fn player_names_count_is_4() {
 fn player_names_default_strings() {
     let expected = ["Green: ", "Indigo: ", "Brown: ", "Red: "];
     unsafe {
-        for (i, (&ptr, &want)) in c_ffi::player_names.iter().zip(expected.iter()).enumerate() {
+        for (i, (&ptr, &want)) in hu_stuff::player_names
+            .iter()
+            .zip(expected.iter())
+            .enumerate()
+        {
             assert!(!ptr.is_null(), "player_names[{i}] should be non-null");
             let got = CStr::from_ptr(ptr as *const c_char).to_str().unwrap();
             assert_eq!(got, want, "player_names[{i}] mismatch");
@@ -159,7 +171,7 @@ fn player_names_default_strings() {
 #[test]
 fn mapnames_first_entry_is_e1m1_hangar() {
     unsafe {
-        let ptr = c_ffi::mapnames[0];
+        let ptr = hu_stuff::mapnames[0];
         assert!(!ptr.is_null(), "mapnames[0] should not be null");
         let name = CStr::from_ptr(ptr as *const c_char).to_str().unwrap();
         assert_eq!(name, "E1M1: Hangar");
@@ -170,7 +182,7 @@ fn mapnames_first_entry_is_e1m1_hangar() {
 #[test]
 fn mapnames_e2m1_is_at_index_9() {
     unsafe {
-        let ptr = c_ffi::mapnames[9];
+        let ptr = hu_stuff::mapnames[9];
         assert!(!ptr.is_null(), "mapnames[9] should not be null");
         let name = CStr::from_ptr(ptr as *const c_char).to_str().unwrap();
         assert_eq!(name, "E2M1: Deimos Anomaly");
@@ -181,7 +193,7 @@ fn mapnames_e2m1_is_at_index_9() {
 #[test]
 fn mapnames_e4m9_is_at_index_35() {
     unsafe {
-        let ptr = c_ffi::mapnames[35];
+        let ptr = hu_stuff::mapnames[35];
         assert!(!ptr.is_null(), "mapnames[35] should not be null");
         let name = CStr::from_ptr(ptr as *const c_char).to_str().unwrap();
         assert_eq!(name, "E4M9: Fear");
@@ -195,7 +207,7 @@ fn mapnames_e4m9_is_at_index_35() {
 fn mapnames_placeholders_are_newlevel() {
     unsafe {
         for i in 36..45usize {
-            let ptr = c_ffi::mapnames[i];
+            let ptr = hu_stuff::mapnames[i];
             assert!(!ptr.is_null(), "mapnames[{i}] should not be null");
             let name = CStr::from_ptr(ptr as *const c_char).to_str().unwrap();
             assert_eq!(name, "NEWLEVEL", "mapnames[{i}] should be NEWLEVEL");
@@ -211,7 +223,7 @@ fn mapnames_placeholders_are_newlevel() {
 #[test]
 fn mapnames_commercial_first_is_entryway() {
     unsafe {
-        let ptr = c_ffi::mapnames_commercial[0];
+        let ptr = hu_stuff::mapnames_commercial[0];
         assert!(!ptr.is_null(), "mapnames_commercial[0] should not be null");
         let name = CStr::from_ptr(ptr as *const c_char).to_str().unwrap();
         assert_eq!(name, "level 1: entryway");
@@ -222,7 +234,7 @@ fn mapnames_commercial_first_is_entryway() {
 #[test]
 fn mapnames_commercial_map32_is_grosse() {
     unsafe {
-        let ptr = c_ffi::mapnames_commercial[31];
+        let ptr = hu_stuff::mapnames_commercial[31];
         assert!(!ptr.is_null(), "mapnames_commercial[31] should not be null");
         let name = CStr::from_ptr(ptr as *const c_char).to_str().unwrap();
         assert_eq!(name, "level 32: grosse");
@@ -235,7 +247,7 @@ fn mapnames_commercial_map32_is_grosse() {
 #[test]
 fn mapnames_commercial_plutonia_starts_at_index_32() {
     unsafe {
-        let ptr = c_ffi::mapnames_commercial[32];
+        let ptr = hu_stuff::mapnames_commercial[32];
         assert!(!ptr.is_null(), "mapnames_commercial[32] should not be null");
         let name = CStr::from_ptr(ptr as *const c_char).to_str().unwrap();
         assert_eq!(name, "level 1: congo");
@@ -251,7 +263,7 @@ fn mapnames_commercial_plutonia_starts_at_index_32() {
 #[test]
 fn chat_on_default_false() {
     unsafe {
-        assert_eq!(c_ffi::chat_on, 0, "chat_on should be false by default");
+        assert_eq!(hu_stuff::chat_on, 0, "chat_on should be false by default");
     }
 }
 
@@ -262,7 +274,7 @@ fn chat_on_default_false() {
 fn message_dontfuckwithme_default_false() {
     unsafe {
         assert_eq!(
-            c_ffi::message_dontfuckwithme,
+            hu_stuff::message_dontfuckwithme,
             0,
             "message_dontfuckwithme should be false by default"
         );

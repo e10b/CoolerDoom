@@ -144,12 +144,11 @@ extern "C" {
     fn snprintf(s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
 }
 
+use crate::doom::hu_stuff::{chat_on, hu_font, message_dontfuckwithme};
+
 extern "C" {
-    static mut hu_font: [*mut c_void; HU_FONTSIZE];
-    static mut message_dontfuckwithme: c_int;
     static mut usegamma: c_int;
     static mut automapactive: c_int;
-    static mut chat_on: c_int;
     static mut devparm: c_int;
     static mut testcontrols: c_int;
     static mut vanilla_keyboard_mapping: c_int;
@@ -1234,7 +1233,7 @@ fn M_WriteText(x: c_int, y: c_int, string: *mut c_char) {
             if cx + w > SCREENWIDTH {
                 break;
             }
-            V_DrawPatchDirect(cx, cy, hu_font[c as usize]);
+            V_DrawPatchDirect(cx, cy, hu_font[c as usize] as *mut c_void);
             cx += w;
         }
     }

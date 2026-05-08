@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 25 |
-| Total remaining LoC | 29,820 |
-| Already ported LoC | ~25,880 (est.) |
-| Port completeness | ~46.5% (by line count) |
+| Remaining C modules | 24 |
+| Total remaining LoC | 29,179 |
+| Already ported LoC | ~26,521 (est.) |
+| Port completeness | ~47.6% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -27,17 +27,16 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-**Recently ported**: `r_main.c` (891 LoC), `v_video.c` (932 LoC), `i_system.c` (578 LoC), `w_wad.c` (612 LoC), `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC), `hu_lib.c` (347 LoC), `i_input.c` (341 LoC), `p_ceilng.c` (324 LoC), `p_plats.c` (304 LoC).
+**Recently ported**: `hu_stuff.c` (641 LoC), `r_main.c` (891 LoC), `v_video.c` (932 LoC), `i_system.c` (578 LoC), `w_wad.c` (612 LoC), `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC), `hu_lib.c` (347 LoC), `i_input.c` (341 LoC), `p_ceilng.c` (324 LoC), `p_plats.c` (304 LoC).
 
 ### Medium-Small — 350–550 LoC (0 files, 0 LoC)
 
 _All modules in this bucket have been ported._
 
-### Medium — 550–900 LoC (9 files, 6,945 LoC)
+### Medium — 550–900 LoC (8 files, 6,304 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `hu_stuff.c` | 641 | HUD | Heads-up display logic |
 | `p_switch.c` | 648 | Game logic | Switch/button action specials |
 | `f_finale.c` | 718 | Finale | End-of-episode text/screens |
 | `r_segs.c` | 743 | Renderer | Segment rendering |
