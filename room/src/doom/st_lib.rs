@@ -254,7 +254,7 @@ pub extern "C" fn STlib_updateMultIcon(mi: *mut st_multicon_t, refresh: c_int) {
                     I_Error(b"updateMultIcon: y - ST_Y < 0\0".as_ptr() as *const c_char);
                 }
 
-                V_CopyRect(x, y - ST_Y, st_backing_screen, w, h, x, (*mi).y);
+                V_CopyRect(x, y - ST_Y, st_backing_screen, w, h, x, y);
             }
             V_DrawPatch((*mi).x, (*mi).y, *(*mi).p.offset(*(*mi).inum as isize));
             (*mi).oldinum = *(*mi).inum;
@@ -298,7 +298,7 @@ pub extern "C" fn STlib_updateBinIcon(bi: *mut st_binicon_t, refresh: c_int) {
             if *(*bi).val != 0 {
                 V_DrawPatch((*bi).x, (*bi).y, p);
             } else {
-                V_CopyRect(x, y - ST_Y, st_backing_screen, w, h, x, (*bi).y);
+                V_CopyRect(x, y - ST_Y, st_backing_screen, w, h, x, y);
             }
 
             (*bi).oldval = *(*bi).val;
