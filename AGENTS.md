@@ -1,3 +1,91 @@
+# Agent instructions
+
+# Memory Safety & Debugging
+
+## Lessons from C → Rust Porting
+
+- **Null-terminated strings for C FFI**: Pass `&[u8] = b"/\0"` instead of `&str = "/"` when C code will call `strlen` on the pointer. `&str` is not null-terminated and causes `global-buffer-overflow`.
+- **Avoid `ptr::write_bytes` for precise zeroing**: `ptr::write_bytes` compiles to `memset`, which under ASan may use SIMD writes that overshoot non-aligned sizes and corrupt adjacent allocator metadata. Use a byte-by-byte loop instead.
+- **Have allocators zero internally**: Rather than relying on callers to `memset`, zero user data inside `Z_Malloc` before returning.
+
+## AddressSanitizer
+
+ASan gives exact line numbers for memory corruption across the Rust/C boundary. It is especially useful for `unsafe`, FFI, raw pointers, manual buffers, and ownership mistakes.
+
+### Quick Start
+
+```bash
+# Via Taskfile
+task asan:test -- test_name -- --nocapture
+
+# Manual
+ASAN_OPTIONS="detect_leaks=1:halt_on_error=1:abort_on_error=1:symbolize=1" \
+RUST_BACKTRACE=1 \
+RUSTFLAGS="-Zsanitizer=address" \
+cargo +nightly test -Zbuild-std --target x86_64-unknown-linux-gnu
+```
+
+Use `-Zbuild-std` so `std` is also instrumented. Compile the C side with ASan too by setting `ASAN=1` (gated in `doomgeneric-sys/build.rs`).
+
+### Useful `ASAN_OPTIONS` Flags
+
+| Flag | Meaning |
+|------|---------|
+| `detect_leaks=1` | Also report leaks |
+| `halt_on_error=1` | Stop at first error |
+| `abort_on_error=1` | Generate a hard crash for debuggers/agents |
+| `symbolize=1` | Print readable stack traces |
+
+### What ASan Reports Look Like
+
+```text
+ERROR: AddressSanitizer: heap-use-after-free
+READ of size 8 at 0x...
+    #0 my_crate::module::function src/foo.rs:123
+    #1 my_crate::ffi_wrapper::call src/ffi.rs:45
+
+freed by thread T0 here:
+    #0 free
+    #1 native_destroy src/native/foo.c:88
+
+previously allocated by thread T0 here:
+    #0 malloc
+    #1 native_create src/native/foo.c:42
+```
+
+ASan reports three locations: the bad access, the free, and the allocation.
+
+### Limitations
+
+- Needs nightly Rust.
+- Slows execution and increases memory use.
+- May conflict with proc macros or dynamic libraries.
+- Best on Linux/macOS x86_64/aarch64.
+- Does not replace Miri or prove memory safety.
+
+## dhat Heap Profiler
+
+For callsite-level allocation tracking (volume and ownership paths), use `dhat` separately from ASan.
+
+Enable in `room/Cargo.toml`:
+
+```toml
+[features]
+dhat-heap = ["dep:dhat"]
+
+[dependencies]
+dhat = { version = "0.3", optional = true }
+```
+
+Run:
+
+```bash
+cargo run --features dhat-heap
+cargo test --test demo_playthrough --features dhat-heap
+```
+
+A `dhat-heap.json` file is produced; view it with the [dhat viewer](https://valgrind.org/docs/manual/dh-manual.html).
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 

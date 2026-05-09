@@ -1,3 +1,7 @@
+# Agent Instructions
+
+Read [AGENTS.md](AGENTS.md) for up-to-date information.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
