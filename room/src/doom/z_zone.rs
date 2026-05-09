@@ -121,7 +121,12 @@ pub unsafe extern "C" fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) ->
         panic!("Z_Malloc: rover is null!");
     }
     if (*base).prev.is_null() {
-        panic!("Z_Malloc: rover->prev is null! base={:?} base.tag={} base.size={}", base, (*base).tag, (*base).size);
+        panic!(
+            "Z_Malloc: rover->prev is null! base={:?} base.tag={} base.size={}",
+            base,
+            (*base).tag,
+            (*base).size
+        );
     }
     if (*(*base).prev).tag == PU_FREE {
         base = (*base).prev;
@@ -220,7 +225,10 @@ pub unsafe extern "C" fn Z_FreeTags(lowtag: c_int, hightag: c_int) {
 
         block = next;
     }
-    eprintln!("[Z_FreeTags] lowtag={} hightag={} walked={} freed={}", lowtag, hightag, walked, freed);
+    eprintln!(
+        "[Z_FreeTags] lowtag={} hightag={} walked={} freed={}",
+        lowtag, hightag, walked, freed
+    );
 }
 
 #[no_mangle]
@@ -285,16 +293,24 @@ pub unsafe extern "C" fn Z_CheckHeap() {
         }
 
         if (block as *mut u8).add((*block).size as usize) != (*block).next as *mut u8 {
-            eprintln!("Z_CheckHeap FAIL: block {:?} size={} next={:?} expected_next={:?}",
-                block, (*block).size, (*block).next,
-                (block as *mut u8).add((*block).size as usize));
+            eprintln!(
+                "Z_CheckHeap FAIL: block {:?} size={} next={:?} expected_next={:?}",
+                block,
+                (*block).size,
+                (*block).next,
+                (block as *mut u8).add((*block).size as usize)
+            );
             let msg = b"Z_CheckHeap: block size does not touch the next block\n\0";
             I_Error(msg.as_ptr() as *const c_char);
         }
 
         if (*(*block).next).prev != block {
-            eprintln!("Z_CheckHeap FAIL: block {:?} next={:?} next.prev={:?}",
-                block, (*block).next, (*(*block).next).prev);
+            eprintln!(
+                "Z_CheckHeap FAIL: block {:?} next={:?} next.prev={:?}",
+                block,
+                (*block).next,
+                (*(*block).next).prev
+            );
             let msg = b"Z_CheckHeap: next block doesn't have proper back link\n\0";
             I_Error(msg.as_ptr() as *const c_char);
         }
@@ -323,7 +339,10 @@ pub unsafe extern "C" fn Z_CheckHeapQuiet() -> bool {
     while block != sentinel && count < 2000 {
         let size = (*block).size;
         if size <= 0 || size > 10_000_000 {
-            eprintln!("Z_CheckHeapQuiet: block {:?} has invalid size {}", block, size);
+            eprintln!(
+                "Z_CheckHeapQuiet: block {:?} has invalid size {}",
+                block, size
+            );
             valid = false;
             break;
         }
@@ -333,23 +352,35 @@ pub unsafe extern "C" fn Z_CheckHeapQuiet() -> bool {
         if (*block).next != sentinel {
             let expected_next = (block as *mut u8).add(size as usize) as *mut memblock_t;
             if (*block).next != expected_next {
-                eprintln!("Z_CheckHeapQuiet: block {:?} size={} next={:?} expected={:?}",
-                    block, size, (*block).next, expected_next);
+                eprintln!(
+                    "Z_CheckHeapQuiet: block {:?} size={} next={:?} expected={:?}",
+                    block,
+                    size,
+                    (*block).next,
+                    expected_next
+                );
                 valid = false;
             }
         }
 
         // Check prev link (works for all blocks including the last one whose next is sentinel)
         if !(*block).next.is_null() && (*(*block).next).prev != block {
-            eprintln!("Z_CheckHeapQuiet: block {:?} next={:?} next.prev={:?}",
-                block, (*block).next, (*(*block).next).prev);
+            eprintln!(
+                "Z_CheckHeapQuiet: block {:?} next={:?} next.prev={:?}",
+                block,
+                (*block).next,
+                (*(*block).next).prev
+            );
             valid = false;
         }
 
         // Check for consecutive free blocks (sentinel has tag=PU_STATIC, so skip it)
         if (*block).tag == PU_FREE && (*block).next != sentinel && (*(*block).next).tag == PU_FREE {
-            eprintln!("Z_CheckHeapQuiet: two consecutive free blocks at {:?} and {:?}",
-                block, (*block).next);
+            eprintln!(
+                "Z_CheckHeapQuiet: two consecutive free blocks at {:?} and {:?}",
+                block,
+                (*block).next
+            );
             valid = false;
         }
 

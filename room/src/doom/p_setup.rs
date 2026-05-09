@@ -5,12 +5,10 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
-use std::ffi::{c_char, c_int, c_short, c_ushort, c_uint, c_void};
+use std::ffi::{c_char, c_int, c_short, c_uint, c_ushort, c_void};
 use std::ptr;
 
-use crate::doom::c_ffi::{
-    line_t, node_t, sector_t, seg_t, side_t, subsector_t, vertex_t,
-};
+use crate::doom::c_ffi::{line_t, node_t, sector_t, seg_t, side_t, subsector_t, vertex_t};
 use crate::doom::d_mode;
 use crate::doom::d_player::{consoleplayer, players, MAXPLAYERS};
 use crate::doom::info::sprnames;
@@ -237,15 +235,25 @@ pub static mut rejectmatrix: *mut u8 = ptr::null_mut();
 // ---------------------------------------------------------------------------
 
 #[no_mangle]
-pub static mut deathmatchstarts: [mapthing_t; MAX_DEATHMATCH_STARTS] =
-    [mapthing_t { x: 0, y: 0, angle: 0, r#type: 0, options: 0 }; MAX_DEATHMATCH_STARTS];
+pub static mut deathmatchstarts: [mapthing_t; MAX_DEATHMATCH_STARTS] = [mapthing_t {
+    x: 0,
+    y: 0,
+    angle: 0,
+    r#type: 0,
+    options: 0,
+}; MAX_DEATHMATCH_STARTS];
 
 #[no_mangle]
 pub static mut deathmatch_p: *mut mapthing_t = ptr::null_mut();
 
 #[no_mangle]
-pub static mut playerstarts: [mapthing_t; MAXPLAYERS] =
-    [mapthing_t { x: 0, y: 0, angle: 0, r#type: 0, options: 0 }; MAXPLAYERS];
+pub static mut playerstarts: [mapthing_t; MAXPLAYERS] = [mapthing_t {
+    x: 0,
+    y: 0,
+    angle: 0,
+    r#type: 0,
+    options: 0,
+}; MAXPLAYERS];
 
 // ---------------------------------------------------------------------------
 // Extern declarations for still-unported C modules
@@ -325,8 +333,16 @@ pub extern "C" fn GetSectorAtNullAddress() -> *mut sector_t {
     unsafe {
         if !NULL_SECTOR_IS_INITIALIZED {
             NULL_SECTOR = std::mem::zeroed();
-            I_GetMemoryValue(0, &mut NULL_SECTOR.floorheight as *mut c_int as *mut c_void, 4);
-            I_GetMemoryValue(4, &mut NULL_SECTOR.ceilingheight as *mut c_int as *mut c_void, 4);
+            I_GetMemoryValue(
+                0,
+                &mut NULL_SECTOR.floorheight as *mut c_int as *mut c_void,
+                4,
+            );
+            I_GetMemoryValue(
+                4,
+                &mut NULL_SECTOR.ceilingheight as *mut c_int as *mut c_void,
+                4,
+            );
             NULL_SECTOR_IS_INITIALIZED = true;
         }
         &mut NULL_SECTOR
@@ -465,7 +481,8 @@ pub extern "C" fn P_LoadSectors(lump: c_int) {
             (*ss).floorheight = (SHORT((*ms).floorheight) as c_int) << FRACBITS;
             (*ss).ceilingheight = (SHORT((*ms).ceilingheight) as c_int) << FRACBITS;
             (*ss).floorpic = R_FlatNumForName((*ms).floorpic.as_ptr() as *mut c_char) as c_short;
-            (*ss).ceilingpic = R_FlatNumForName((*ms).ceilingpic.as_ptr() as *mut c_char) as c_short;
+            (*ss).ceilingpic =
+                R_FlatNumForName((*ms).ceilingpic.as_ptr() as *mut c_char) as c_short;
             (*ss).lightlevel = SHORT((*ms).lightlevel);
             (*ss).special = SHORT((*ms).special);
             (*ss).tag = SHORT((*ms).tag);
@@ -540,8 +557,7 @@ pub extern "C" fn P_LoadThings(lump: c_int) {
             }
 
             if !spawn {
-                mt = mt.add(1);
-                continue;
+                break;
             }
 
             let mut spawnthing = mapthing_t {
@@ -621,13 +637,21 @@ pub extern "C" fn P_LoadLineDefs(lump: c_int) {
             (*ld).sidenum[1] = SHORT((*mld).sidenum[1]);
 
             if (*ld).sidenum[0] != -1 {
-                (*ld).frontsector = sides.offset((*ld).sidenum[0] as isize).as_ref().unwrap().sector as *mut c_void;
+                (*ld).frontsector = sides
+                    .offset((*ld).sidenum[0] as isize)
+                    .as_ref()
+                    .unwrap()
+                    .sector as *mut c_void;
             } else {
                 (*ld).frontsector = ptr::null_mut();
             }
 
             if (*ld).sidenum[1] != -1 {
-                (*ld).backsector = sides.offset((*ld).sidenum[1] as isize).as_ref().unwrap().sector as *mut c_void;
+                (*ld).backsector = sides
+                    .offset((*ld).sidenum[1] as isize)
+                    .as_ref()
+                    .unwrap()
+                    .sector as *mut c_void;
             } else {
                 (*ld).backsector = ptr::null_mut();
             }
@@ -662,9 +686,12 @@ pub extern "C" fn P_LoadSideDefs(lump: c_int) {
         for _ in 0..numsides {
             (*sd).textureoffset = (SHORT((*msd).textureoffset) as c_int) << FRACBITS;
             (*sd).rowoffset = (SHORT((*msd).rowoffset) as c_int) << FRACBITS;
-            (*sd).toptexture = R_TextureNumForName((*msd).toptexture.as_ptr() as *mut c_char) as c_short;
-            (*sd).bottomtexture = R_TextureNumForName((*msd).bottomtexture.as_ptr() as *mut c_char) as c_short;
-            (*sd).midtexture = R_TextureNumForName((*msd).midtexture.as_ptr() as *mut c_char) as c_short;
+            (*sd).toptexture =
+                R_TextureNumForName((*msd).toptexture.as_ptr() as *mut c_char) as c_short;
+            (*sd).bottomtexture =
+                R_TextureNumForName((*msd).bottomtexture.as_ptr() as *mut c_char) as c_short;
+            (*sd).midtexture =
+                R_TextureNumForName((*msd).midtexture.as_ptr() as *mut c_char) as c_short;
             (*sd).sector = sectors.offset(SHORT((*msd).sector) as isize);
             sd = sd.add(1);
             msd = msd.add(1);
@@ -715,8 +742,10 @@ pub extern "C" fn P_GroupLines() {
         let mut ss = subsectors;
         for _ in 0..numsubsectors {
             let seg = segs.offset((*ss).firstline as isize);
-            (*ss).sector = (*sides.offset((*seg).linedef.as_ref().unwrap().sidenum[0] as isize))
-                .sector as *mut c_void;
+            // Must use seg->sidedef->sector, not sidenum[0], because the seg
+            // may be on side 1 (back side) of the linedef, in which case
+            // sidenum[0] points to the wrong side's sector.
+            (*ss).sector = (*(*seg).sidedef).sector as *mut c_void;
             ss = ss.add(1);
         }
 
@@ -744,9 +773,11 @@ pub extern "C" fn P_GroupLines() {
             ptr::null_mut(),
         ) as *mut *mut line_t;
 
+        let mut current = linebuffer;
         for i in 0..numsectors as usize {
             let sec = sectors.add(i);
-            (*sec).lines = linebuffer.offset((*sec).linecount as isize) as *mut *mut c_void;
+            (*sec).lines = current as *mut *mut c_void;
+            current = current.offset((*sec).linecount as isize);
             (*sec).linecount = 0;
         }
 
@@ -755,12 +786,18 @@ pub extern "C" fn P_GroupLines() {
             li = lines.add(i);
             if !(*li).frontsector.is_null() {
                 let sector = (*li).frontsector as *mut sector_t;
-                (*sector).lines.offset((*sector).linecount as isize).write(li as *mut c_void);
+                (*sector)
+                    .lines
+                    .offset((*sector).linecount as isize)
+                    .write(li as *mut c_void);
                 (*sector).linecount += 1;
             }
             if !(*li).backsector.is_null() && (*li).frontsector != (*li).backsector {
                 let sector = (*li).backsector as *mut sector_t;
-                (*sector).lines.offset((*sector).linecount as isize).write(li as *mut c_void);
+                (*sector)
+                    .lines
+                    .offset((*sector).linecount as isize)
+                    .write(li as *mut c_void);
                 (*sector).linecount += 1;
             }
         }
@@ -787,7 +824,11 @@ pub extern "C" fn P_GroupLines() {
 
             // Adjust bounding box to map blocks.
             let mut block = (bbox[BOXTOP] - bmaporgy + MAXRADIUS) >> MAPBLOCKSHIFT;
-            block = if block >= bmapheight { bmapheight - 1 } else { block };
+            block = if block >= bmapheight {
+                bmapheight - 1
+            } else {
+                block
+            };
             (*sector).blockbox[BOXTOP] = block;
 
             block = (bbox[BOXBOTTOM] - bmaporgy - MAXRADIUS) >> MAPBLOCKSHIFT;
@@ -795,7 +836,11 @@ pub extern "C" fn P_GroupLines() {
             (*sector).blockbox[BOXBOTTOM] = block;
 
             block = (bbox[BOXRIGHT] - bmaporgx + MAXRADIUS) >> MAPBLOCKSHIFT;
-            block = if block >= bmapwidth { bmapwidth - 1 } else { block };
+            block = if block >= bmapwidth {
+                bmapwidth - 1
+            } else {
+                block
+            };
             (*sector).blockbox[BOXRIGHT] = block;
 
             block = (bbox[BOXLEFT] - bmaporgx - MAXRADIUS) >> MAPBLOCKSHIFT;
@@ -812,12 +857,7 @@ pub extern "C" fn P_GroupLines() {
 // ---------------------------------------------------------------------------
 
 unsafe fn PadRejectArray(array: *mut u8, len: usize) {
-    let rejectpad: [u32; 4] = [
-        ((totallines * 4 + 3) & !3) as u32 + 24,
-        0,
-        50,
-        0x1d4a11,
-    ];
+    let rejectpad: [u32; 4] = [((totallines * 4 + 3) & !3) as u32 + 24, 0, 50, 0x1d4a11];
 
     let mut dest = array;
     for i in 0..len.min(std::mem::size_of_val(&rejectpad)) {
@@ -859,9 +899,16 @@ unsafe fn P_LoadReject(lumpnum: c_int) {
     if lumplen >= minlength {
         rejectmatrix = W_CacheLumpNum(lumpnum, PU_LEVEL) as *mut u8;
     } else {
-        rejectmatrix = Z_Malloc(minlength, PU_LEVEL, &mut rejectmatrix as *mut *mut u8 as *mut c_void) as *mut u8;
+        rejectmatrix = Z_Malloc(
+            minlength,
+            PU_LEVEL,
+            &mut rejectmatrix as *mut *mut u8 as *mut c_void,
+        ) as *mut u8;
         W_ReadLump(lumpnum, rejectmatrix as *mut c_void);
-        PadRejectArray(rejectmatrix.add(lumplen as usize), (minlength - lumplen) as usize);
+        PadRejectArray(
+            rejectmatrix.add(lumplen as usize),
+            (minlength - lumplen) as usize,
+        );
     }
 }
 

@@ -293,8 +293,13 @@ pub extern "C" fn W_ReadLump(lump: c_uint, dest: *mut c_void) {
             (*l).size as usize,
         );
         if c > (*l).size as usize {
-            eprintln!("[W_ReadLump] OVERFLOW: lump={}, requested={}, actually_read={}, lump.size={}",
-                lump, (*l).size, c, (*l).size);
+            eprintln!(
+                "[W_ReadLump] OVERFLOW: lump={}, requested={}, actually_read={}, lump.size={}",
+                lump,
+                (*l).size,
+                c,
+                (*l).size
+            );
         }
         if c < (*l).size as usize {
             I_Error(

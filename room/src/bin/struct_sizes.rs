@@ -1,7 +1,7 @@
 fn main() {
-    use std::mem::{size_of, offset_of};
     use room::doom::c_ffi::*;
-    
+    use std::mem::{offset_of, size_of};
+
     println!("Rust struct sizes:");
     println!("  vertex_t:     {}", size_of::<vertex_t>());
     println!("  seg_t:        {}", size_of::<seg_t>());
@@ -10,7 +10,7 @@ fn main() {
     println!("  line_t:       {}", size_of::<line_t>());
     println!("  side_t:       {}", size_of::<side_t>());
     println!("  node_t:       {}", size_of::<node_t>());
-    
+
     println!("\nseg_t field offsets:");
     println!("  v1:           {}", offset_of!(seg_t, v1));
     println!("  v2:           {}", offset_of!(seg_t, v2));
@@ -20,12 +20,12 @@ fn main() {
     println!("  sidedef:      {}", offset_of!(seg_t, sidedef));
     println!("  frontsector:  {}", offset_of!(seg_t, frontsector));
     println!("  backsector:   {}", offset_of!(seg_t, backsector));
-    
+
     println!("\nsubsector_t field offsets:");
     println!("  sector:       {}", offset_of!(subsector_t, sector));
     println!("  numlines:     {}", offset_of!(subsector_t, numlines));
     println!("  firstline:    {}", offset_of!(subsector_t, firstline));
-    
+
     println!("\nsector_t field offsets:");
     println!("  floorheight:  {}", offset_of!(sector_t, floorheight));
     println!("  ceilingheight:{}", offset_of!(sector_t, ceilingheight));
@@ -43,7 +43,7 @@ fn main() {
     println!("  specialdata:  {}", offset_of!(sector_t, specialdata));
     println!("  linecount:    {}", offset_of!(sector_t, linecount));
     println!("  lines:        {}", offset_of!(sector_t, lines));
-    
+
     println!("\nside_t field offsets:");
     println!("  textureoffset:{}", offset_of!(side_t, textureoffset));
     println!("  rowoffset:    {}", offset_of!(side_t, rowoffset));
@@ -51,7 +51,7 @@ fn main() {
     println!("  bottomtexture:{}", offset_of!(side_t, bottomtexture));
     println!("  midtexture:   {}", offset_of!(side_t, midtexture));
     println!("  sector:       {}", offset_of!(side_t, sector));
-    
+
     println!("\nline_t field offsets:");
     println!("  v1:           {}", offset_of!(line_t, v1));
     println!("  v2:           {}", offset_of!(line_t, v2));
