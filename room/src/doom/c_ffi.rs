@@ -889,21 +889,10 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// d_loop.c — main game-loop state globals and constants
+// d_loop.rs — main game-loop state globals and constants
 // ---------------------------------------------------------------------------
 
-/// Number of tic-command slots in the ring buffer
-/// (BACKUPTICS in net_defs.h = 128).
-pub const BACKUPTICS: usize = 128;
-
-extern "C" {
-    /// Current game tic (incremented once per rendered frame).
-    pub static mut gametic: c_int;
-    /// Tic-duplication factor (1 = normal, 2 = send every 2nd tic, etc.).
-    pub static mut ticdup: c_int;
-    /// When true, run exactly one tic per frame (demo-timing mode).
-    pub static mut singletics: c_int; // boolean
-}
+pub use crate::doom::d_loop::{gametic, offsetms, singletics, ticdup, BACKUPTICS};
 
 // ---------------------------------------------------------------------------
 // p_saveg.c — save-game serialization constants and globals

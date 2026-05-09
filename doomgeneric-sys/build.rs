@@ -54,8 +54,8 @@ fn main() {
         // "d_items.c",
         // IWAD loading
         "d_iwad.c",
-        // Main game loop
-        "d_loop.c",
+        // Main game loop — ported to Rust (room/src/doom/d_loop.rs)
+        // "d_loop.c",
         "d_main.c",
         // Game mode detection
         // d_mode   — ported to Rust (room/src/doom/d_mode.rs)
