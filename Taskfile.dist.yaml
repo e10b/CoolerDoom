@@ -1,0 +1,75 @@
+# https://github.com/go-task/task
+version: "3"
+
+tasks:
+  fmt:
+    desc: Format the code
+    preconditions:
+      - sh: command -v cargo >/dev/null 2>&1
+        msg: cargo is not installed. Please install Rust via https://rustup.rs
+    cmds:
+      - cargo fmt
+
+  lint:
+    desc: Lint the code
+    preconditions:
+      - sh: command -v cargo >/dev/null 2>&1
+        msg: cargo is not installed. Please install Rust via https://rustup.rs
+    cmds:
+      - cargo clippy
+
+  lint:fix:
+    desc: Lint the code
+    preconditions:
+      - sh: command -v cargo >/dev/null 2>&1
+        msg: cargo is not installed. Please install Rust via https://rustup.rs
+    cmds:
+      - cargo clippy --fix --allow-staged
+      - task: fmt
+
+  test:
+    desc: Run all tests
+    preconditions:
+      - sh: command -v cargo >/dev/null 2>&1
+        msg: cargo is not installed. Please install Rust via https://rustup.rs
+    env:
+      RUST_BACKTRACE: full
+      RUST_LOG: info
+    cmds:
+      - cargo test
+
+  build:
+    desc: Build the workspace
+    preconditions:
+      - sh: command -v cargo >/dev/null 2>&1
+        msg: cargo is not installed. Please install Rust via https://rustup.rs
+    cmds:
+      - cargo build
+
+  run:
+    desc: Run the game
+    preconditions:
+      - sh: command -v cargo >/dev/null 2>&1
+        msg: cargo is not installed. Please install Rust via https://rustup.rs
+    cmds:
+      - cargo run
+
+  docs:
+    desc: Build rustdoc
+    aliases:
+      - doc
+    preconditions:
+      - sh: command -v cargo >/dev/null 2>&1
+        msg: cargo is not installed. Please install Rust via https://rustup.rs
+    cmds:
+      - "cargo doc --no-deps --all-features"
+
+  docs:open:
+    desc: Build rustdoc (and open them)
+    aliases:
+      - doc:open
+    preconditions:
+      - sh: command -v cargo >/dev/null 2>&1
+        msg: cargo is not installed. Please install Rust via https://rustup.rs
+    cmds:
+      - "cargo doc --no-deps --all-features --open"
