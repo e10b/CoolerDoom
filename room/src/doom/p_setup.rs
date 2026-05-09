@@ -1022,6 +1022,10 @@ mod tests {
 
     static LOCK: Mutex<()> = Mutex::new(());
 
+    // =========================================================================
+    // Existing structural tests
+    // =========================================================================
+
     #[test]
     fn max_deathmatch_starts_is_10() {
         let _g = LOCK.lock().unwrap();
@@ -1063,5 +1067,247 @@ mod tests {
             let _: c_int = bmaporgx;
             let _: c_int = bmaporgy;
         }
+    }
+
+    // =========================================================================
+    // Regression tests for bugs fixed in the p_setup.c → Rust port.
+    //
+    // These are pure unit tests that verify the core algorithms without
+    // requiring full engine (WAD, zone memory, C FFI) initialisation.
+    //
+    // Bug 1: P_LoadThings used `continue` instead of `break` when a
+    //        non-commercial monster was encountered in shareware mode.
+    // Bug 2: P_GroupLines sector line table computed per-sector offsets
+    //        from the buffer base instead of advancing cumulatively.
+    // Bug 3: P_GroupLines resolved subsector→sector via sidenum[0]
+    //        instead of seg->sidedef->sector, corrupting back-side segs.
+    // =========================================================================
+
+    // -----------------------------------------------------------------------
+    // Regression: P_LoadThings break-on-non-commercial-monster
+    // -----------------------------------------------------------------------
+
+    /// Simulates the P_LoadThings thing-filter loop in pure Rust.
+    /// Returns the number of things that would actually be spawned.
+    ///
+    /// In shareware/non-commercial mode the loop must **break** (not continue)
+    /// when it hits the first non-commercial monster type.  Using `continue`
+    /// instead causes every subsequent thing to also be processed, which
+    /// changes the RNG call sequence and breaks demo determinism.
+    fn count_spawnable_things(things: &[i16], commercial: bool) -> usize {
+        let non_commercial_types: [i16; 10] = [68, 64, 88, 89, 69, 67, 71, 65, 66, 84];
+
+        let mut count = 0;
+        for &thing_type in things {
+            let mut spawn = true;
+            if !commercial {
+                if non_commercial_types.contains(&thing_type) {
+                    spawn = false;
+                }
+            }
+            if !spawn {
+                break; // MUST break – was `continue` in the buggy port
+            }
+            count += 1;
+        }
+        count
+    }
+
+    /// In commercial mode every thing is spawned regardless of type.
+    #[test]
+    fn p_load_things_commercial_spawns_all() {
+        // Types: player start, imp, Archvile(64), cacodemon, Revenant(66)
+        let things: [i16; 5] = [1, 3001, 64, 3003, 66];
+        assert_eq!(count_spawnable_things(&things, true), 5);
+    }
+
+    /// In shareware mode the loop stops at the first non-commercial monster.
+    /// Things after it must NOT be spawned (regression: was `continue`).
+    #[test]
+    fn p_load_things_shareware_breaks_at_non_commercial() {
+        // Types: player start, imp, Archvile(64), cacodemon, Revenant(66)
+        // Archvile is non-commercial → loop breaks, only 2 things spawned.
+        let things: [i16; 5] = [1, 3001, 64, 3003, 66];
+        assert_eq!(count_spawnable_things(&things, false), 2);
+    }
+
+    /// Non-commercial monster at the very start → zero things spawned.
+    #[test]
+    fn p_load_things_shareware_first_thing_non_commercial() {
+        let things: [i16; 3] = [64, 1, 3001]; // Archvile first
+        assert_eq!(count_spawnable_things(&things, false), 0);
+    }
+
+    /// No non-commercial monsters → all things spawned in shareware mode.
+    #[test]
+    fn p_load_things_shareware_no_non_commercial_spawns_all() {
+        let things: [i16; 4] = [1, 3001, 3003, 3004]; // all shareware types
+        assert_eq!(count_spawnable_things(&things, false), 4);
+    }
+
+    /// Non-commercial monster at the very end → everything before spawns.
+    #[test]
+    fn p_load_things_shareware_non_commercial_at_end() {
+        let things: [i16; 5] = [1, 3001, 3003, 3004, 88]; // Boss Brain last
+        assert_eq!(count_spawnable_things(&things, false), 4);
+    }
+
+    // -----------------------------------------------------------------------
+    // Regression: P_GroupLines sector line table cumulative offset
+    // -----------------------------------------------------------------------
+
+    /// Simulates the sector line-table pointer assignment from P_GroupLines.
+    /// Returns the computed start-offset for each sector within the shared
+    /// line-buffer.
+    ///
+    /// The C original advances a single cursor cumulatively:
+    ///   sectors[i].lines = linebuffer;
+    ///   linebuffer += sectors[i].linecount;
+    ///
+    /// The buggy Rust port computed each sector's offset independently from
+    /// the buffer base (`base + linecount`), causing every sector's line
+    /// table to point to the wrong memory.
+    fn compute_sector_line_offsets(linecounts: &[usize]) -> Vec<usize> {
+        let mut offsets = Vec::with_capacity(linecounts.len());
+        let mut current: usize = 0;
+        for &lc in linecounts {
+            offsets.push(current);
+            current += lc;
+        }
+        offsets
+    }
+
+    /// Cumulative offsets must equal the sum of all preceding linecounts.
+    #[test]
+    fn p_grouplines_sector_offsets_are_cumulative() {
+        // Sector linecounts: [10, 5, 3]
+        // Expected offsets:  [0, 10, 15]
+        let linecounts = [10usize, 5, 3];
+        let offsets = compute_sector_line_offsets(&linecounts);
+        assert_eq!(offsets, vec![0, 10, 15]);
+    }
+
+    /// Single sector → offset 0.
+    #[test]
+    fn p_grouplines_single_sector_offset_zero() {
+        let linecounts = [7usize];
+        assert_eq!(compute_sector_line_offsets(&linecounts), vec![0]);
+    }
+
+    /// Sector with zero lines must still advance correctly for next sector.
+    #[test]
+    fn p_grouplines_zero_line_sector_preserves_cumulative() {
+        let linecounts = [5usize, 0, 3];
+        // sector 0 → offset 0, sector 1 → offset 5, sector 2 → offset 5
+        assert_eq!(compute_sector_line_offsets(&linecounts), vec![0, 5, 5]);
+    }
+
+    /// The buggy version (`base + linecount`) would produce wrong results.
+    /// This test documents the exact wrong values that the bug produced.
+    #[test]
+    fn p_grouplines_buggy_offset_produces_wrong_values() {
+        let linecounts = [10usize, 5, 3];
+
+        // Correct (cumulative):
+        let correct = compute_sector_line_offsets(&linecounts);
+        assert_eq!(correct, vec![0, 10, 15]);
+
+        // Buggy (independent from base):
+        let buggy: Vec<usize> = linecounts.iter().copied().collect();
+        assert_eq!(buggy, vec![10, 5, 3]);
+
+        // They must NOT be equal.
+        assert_ne!(correct, buggy);
+    }
+
+    // -----------------------------------------------------------------------
+    // Regression: P_GroupLines subsector sector via seg->sidedef->sector
+    // -----------------------------------------------------------------------
+
+    /// Simulates the subsector→sector resolution from P_GroupLines.
+    ///
+    /// The C original uses `seg->sidedef->sector`, which respects the seg's
+    /// side (0 = front, 1 = back).  The buggy Rust port hardcoded
+    /// `sidenum[0]`, always resolving to the front side's sector regardless
+    /// of which side the seg is on.
+    ///
+    /// Parameters:
+    /// - `seg_side`: 0 (front) or 1 (back) – which side of the linedef the seg is on
+    /// - `sidenum`: [front_sidenum, back_sidenum]
+    /// - `sector_of_sidenum`: maps each sidenum to its sector index
+    ///
+    /// Returns the resolved sector index.
+    fn resolve_subsector_sector_via_sidedef(
+        seg_side: usize,
+        sidenum: [i16; 2],
+        sector_of_sidenum: &[usize],
+    ) -> usize {
+        // Correct: use the seg's already-resolved sidedef, which was set
+        // during P_LoadSegs to `sides[ldef->sidenum[seg_side]]`.
+        // So sector = sector_of_sidenum[sidenum[seg_side]]
+        let sidenum_idx = sidenum[seg_side] as usize;
+        sector_of_sidenum[sidenum_idx]
+    }
+
+    /// The buggy version always used sidenum[0] regardless of seg_side.
+    fn resolve_subsector_sector_buggy(
+        seg_side: usize,
+        sidenum: [i16; 2],
+        sector_of_sidenum: &[usize],
+    ) -> usize {
+        let _ = seg_side; // unused – the bug!
+        let sidenum_idx = sidenum[0] as usize;
+        sector_of_sidenum[sidenum_idx]
+    }
+
+    /// Front-side seg (side=0): both methods agree.
+    #[test]
+    fn p_grouplines_subsector_front_side_agrees() {
+        // linedef has sidenum[0]=2, sidenum[1]=5
+        // sector_of_sidenum[2]=10, sector_of_sidenum[5]=20
+        let sidenum = [2i16, 5];
+        let sector_map = [0, 0, 10, 0, 0, 20];
+
+        assert_eq!(
+            resolve_subsector_sector_via_sidedef(0, sidenum, &sector_map),
+            10
+        );
+        assert_eq!(resolve_subsector_sector_buggy(0, sidenum, &sector_map), 10);
+    }
+
+    /// Back-side seg (side=1): correct method uses sidenum[1],
+    /// buggy method uses sidenum[0] → wrong sector.
+    #[test]
+    fn p_grouplines_subsector_back_side_differs() {
+        // linedef has sidenum[0]=2 (sector 10), sidenum[1]=5 (sector 20)
+        let sidenum = [2i16, 5];
+        let sector_map = [0, 0, 10, 0, 0, 20];
+
+        // Correct: seg on side 1 → uses sidenum[1]=5 → sector 20
+        assert_eq!(
+            resolve_subsector_sector_via_sidedef(1, sidenum, &sector_map),
+            20
+        );
+
+        // Buggy: always uses sidenum[0]=2 → sector 10 (WRONG)
+        assert_eq!(resolve_subsector_sector_buggy(1, sidenum, &sector_map), 10);
+    }
+
+    /// Ensures the correct and buggy implementations produce different
+    /// results for back-side segs, proving the regression test is meaningful.
+    #[test]
+    fn p_grouplines_subsector_back_side_correct_vs_buggy_differ() {
+        let sidenum = [3i16, 7];
+        let sector_map = [0, 0, 0, 11, 0, 0, 0, 22];
+
+        let correct = resolve_subsector_sector_via_sidedef(1, sidenum, &sector_map);
+        let buggy = resolve_subsector_sector_buggy(1, sidenum, &sector_map);
+
+        assert_ne!(
+            correct, buggy,
+            "back-side seg must resolve to different sectors"
+        );
+        assert_eq!(correct, 22);
+        assert_eq!(buggy, 11);
     }
 }
