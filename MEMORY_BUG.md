@@ -4,7 +4,42 @@
 2026-05-09
 
 ## Status
-UNRESOLVED — Test crashes with `rover->prev is null` in `Z_Malloc` (z_zone.rs:124)
+MEMORY CORRUPTION FIXED — test now reaches checkpoint 3 (prndindex mismatch)
+
+## Fix 1: DIR_SEPARATOR_S global-buffer-overflow
+The ASan run revealed a `global-buffer-overflow` in `M_StringJoinA` (m_misc.rs:346) caused by `DIR_SEPARATOR_S` being a 1-byte `&str = "/"` that was passed to `strlen` without a null terminator.
+
+**Root cause**: `const DIR_SEPARATOR_S: &str = "/";` creates a 1-byte static (just '/'), not null-terminated. When `M_StringJoinA` calls `strlen` on it, `strlen` reads past the end.
+
+**Fix applied**: Changed all three definitions from `&str = "/"` to `&[u8] = b"/\0"` in:
+- `m_misc.rs:8`
+- `m_config.rs:452`  
+- `d_iwad.rs:14`
+
+**ASan confirmed**: No more global-buffer-overflow errors after this fix.
+
+## Fix 2: ptr::write_bytes heap corruption in p_setup.rs
+After fixing the DIR_SEPARATOR_S issue, the test still crashed with `Z_Malloc: rover->prev is null` during P_LoadSectors.
+
+**Root cause**: `ptr::write_bytes(ptr, 0, size)` compiles to LLVM's memset intrinsic, which under ASan instrumentation uses SIMD-optimized writes that can overshoot the requested byte count when `size` is not aligned to the SIMD chunk size (16/32/64 bytes). This writes into the next zone allocator block header, zeroing it out and corrupting the doubly-linked list.
+
+**Evidence**:
+- `ptr::write_bytes(sectors, 0, 18304)` corrupted the 8-byte boundary at `sectors + 18304`
+- Replacing with a byte-by-byte loop (`write_volatile` per byte) preserved the boundary
+- The crash moved downstream when sectors was fixed, confirming ALL write_bytes calls had this issue
+- Affected sizes: 18304 (sectors), 25272 (sides), and others — not all divisible by 16
+
+**Fix applied**: 
+1. Modified `Z_Malloc` in `z_zone.rs` to zero the user data area using a byte-by-byte loop before returning
+2. Removed all `ptr::write_bytes` calls from `p_setup.rs` that were zeroing Z_Malloc'd buffers:
+   - P_LoadSegs
+   - P_LoadSubsectors  
+   - P_LoadSectors
+   - P_LoadLineDefs
+   - P_LoadSideDefs
+   - PadRejectArray (replaced with byte loop)
+
+**Result**: Test no longer crashes with memory corruption. It now reaches checkpoint 3 and fails on `prndindex mismatch` — a separate issue (likely uninitialized state or C/Rust state divergence).
 
 ## Symptom
 `cargo test --test demo_playthrough` crashes with:

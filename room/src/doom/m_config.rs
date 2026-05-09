@@ -449,7 +449,7 @@ const SCANTOKEY: [c_int; 128] = [
     0,
 ];
 
-const DIR_SEPARATOR_S: &str = "/";
+const DIR_SEPARATOR_S: &[u8] = b"/\0";
 
 unsafe fn search_collection(
     collection: *const DefaultCollection,

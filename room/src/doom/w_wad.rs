@@ -292,6 +292,10 @@ pub extern "C" fn W_ReadLump(lump: c_uint, dest: *mut c_void) {
             dest,
             (*l).size as usize,
         );
+        if c > (*l).size as usize {
+            eprintln!("[W_ReadLump] OVERFLOW: lump={}, requested={}, actually_read={}, lump.size={}",
+                lump, (*l).size, c, (*l).size);
+        }
         if c < (*l).size as usize {
             I_Error(
                 b"W_ReadLump: only read %i of %i on lump %i\0".as_ptr() as *const c_char,

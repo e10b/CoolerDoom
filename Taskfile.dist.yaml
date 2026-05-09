@@ -55,7 +55,7 @@ tasks:
       RUST_BACKTRACE: full
       RUST_LOG: info
     cmds:
-      - cargo run
+      - cargo run --bin room
 
   docs:
     desc: Build rustdoc

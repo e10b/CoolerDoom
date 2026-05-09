@@ -11,7 +11,7 @@ use crate::doom::d_mode;
 
 const MAX_IWAD_DIRS: usize = 128;
 const DIR_SEPARATOR: c_char = b'/' as c_char;
-const DIR_SEPARATOR_S: &str = "/";
+const DIR_SEPARATOR_S: &[u8] = b"/\0";
 
 macro_rules! cstr {
     ($s:literal) => {

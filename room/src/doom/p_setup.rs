@@ -375,7 +375,7 @@ pub extern "C" fn P_LoadSegs(lump: c_int) {
             PU_LEVEL,
             ptr::null_mut(),
         ) as *mut seg_t;
-        ptr::write_bytes(segs, 0, (numsegs * std::mem::size_of::<seg_t>() as c_int) as usize);
+        // Zeroed by Z_Malloc internally
 
         let data = W_CacheLumpNum(lump, PU_STATIC);
         let mut ml = data as *mut mapseg_t;
@@ -425,10 +425,10 @@ pub extern "C" fn P_LoadSubsectors(lump: c_int) {
             PU_LEVEL,
             ptr::null_mut(),
         ) as *mut subsector_t;
+        // Zeroed by Z_Malloc internally
 
         let data = W_CacheLumpNum(lump, PU_STATIC);
         let mut ms = data as *mut mapsubsector_t;
-        ptr::write_bytes(subsectors, 0, (numsubsectors * std::mem::size_of::<subsector_t>() as c_int) as usize);
         let mut ss = subsectors;
 
         for _ in 0..numsubsectors {
@@ -455,7 +455,7 @@ pub extern "C" fn P_LoadSectors(lump: c_int) {
             PU_LEVEL,
             ptr::null_mut(),
         ) as *mut sector_t;
-        ptr::write_bytes(sectors, 0, (numsectors * std::mem::size_of::<sector_t>() as c_int) as usize);
+        // Zeroed by Z_Malloc internally
 
         let data = W_CacheLumpNum(lump, PU_STATIC);
         let mut ms = data as *mut mapsector_t;
@@ -572,7 +572,7 @@ pub extern "C" fn P_LoadLineDefs(lump: c_int) {
             PU_LEVEL,
             ptr::null_mut(),
         ) as *mut line_t;
-        ptr::write_bytes(lines, 0, (numlines * std::mem::size_of::<line_t>() as c_int) as usize);
+        // Zeroed by Z_Malloc internally
 
         let data = W_CacheLumpNum(lump, PU_STATIC);
         let mut mld = data as *mut maplinedef_t;
@@ -653,7 +653,7 @@ pub extern "C" fn P_LoadSideDefs(lump: c_int) {
             PU_LEVEL,
             ptr::null_mut(),
         ) as *mut side_t;
-        ptr::write_bytes(sides, 0, (numsides * std::mem::size_of::<side_t>() as c_int) as usize);
+        // Zeroed by Z_Malloc internally
 
         let data = W_CacheLumpNum(lump, PU_STATIC);
         let mut msd = data as *mut mapsidedef_t;
@@ -839,7 +839,12 @@ unsafe fn PadRejectArray(array: *mut u8, len: usize) {
             0xf00
         };
 
-        ptr::write_bytes(array.add(std::mem::size_of_val(&rejectpad)), padvalue as u8, len - std::mem::size_of_val(&rejectpad));
+        let pad_byte = padvalue as u8;
+        let pad_start = array.add(std::mem::size_of_val(&rejectpad));
+        let pad_len = len - std::mem::size_of_val(&rejectpad);
+        for i in 0..pad_len {
+            *pad_start.add(i) = pad_byte;
+        }
     }
 }
 

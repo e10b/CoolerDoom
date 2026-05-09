@@ -180,6 +180,16 @@ pub unsafe extern "C" fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) ->
 
     let result = (base as *mut u8).add(std::mem::size_of::<memblock_t>()) as *mut c_void;
 
+    // Zero the user data area using a byte-by-byte loop to avoid
+    // memset writing past the end into the next block header.
+    // (ptr::write_bytes / memset may use SIMD that overshoots on
+    //  non-aligned sizes under ASan instrumentation.)
+    let user_size = size - std::mem::size_of::<memblock_t>() as c_int;
+    let result_bytes = result as *mut u8;
+    for i in 0..user_size as usize {
+        *result_bytes.add(i) = 0;
+    }
+
     if !(*base).user.is_null() {
         *(*base).user = result;
     }
