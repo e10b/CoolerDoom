@@ -145,8 +145,8 @@ fn main() {
         // "r_bsp.c",
         // Texture / flat data
         "r_data.c",
-        // Column / span drawing
-        "r_draw.c",
+        // Column / span drawing — ported to Rust (room/src/doom/r_draw.rs)
+        // "r_draw.c",
         // Renderer main — ported to Rust (room/src/doom/r_main.rs)
         // "r_main.c",
         // Visplane rendering — ported to Rust (room/src/doom/r_plane.rs)

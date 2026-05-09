@@ -35,7 +35,7 @@ struct memzone_t {
     rover: *mut memblock_t,
 }
 
-static mut mainzone: *mut memzone_t = ptr::null_mut();
+pub static mut mainzone: *mut memzone_t = ptr::null_mut();
 
 extern "C" {
     fn I_ZoneBase(size: *mut c_int) -> *mut u8;
