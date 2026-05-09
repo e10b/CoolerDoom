@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 15 |
-| Total remaining LoC | 21,900 |
-| Already ported LoC | ~33,800 (est.) |
-| Port completeness | ~60.7% (by line count) |
+| Remaining C modules | 14 |
+| Total remaining LoC | 20,988 |
+| Already ported LoC | ~34,712 (est.) |
+| Port completeness | ~62.3% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -37,11 +37,10 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Medium-Large — 900–1,100 LoC (4 files, 3,817 LoC)
+### Medium-Large — 900–1,100 LoC (3 files, 2,905 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `r_data.c` | 912 | Renderer | Texture/flat/colormap data management |
 | `p_inter.c` | 922 | Game logic | Player/item interactions and damage |
 | `r_things.c` | 982 | Renderer | Sprite rendering and scaling |
 | `p_maputl.c` | 1,001 | Game logic | Map collision utilities (P_PathTraverse, etc.) |
@@ -71,8 +70,8 @@ _All modules in this bucket have been ported._
 
 1. **Quick wins** — Small tier: `hu_lib.c`, `i_input.c`, `p_ceilng.c`, `p_plats.c`.
 2. **Self-contained modules** — `p_user.c`, `r_plane.c`, `r_bsp.c` are now complete. Good next candidates: `hu_lib.c`, `p_ceilng.c`, `p_plats.c`.
-3. **Building blocks** — `z_zone.c` and `v_video.c` are now ported. Next: `r_data.c`.
-4. **Renderer pipeline** — `r_data.c`, `r_draw.c`, `r_things.c`, `r_main.c`.
+3. **Building blocks** — `z_zone.c`, `v_video.c`, and `r_data.c` are now ported. Next: `r_things.c`.
+4. **Renderer pipeline** — `r_data.c`, `r_draw.c`, `r_main.c`, `r_segs.c`, `r_plane.c`, `r_sky.c` are complete. Remaining: `r_things.c`.
 5. **Game logic** — Start with smaller `p_*` modules, work up to `p_map.c`, `p_mobj.c`, `p_spec.c`.
 6. **Large orchestrators** — `d_main.c`, `g_game.c`, `p_enemy.c`, `p_saveg.c` last (most dependencies).
 

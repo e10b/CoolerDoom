@@ -295,33 +295,6 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// r_data.c
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    pub static mut firstflat: c_int;
-    pub static mut lastflat: c_int;
-    pub static mut numflats: c_int;
-    pub static mut firstspritelump: c_int;
-    pub static mut lastspritelump: c_int;
-    pub static mut numspritelumps: c_int;
-    pub static mut numtextures: c_int;
-
-    pub fn R_GetColumn(tex: c_int, col: c_int) -> *mut u8;
-    pub fn R_GenerateComposite(texnum: c_int);
-    pub fn R_GenerateLookup(texnum: c_int);
-    pub fn R_InitTextures();
-    pub fn R_InitFlats();
-    pub fn R_InitSpriteLumps();
-    pub fn R_InitColormaps();
-    pub fn R_InitData();
-    pub fn R_FlatNumForName(name: *mut c_char) -> c_int;
-    pub fn R_CheckTextureNumForName(name: *mut c_char) -> c_int;
-    pub fn R_TextureNumForName(name: *mut c_char) -> c_int;
-    pub fn R_PrecacheLevel();
-}
-
-// ---------------------------------------------------------------------------
 // Constants from C headers
 // ---------------------------------------------------------------------------
 

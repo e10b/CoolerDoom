@@ -136,7 +136,7 @@ recommended porting order.
 ### Renderer (`r_*`)
 
 - [x] `r_bsp.c`
-- [ ] `r_data.c`
+- [x] `r_data.c`
 - [x] `r_draw.c`
 - [x] `r_main.c`
 - [x] `r_plane.c`

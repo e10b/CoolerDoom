@@ -143,8 +143,8 @@ fn main() {
         // "p_user.c",
         // Binary space partitioner traversal — ported to Rust (room/src/doom/r_bsp.rs)
         // "r_bsp.c",
-        // Texture / flat data
-        "r_data.c",
+        // Texture / flat data — ported to Rust (room/src/doom/r_data.rs)
+        // "r_data.c",
         // Column / span drawing — ported to Rust (room/src/doom/r_draw.rs)
         // "r_draw.c",
         // Renderer main — ported to Rust (room/src/doom/r_main.rs)
