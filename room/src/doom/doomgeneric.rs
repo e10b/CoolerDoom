@@ -8,6 +8,7 @@ use std::ptr;
 use super::hu_lib::HUlib_init;
 use super::i_input::I_Input_Link_Anchor;
 use super::p_ceilng::P_Ceilng_Link_Anchor;
+use super::p_doors::P_Doors_Link_Anchor;
 use super::p_floor::P_Floor_Link_Anchor;
 use super::p_lights::P_Lights_Link_Anchor;
 use super::p_plats::P_Plats_Link_Anchor;
@@ -39,6 +40,7 @@ extern "C" {
 pub unsafe extern "C" fn doomgeneric_Create(argc: c_int, argv: *mut *mut c_char) {
     // Anchor all ported module symbols so they survive LTO (called only from C).
     P_Ceilng_Link_Anchor();
+    P_Doors_Link_Anchor();
     P_Floor_Link_Anchor();
     P_Lights_Link_Anchor();
     P_Plats_Link_Anchor();

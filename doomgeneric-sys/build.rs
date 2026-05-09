@@ -105,8 +105,8 @@ fn main() {
         // Random number generator — ported to Rust (room/src/doom/m_random.rs)
         // Ceiling actions — ported to Rust (room/src/doom/p_ceilng.rs)
         // "p_ceilng.c",
-        // Door actions
-        "p_doors.c",
+        // Door actions — ported to Rust (room/src/doom/p_doors.rs)
+        // "p_doors.c",
         // AI / enemy logic
         "p_enemy.c",
         // Floor actions — ported to Rust (room/src/doom/p_floor.rs)
