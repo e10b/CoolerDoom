@@ -123,8 +123,8 @@ fn main() {
         "p_mobj.c",
         // Moving platforms — ported to Rust (room/src/doom/p_plats.rs)
         // "p_plats.c",
-        // Player sprite logic
-        "p_pspr.c",
+        // Player sprite logic — ported to Rust (room/src/doom/p_pspr.rs)
+        // "p_pspr.c",
         // Save games
         "p_saveg.c",
         // Map loading — ported to Rust (room/src/doom/p_setup.rs)

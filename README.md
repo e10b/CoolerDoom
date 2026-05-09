@@ -123,7 +123,7 @@ recommended porting order.
 - [ ] `p_maputl.c`
 - [ ] `p_mobj.c`
 - [x] `p_plats.c`
-- [ ] `p_pspr.c`
+- [x] `p_pspr.c`
 - [ ] `p_saveg.c`
 - [x] `p_setup.c`
 - [x] `p_sight.c`

@@ -503,8 +503,12 @@ void R_ProjectSprite (mobj_t* thing)
     sprdef = &sprites[thing->sprite];
 #ifdef RANGECHECK
     if ( (thing->frame&FF_FRAMEMASK) >= sprdef->numframes )
-	I_Error ("R_ProjectSprite: invalid sprite frame %i : %i ",
-		 thing->sprite, thing->frame);
+    {
+        if (sprdef->numframes == 0)
+            return; // sprite lump not present in this WAD — skip silently
+        I_Error ("R_ProjectSprite [THING]: invalid sprite frame %i : %i ",
+                 thing->sprite, thing->frame);
+    }
 #endif
     sprframe = &sprdef->spriteframes[ thing->frame & FF_FRAMEMASK];
 
@@ -656,7 +660,7 @@ void R_DrawPSprite (pspdef_t* psp)
     sprdef = &sprites[psp->state->sprite];
 #ifdef RANGECHECK
     if ( (psp->state->frame & FF_FRAMEMASK)  >= sprdef->numframes)
-	I_Error ("R_ProjectSprite: invalid sprite frame %i : %i ",
+	I_Error ("R_ProjectSprite [PSPRITE]: invalid sprite frame %i : %i ",
 		 psp->state->sprite, psp->state->frame);
 #endif
     sprframe = &sprdef->spriteframes[ psp->state->frame & FF_FRAMEMASK ];

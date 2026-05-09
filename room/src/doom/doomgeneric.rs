@@ -12,6 +12,7 @@ use super::p_doors::P_Doors_Link_Anchor;
 use super::p_floor::P_Floor_Link_Anchor;
 use super::p_lights::P_Lights_Link_Anchor;
 use super::p_plats::P_Plats_Link_Anchor;
+use super::p_pspr::P_Pspr_Link_Anchor;
 use super::p_sight::P_Sight_Link_Anchor;
 use super::p_switch::P_Switch_Link_Anchor;
 use super::p_telept::P_Telept_Link_Anchor;
@@ -44,6 +45,7 @@ pub unsafe extern "C" fn doomgeneric_Create(argc: c_int, argv: *mut *mut c_char)
     P_Floor_Link_Anchor();
     P_Lights_Link_Anchor();
     P_Plats_Link_Anchor();
+    P_Pspr_Link_Anchor();
     P_Sight_Link_Anchor();
     P_Switch_Link_Anchor();
     P_Telept_Link_Anchor();
