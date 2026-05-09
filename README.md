@@ -140,7 +140,7 @@ recommended porting order.
 - [ ] `r_draw.c`
 - [x] `r_main.c`
 - [x] `r_plane.c`
-- [ ] `r_segs.c`
+- [x] `r_segs.c`
 - [x] `r_sky.c`
 - [ ] `r_things.c`
 

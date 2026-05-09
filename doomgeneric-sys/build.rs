@@ -151,8 +151,8 @@ fn main() {
         // "r_main.c",
         // Visplane rendering — ported to Rust (room/src/doom/r_plane.rs)
         // "r_plane.c",
-        // Segment rendering
-        "r_segs.c",
+        // Segment rendering — ported to Rust (room/src/doom/r_segs.rs)
+        // "r_segs.c",
         // Sky rendering — ported to Rust (room/src/doom/r_sky.rs)
         // "r_sky.c",
         // Sprite rendering

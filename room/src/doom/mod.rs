@@ -51,6 +51,7 @@ pub mod p_user;
 pub mod r_bsp;
 pub mod r_main;
 pub mod r_plane;
+pub mod r_segs;
 pub mod r_sky;
 pub mod s_sound;
 pub mod sha1;
