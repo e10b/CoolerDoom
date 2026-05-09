@@ -88,7 +88,7 @@ const sfx_punch: c_int = 83;
 const MT_ROCKET: c_int = 33;
 const MT_BFG: c_int = 35;
 const MT_PLASMA: c_int = 34;
-const MT_EXTRABFG: c_int = 47;
+const MT_EXTRABFG: c_int = 42;
 const MT_PUFF: c_int = 37;
 
 extern "C" {
@@ -97,7 +97,12 @@ extern "C" {
     fn P_LineAttack(t1: *mut mobj_t, angle: u32, distance: fixed_t, slope: fixed_t, damage: c_int);
     fn P_SpawnPlayerMissile(source: *mut mobj_t, type_: c_int);
     fn P_SpawnMobj(x: c_int, y: c_int, z: c_int, type_: c_int) -> *mut mobj_t;
-    fn P_DamageMobj(target: *mut mobj_t, inflictor: *mut mobj_t, source: *mut mobj_t, damage: c_int);
+    fn P_DamageMobj(
+        target: *mut mobj_t,
+        inflictor: *mut mobj_t,
+        source: *mut mobj_t,
+        damage: c_int,
+    );
     fn P_NoiseAlert(target: *mut mobj_t, emmiter: *mut mobj_t);
     fn R_PointToAngle2(x1: fixed_t, y1: fixed_t, x2: fixed_t, y2: fixed_t) -> u32;
 
@@ -473,11 +478,7 @@ unsafe fn DecreaseAmmo(player: *mut PlayerT, ammonum: c_int, amount: c_int) {
 #[no_mangle]
 pub unsafe extern "C" fn A_FireMissile(player: *mut PlayerT, _psp: *mut PspdefT) {
     let mo = (*player).mo as *mut mobj_t;
-    DecreaseAmmo(
-        player,
-        weaponinfo[(*player).readyweapon as usize].ammo,
-        1,
-    );
+    DecreaseAmmo(player, weaponinfo[(*player).readyweapon as usize].ammo, 1);
     P_SpawnPlayerMissile(mo, MT_ROCKET);
 }
 
@@ -497,11 +498,7 @@ pub unsafe extern "C" fn A_FireBFG(player: *mut PlayerT, _psp: *mut PspdefT) {
 #[no_mangle]
 pub unsafe extern "C" fn A_FirePlasma(player: *mut PlayerT, _psp: *mut PspdefT) {
     let mo = (*player).mo as *mut mobj_t;
-    DecreaseAmmo(
-        player,
-        weaponinfo[(*player).readyweapon as usize].ammo,
-        1,
-    );
+    DecreaseAmmo(player, weaponinfo[(*player).readyweapon as usize].ammo, 1);
 
     P_SetPsprite(
         player,
@@ -548,11 +545,7 @@ pub unsafe extern "C" fn A_FirePistol(player: *mut PlayerT, _psp: *mut PspdefT) 
     S_StartSound(mo as *mut c_void, sfx_pistol);
 
     P_SetMobjState(mo, S_PLAY_ATK2);
-    DecreaseAmmo(
-        player,
-        weaponinfo[(*player).readyweapon as usize].ammo,
-        1,
-    );
+    DecreaseAmmo(player, weaponinfo[(*player).readyweapon as usize].ammo, 1);
 
     P_SetPsprite(
         player,
@@ -571,11 +564,7 @@ pub unsafe extern "C" fn A_FireShotgun(player: *mut PlayerT, _psp: *mut PspdefT)
     S_StartSound(mo as *mut c_void, sfx_shotgn);
     P_SetMobjState(mo, S_PLAY_ATK2);
 
-    DecreaseAmmo(
-        player,
-        weaponinfo[(*player).readyweapon as usize].ammo,
-        1,
-    );
+    DecreaseAmmo(player, weaponinfo[(*player).readyweapon as usize].ammo, 1);
 
     P_SetPsprite(
         player,
@@ -597,11 +586,7 @@ pub unsafe extern "C" fn A_FireShotgun2(player: *mut PlayerT, _psp: *mut PspdefT
     S_StartSound(mo as *mut c_void, sfx_dshtgn);
     P_SetMobjState(mo, S_PLAY_ATK2);
 
-    DecreaseAmmo(
-        player,
-        weaponinfo[(*player).readyweapon as usize].ammo,
-        2,
-    );
+    DecreaseAmmo(player, weaponinfo[(*player).readyweapon as usize].ammo, 2);
 
     P_SetPsprite(
         player,
@@ -636,14 +621,11 @@ pub unsafe extern "C" fn A_FireCGun(player: *mut PlayerT, psp: *mut PspdefT) {
     }
 
     P_SetMobjState(mo, S_PLAY_ATK2);
-    DecreaseAmmo(
-        player,
-        weaponinfo[(*player).readyweapon as usize].ammo,
-        1,
-    );
+    DecreaseAmmo(player, weaponinfo[(*player).readyweapon as usize].ammo, 1);
 
     let flashstate = weaponinfo[(*player).readyweapon as usize].flashstate;
-    let state_offset = (*psp).state as usize - &info::states[S_CHAIN1 as usize] as *const State as usize;
+    let state_offset =
+        (*psp).state as usize - &info::states[S_CHAIN1 as usize] as *const State as usize;
     P_SetPsprite(player, 1, flashstate + state_offset as c_int);
 
     P_BulletSlope(mo);
@@ -823,6 +805,50 @@ mod tests {
         let _g = LOCK.lock().unwrap();
         unsafe {
             assert_eq!(bulletslope, 0);
+        }
+    }
+
+    /// Regression tests for mobjtype constants used by weapon fire functions.
+    /// These caught an off-by-one bug where MT_ROCKET/MT_PLASMA/MT_BFG were
+    /// all 1 too high, causing A_FireMissile to spawn plasma balls instead
+    /// of rockets (which then crashed on the missing PLSS sprite in the
+    /// shareware WAD).
+    #[test]
+    fn mobjtype_constants_match_info() {
+        let _g = LOCK.lock().unwrap();
+        assert_eq!(MT_ROCKET, 33);
+        assert_eq!(MT_PLASMA, 34);
+        assert_eq!(MT_BFG, 35);
+        assert_eq!(MT_PUFF, 37);
+        assert_eq!(MT_EXTRABFG, 42);
+    }
+
+    /// Verify that the mobjinfo table entries at the projectile indices
+    /// have the expected spawnstates.  This catches index-vs-table drift.
+    #[test]
+    fn projectile_mobjinfo_entries() {
+        let _g = LOCK.lock().unwrap();
+        unsafe {
+            assert_eq!(
+                info::mobjinfo[MT_ROCKET as usize].spawnstate,
+                S_ROCKET,
+                "mobjinfo[MT_ROCKET] should spawn S_ROCKET"
+            );
+            assert_eq!(
+                info::mobjinfo[MT_PLASMA as usize].spawnstate,
+                S_PLASBALL,
+                "mobjinfo[MT_PLASMA] should spawn S_PLASBALL"
+            );
+            assert_eq!(
+                info::mobjinfo[MT_BFG as usize].spawnstate,
+                S_BFGSHOT,
+                "mobjinfo[MT_BFG] should spawn S_BFGSHOT"
+            );
+            assert_eq!(
+                info::mobjinfo[MT_EXTRABFG as usize].spawnstate,
+                S_BFGEXP,
+                "mobjinfo[MT_EXTRABFG] should spawn S_BFGEXP"
+            );
         }
     }
 }
