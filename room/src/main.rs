@@ -37,6 +37,10 @@
 //! GPU resources through [`thread_local!`] statics, which is safe because
 //! everything runs on the main thread.
 
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
+
 mod gpu;
 mod platform;
 
@@ -237,6 +241,9 @@ impl ApplicationHandler for App {
 // ---------------------------------------------------------------------------
 
 fn main() {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
     // Initialise the logger.  Set `RUST_LOG=debug` for verbose output.
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 

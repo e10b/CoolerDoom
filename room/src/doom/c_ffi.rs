@@ -913,39 +913,6 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// p_setup.c — level-loading globals and constants
-// ---------------------------------------------------------------------------
-
-/// Maximum number of deathmatch start positions in a level
-/// (MAX_DEATHMATCH_STARTS in p_setup.c = 10).
-pub const MAX_DEATHMATCH_STARTS: usize = 10;
-
-extern "C" {
-    /// Total number of vertexes in the loaded level.
-    pub static mut numvertexes: c_int;
-    /// Total number of BSP line segments.
-    pub static mut numsegs: c_int;
-    /// Total number of sectors in the loaded level.
-    pub static mut numsectors: c_int;
-    /// Total number of BSP subsectors.
-    pub static mut numsubsectors: c_int;
-    /// Total number of BSP nodes.
-    pub static mut numnodes: c_int;
-    /// Total number of linedefs in the loaded level.
-    pub static mut numlines: c_int;
-    /// Total number of sidedefs in the loaded level.
-    pub static mut numsides: c_int;
-    /// Width of the blockmap grid in map blocks.
-    pub static mut bmapwidth: c_int;
-    /// Height of the blockmap grid in map blocks.
-    pub static mut bmapheight: c_int;
-    /// X origin of the blockmap in fixed-point map units.
-    pub static mut bmaporgx: c_int;
-    /// Y origin of the blockmap in fixed-point map units.
-    pub static mut bmaporgy: c_int;
-}
-
-// ---------------------------------------------------------------------------
 // p_enemy.c — enemy AI globals and constants
 // ---------------------------------------------------------------------------
 

@@ -127,8 +127,8 @@ fn main() {
         "p_pspr.c",
         // Save games
         "p_saveg.c",
-        // Map loading
-        "p_setup.c",
+        // Map loading — ported to Rust (room/src/doom/p_setup.rs)
+        // "p_setup.c",
         // Line-of-sight checks — ported to Rust (room/src/doom/p_sight.rs)
         // "p_sight.c",
         // Special actions
@@ -211,6 +211,16 @@ fn main() {
         .flag_if_supported("-Wno-implicit-fallthrough")
         .flag_if_supported("-Wno-unused-but-set-variable")
         .flag_if_supported("-Wno-maybe-uninitialized");
+
+    // If the user is running with AddressSanitizer on the Rust side, also
+    // instrument the C code so that overflows in C are reported with exact
+    // line numbers instead of being hidden behind the FFI boundary.
+    if std::env::var("ASAN").is_ok() {
+        build
+            .flag_if_supported("-fsanitize=address")
+            .flag_if_supported("-fno-omit-frame-pointer")
+            .flag_if_supported("-g");
+    }
 
     for src in lib_sources {
         build.file(vendor.join(src));

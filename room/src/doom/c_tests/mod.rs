@@ -19,7 +19,6 @@ mod p_maputl_c;
 mod p_mobj_c;
 mod p_pspr_c;
 mod p_saveg_c;
-mod p_setup_c;
 mod p_spec_c;
 mod p_switch_c;
 mod r_data_c;

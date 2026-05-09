@@ -110,10 +110,19 @@ pub unsafe extern "C" fn Z_Free(ptr: *mut c_void) {
 
 #[no_mangle]
 pub unsafe extern "C" fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void {
+    if mainzone.is_null() {
+        panic!("Z_Malloc: mainzone is null!");
+    }
     let size = (size + MEM_ALIGN as c_int - 1) & !(MEM_ALIGN as c_int - 1);
     let size = size + std::mem::size_of::<memblock_t>() as c_int;
 
     let mut base = (*mainzone).rover;
+    if base.is_null() {
+        panic!("Z_Malloc: rover is null!");
+    }
+    if (*base).prev.is_null() {
+        panic!("Z_Malloc: rover->prev is null! base={:?} base.tag={} base.size={}", base, (*base).tag, (*base).size);
+    }
     if (*(*base).prev).tag == PU_FREE {
         base = (*base).prev;
     }
@@ -186,17 +195,22 @@ pub unsafe extern "C" fn Z_FreeTags(lowtag: c_int, hightag: c_int) {
     let zone = mainzone;
     let sentinel = std::ptr::addr_of_mut!((*zone).blocklist);
     let mut block = (*zone).blocklist.next;
+    let mut freed = 0;
+    let mut walked = 0;
 
-    while block != sentinel {
+    while block != sentinel && walked < 2000 {
+        walked += 1;
         let next = (*block).next;
 
         if (*block).tag != PU_FREE && (*block).tag >= lowtag && (*block).tag <= hightag {
             let block_ptr = block as *mut u8;
             Z_Free(block_ptr.add(std::mem::size_of::<memblock_t>()) as *mut c_void);
+            freed += 1;
         }
 
         block = next;
     }
+    eprintln!("[Z_FreeTags] lowtag={} hightag={} walked={} freed={}", lowtag, hightag, walked, freed);
 }
 
 #[no_mangle]
@@ -247,12 +261,10 @@ pub unsafe extern "C" fn Z_DumpHeap(lowtag: c_int, hightag: c_int) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Z_FileDumpHeap(_f: *mut libc::FILE) {
-    // No Rust caller found; stubbed per plan.
-}
-
-#[no_mangle]
 pub unsafe extern "C" fn Z_CheckHeap() {
+    if !Z_CheckHeapQuiet() {
+        // Already printed diagnostic info.
+    }
     let zone = mainzone;
     let sentinel = std::ptr::addr_of_mut!((*zone).blocklist);
     let mut block = (*zone).blocklist.next;
@@ -263,11 +275,16 @@ pub unsafe extern "C" fn Z_CheckHeap() {
         }
 
         if (block as *mut u8).add((*block).size as usize) != (*block).next as *mut u8 {
+            eprintln!("Z_CheckHeap FAIL: block {:?} size={} next={:?} expected_next={:?}",
+                block, (*block).size, (*block).next,
+                (block as *mut u8).add((*block).size as usize));
             let msg = b"Z_CheckHeap: block size does not touch the next block\n\0";
             I_Error(msg.as_ptr() as *const c_char);
         }
 
         if (*(*block).next).prev != block {
+            eprintln!("Z_CheckHeap FAIL: block {:?} next={:?} next.prev={:?}",
+                block, (*block).next, (*(*block).next).prev);
             let msg = b"Z_CheckHeap: next block doesn't have proper back link\n\0";
             I_Error(msg.as_ptr() as *const c_char);
         }
@@ -278,6 +295,67 @@ pub unsafe extern "C" fn Z_CheckHeap() {
         }
 
         block = (*block).next;
+    }
+}
+
+/// Check heap integrity without aborting. Returns true if valid.
+#[no_mangle]
+pub unsafe extern "C" fn Z_CheckHeapQuiet() -> bool {
+    let zone = mainzone;
+    if zone.is_null() {
+        return true;
+    }
+    let sentinel = std::ptr::addr_of_mut!((*zone).blocklist);
+    let mut block = (*zone).blocklist.next;
+    let mut valid = true;
+    let mut count = 0;
+
+    while block != sentinel && count < 2000 {
+        let size = (*block).size;
+        if size <= 0 || size > 10_000_000 {
+            eprintln!("Z_CheckHeapQuiet: block {:?} has invalid size {}", block, size);
+            valid = false;
+            break;
+        }
+
+        // The last block's next points to the sentinel (at the start of the zone),
+        // not to block+size (at the end of the zone). This is by design.
+        if (*block).next != sentinel {
+            let expected_next = (block as *mut u8).add(size as usize) as *mut memblock_t;
+            if (*block).next != expected_next {
+                eprintln!("Z_CheckHeapQuiet: block {:?} size={} next={:?} expected={:?}",
+                    block, size, (*block).next, expected_next);
+                valid = false;
+            }
+        }
+
+        // Check prev link (works for all blocks including the last one whose next is sentinel)
+        if !(*block).next.is_null() && (*(*block).next).prev != block {
+            eprintln!("Z_CheckHeapQuiet: block {:?} next={:?} next.prev={:?}",
+                block, (*block).next, (*(*block).next).prev);
+            valid = false;
+        }
+
+        // Check for consecutive free blocks (sentinel has tag=PU_STATIC, so skip it)
+        if (*block).tag == PU_FREE && (*block).next != sentinel && (*(*block).next).tag == PU_FREE {
+            eprintln!("Z_CheckHeapQuiet: two consecutive free blocks at {:?} and {:?}",
+                block, (*block).next);
+            valid = false;
+        }
+
+        block = (*block).next;
+        count += 1;
+    }
+    if count >= 2000 {
+        eprintln!("Z_CheckHeapQuiet: too many blocks, possible loop!");
+        valid = false;
+    }
+    valid
+}
+
+pub unsafe fn Z_CheckHeapAfter(name: &str) {
+    if !Z_CheckHeapQuiet() {
+        eprintln!("*** Heap corruption detected after {} ***", name);
     }
 }
 
@@ -332,6 +410,11 @@ pub unsafe extern "C" fn Z_FreeMemory() -> c_int {
     }
 
     free
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Z_FileDumpHeap(_f: *mut libc::FILE) {
+    // No Rust caller found; stubbed per plan.
 }
 
 #[no_mangle]

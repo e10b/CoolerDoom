@@ -10,6 +10,10 @@
 
 #![allow(non_snake_case, non_upper_case_globals)]
 
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: room::dhat::Alloc = room::dhat::Alloc;
+
 use std::cell::Cell;
 use std::ffi::{c_char, c_int, c_uint, CString};
 use std::mem::offset_of;
@@ -335,6 +339,9 @@ fn find_wad() -> PathBuf {
 
 #[test]
 fn demo_playthrough() {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = room::dhat::Profiler::new_heap();
+
     let _ = env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
         .try_init();
     let wad_path = find_wad();

@@ -13,6 +13,9 @@ path = "src/lib.rs"
 name = "room"
 path = "src/main.rs"
 
+[features]
+dhat-heap = ["dep:dhat"]
+
 [dependencies]
 # Low-level Doom engine bindings (vendored C source compiled via cc).
 doomgeneric-sys = { path = "../doomgeneric-sys" }
@@ -37,3 +40,6 @@ env_logger = "0.11"
 
 # libc bindings for C FFI (FILE, fopen, fclose, fseek, fread, printf, etc.)
 libc = "0.2"
+
+# Optional heap profiler (use with --features dhat-heap).
+dhat = { version = "0.3", optional = true }

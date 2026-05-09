@@ -125,7 +125,7 @@ recommended porting order.
 - [x] `p_plats.c`
 - [ ] `p_pspr.c`
 - [ ] `p_saveg.c`
-- [ ] `p_setup.c`
+- [x] `p_setup.c`
 - [x] `p_sight.c`
 - [ ] `p_spec.c`
 - [ ] `p_switch.c`
