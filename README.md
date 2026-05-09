@@ -99,7 +99,7 @@ recommended porting order.
 
 - [x] `d_event.c`
 - [x] `d_items.c`
-- [ ] `d_iwad.c`
+- [x] `d_iwad.c`
 - [ ] `d_loop.c`
 - [ ] `d_main.c`
 - [x] `d_mode.c`

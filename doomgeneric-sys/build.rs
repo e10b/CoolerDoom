@@ -52,8 +52,8 @@ fn main() {
         // "d_event.c",
         // Items — ported to Rust (room/src/doom/d_items.rs)
         // "d_items.c",
-        // IWAD loading
-        "d_iwad.c",
+        // IWAD loading — ported to Rust (room/src/doom/d_iwad.rs)
+        // "d_iwad.c",
         // Main game loop — ported to Rust (room/src/doom/d_loop.rs)
         // "d_loop.c",
         "d_main.c",
