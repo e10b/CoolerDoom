@@ -16,10 +16,10 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 11 |
-| Total remaining LoC | ~18,083 |
-| Already ported LoC | ~37,621 (est.) |
-| Port completeness | ~67.5% (by line count) |
+| Remaining C modules | 10 |
+| Total remaining LoC | ~17,034 |
+| Already ported LoC | ~38,670 (est.) |
+| Port completeness | ~69.4% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -43,11 +43,10 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Large — 1,000–1,500 LoC (6 files, 8,209 LoC)
+### Large — 1,000–1,500 LoC (5 files, 7,160 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `p_mobj.c` | 1,049 | Game logic | Map object (mobj) creation, movement, spawning |
 | `am_map.c` | 1,355 | Automap | Full automap implementation |
 | `st_stuff.c` | 1,416 | Status bar | Full status bar logic |
 | `p_map.c` | 1,448 | Game logic | Map collision detection; dense geometry code |
@@ -66,7 +65,7 @@ _All modules in this bucket have been ported._
 
 ## Recommended Porting Order
 
-With only 13 modules left, the strategy shifts from "quick wins" to
+With only 12 modules left, the strategy shifts from "quick wins" to
 **dependency-driven sequencing**: unblock the modules that the largest
 orchestrators (`d_main.c`, `g_game.c`) depend on first, then tackle the
 orchestrators themselves.
@@ -74,11 +73,11 @@ orchestrators themselves.
 1. ~~**Finish the renderer** — `r_things.c` is now ported. The renderer pipeline
    (`r_data`, `r_draw`, `r_segs`, `r_main`, `r_plane`, `r_bsp`, `r_sky`,
    `r_things`) is fully Rust-native.~~
-2. **Map utilities** — `p_maputl.c`. Building block for `p_map.c` and
-   `p_mobj.c`; many of its types (`divline_t`, `intercept_t`, `mobj_t`) are
-   already mirrored in `c_ffi.rs`.
-3. **Map objects** — `p_mobj.c`. Needed by `p_enemy.c`, `g_game.c`, and
-   `p_map.c`. Once ported, the thinker list becomes fully Rust-native.
+2. ~~**Map objects** — `p_mobj.c`. Needed by `p_enemy.c`, `g_game.c`, and
+   `p_map.c`. Once ported, the thinker list becomes fully Rust-native.~~
+3. **Map utilities** — `p_maputl.c`. Building block for `p_map.c`; many of
+   its types (`divline_t`, `intercept_t`, `mobj_t`) are already mirrored in
+   `c_ffi.rs`.
 4. **Collision detection** — `p_map.c`. Required by `p_enemy.c` and
    `g_game.c`. Heavy geometry code, but its utility layer (`p_maputl.c`)
    should be done first.
@@ -94,8 +93,7 @@ orchestrators themselves.
    in parallel with (or slightly after) the gameplay modules. `st_stuff.c`
    depends on `st_lib.c` (ported) and `p_mobj.c` types.
 8. **Save/load** — `p_saveg.c`. Heavy struct-layout and serialization work.
-   Best done after `p_mobj.c` and `p_map.c` are stable so the serialized
-   types do not drift.
+   Best done after `p_map.c` is stable so the serialized types do not drift.
 9. **Main orchestrators last** — `d_main.c`, `g_game.c`. These have the
    most cross-cutting dependencies and should be ported only when everything
    they call is already Rust.

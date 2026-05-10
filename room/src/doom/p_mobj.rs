@@ -19,7 +19,7 @@ use crate::doom::p_pspr::P_SetupPsprites;
 // deathmatch_p, deathmatchstarts, playerstarts are accessed via extern "C"
 // below to avoid type mismatches between p_setup::mapthing_t and
 // p_telept::mapthing_t.
-use crate::doom::p_telept::{line_t, mapthing_t, mobj_t, sector_t, subsector_t};
+use crate::doom::p_telept::{line_t, mapthing_t, mobj_t, subsector_t};
 use crate::doom::p_tick::{actionf_t, thinker_t, P_AddThinker, P_RemoveThinker};
 use crate::doom::r_main::{R_PointInSubsector, R_PointToAngle2};
 use crate::doom::s_sound::{MobjStub, S_StartSound, S_StopSound};
@@ -265,7 +265,10 @@ pub unsafe extern "C" fn P_XYMovement(mo: *mut mobj_t) {
     {
         if !player.is_null() {
             let state_ptr = mo.state as *mut State;
-            let run_offset = ((*state_ptr).sprite as c_int) - S_PLAY_RUN1;
+            let states_ptr = std::ptr::addr_of!(info::states) as *const State;
+            let state_idx =
+                (state_ptr as usize - states_ptr as usize) / std::mem::size_of::<State>();
+            let run_offset = state_idx as c_int - S_PLAY_RUN1;
             if run_offset >= 0 && run_offset < 4 {
                 P_SetMobjState(mo as *mut mobj_t, S_PLAY);
             }
@@ -281,8 +284,8 @@ pub unsafe extern "C" fn P_XYMovement(mo: *mut mobj_t) {
 #[no_mangle]
 pub unsafe extern "C" fn P_ZMovement(mo: *mut mobj_t) {
     let mo = &mut *mo;
-    let mut dist: c_int;
-    let mut delta: c_int;
+    let dist: c_int;
+    let delta: c_int;
 
     if !mo.player.is_null() && mo.z < mo.floorz {
         let player = mo.player as *mut PlayerT;
@@ -296,7 +299,7 @@ pub unsafe extern "C" fn P_ZMovement(mo: *mut mobj_t) {
         if mo.flags & MF_SKULLFLY == 0 && mo.flags & MF_INFLOAT == 0 {
             let target = mo.target;
             dist = P_AproxDistance(mo.x - (*target).x, mo.y - (*target).y);
-            delta = ((*target).z + ((*target).height >> 1)) - mo.z;
+            delta = ((*target).z + (mo.height >> 1)) - mo.z;
             if delta < 0 && dist < -(delta * 3) {
                 mo.z -= FLOATSPEED;
             } else if delta > 0 && dist < delta * 3 {
@@ -442,7 +445,7 @@ pub unsafe extern "C" fn P_SpawnMobj(x: c_int, y: c_int, z: c_int, type_: c_int)
         PU_LEVEL,
         ptr::null_mut(),
     ) as *mut mobj_t;
-    std::ptr::write_bytes(mobj, 0, 1);
+    // Z_Malloc already zeroes the allocation internally.
     let mobj_ref = &mut *mobj;
     let info = &mut info::mobjinfo[type_ as usize] as *mut MobjInfo;
 
@@ -611,10 +614,9 @@ pub unsafe extern "C" fn P_SpawnPlayer(mthing: *mut mapthing_t) {
 pub unsafe extern "C" fn P_SpawnMapThing(mthing: *mut mapthing_t) {
     let mthing = &mut *mthing;
     let mut i: usize;
-    let mut bit: c_int;
 
     if mthing.r#type as c_int == 11 {
-        if deathmatch_p < deathmatchstarts.as_mut_ptr().add(10) {
+        if deathmatch_p < std::ptr::addr_of_mut!(deathmatchstarts[0]).add(10) {
             *deathmatch_p = *mthing;
             deathmatch_p = deathmatch_p.add(1);
         }
@@ -626,7 +628,7 @@ pub unsafe extern "C" fn P_SpawnMapThing(mthing: *mut mapthing_t) {
     }
 
     if mthing.r#type as c_int <= 4 {
-        let ps = playerstarts.as_mut_ptr() as *mut mapthing_t;
+        let ps = std::ptr::addr_of_mut!(playerstarts[0]) as *mut mapthing_t;
         *ps.add((mthing.r#type - 1) as usize) = *mthing;
         if deathmatch == 0 {
             P_SpawnPlayer(mthing as *mut mapthing_t);
@@ -638,15 +640,15 @@ pub unsafe extern "C" fn P_SpawnMapThing(mthing: *mut mapthing_t) {
         return;
     }
 
-    if gameskill == 0 {
+    let bit = if gameskill == 0 {
         // sk_baby
-        bit = 1;
+        1
     } else if gameskill == 4 {
         // sk_nightmare
-        bit = 4;
+        4
     } else {
-        bit = 1 << (gameskill - 1);
-    }
+        1 << (gameskill - 1)
+    };
 
     if mthing.options & bit as i16 == 0 {
         return;
@@ -759,7 +761,7 @@ pub unsafe extern "C" fn P_SubstNullMobj(mobj: *mut mobj_t) -> *mut mobj_t {
         DUMMY_MOBJ.y = 0;
         DUMMY_MOBJ.z = 0;
         DUMMY_MOBJ.flags = 0;
-        return &mut DUMMY_MOBJ as *mut mobj_t;
+        return std::ptr::addr_of_mut!(DUMMY_MOBJ);
     }
     mobj
 }

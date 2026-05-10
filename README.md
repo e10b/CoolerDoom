@@ -147,7 +147,7 @@ recommended porting order.
 - [x] `p_lights.c`
 - [ ] `p_map.c`
 - [ ] `p_maputl.c`
-- [ ] `p_mobj.c`
+- [x] `p_mobj.c`
 - [x] `p_plats.c`
 - [x] `p_pspr.c`
 - [ ] `p_saveg.c`
