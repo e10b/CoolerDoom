@@ -7,6 +7,10 @@
 - **Null-terminated strings for C FFI**: Pass `&[u8] = b"/\0"` instead of `&str = "/"` when C code will call `strlen` on the pointer. `&str` is not null-terminated and causes `global-buffer-overflow`.
 - **Avoid `ptr::write_bytes` for precise zeroing**: `ptr::write_bytes` compiles to `memset`, which under ASan may use SIMD writes that overshoot non-aligned sizes and corrupt adjacent allocator metadata. Use a byte-by-byte loop instead.
 - **Have allocators zero internally**: Rather than relying on callers to `memset`, zero user data inside `Z_Malloc` before returning.
+- **Struct padding fields and zero-initialization**: When porting C structs that contain private `_pad` fields, you cannot use struct literal syntax. Use `std::mem::zeroed()` or `MaybeUninit::zeroed().assume_init()` instead.
+- **Moving globals between ported modules**: When a global was previously accessed via `extern "C"` in one Rust module and the C source gets ported, move the `#[no_mangle] pub static mut` definition to the new module and update the consumer to access it directly (e.g., `crate::doom::r_things::spryscale`).
+- **Unsigned angle arithmetic wrapping**: C `angle_t` is `u32`, and subtraction/addition can wrap around zero. Rust's default `-` and `+` on `u32` panic in debug mode. Always use `wrapping_sub`, `wrapping_add`, `wrapping_neg` for angle arithmetic.
+- **Opaque `state_t` vs concrete `State` struct**: `d_player.rs` declares `state_t` as an empty enum for FFI, but `info.rs` defines the real `State` struct. When accessing state fields from ported code, cast the pointer to `*mut State`.
 
 ## AddressSanitizer
 
