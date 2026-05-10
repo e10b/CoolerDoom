@@ -8,12 +8,10 @@ use std::ffi::c_void;
 use std::os::raw::c_int;
 
 use crate::doom::d_player::PlayerT;
+use crate::doom::info::*;
 use crate::doom::p_tick::thinker_t;
 
 const ANGLETOFINESHIFT: u32 = 19;
-const MF_MISSILE: c_int = 0x10000;
-const MT_TELEPORTMAN: c_int = 41;
-const MT_TFOG: c_int = 39;
 const SFX_TELEPT: c_int = 35; // sfx_telept enum value
 
 #[repr(C)]

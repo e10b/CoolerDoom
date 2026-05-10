@@ -11,6 +11,7 @@ use std::ptr;
 use crate::doom::c_ffi::{
     divline_t, intercept_t, intercept_t_d, line_t, mobj_t, sector_t, subsector_t, vertex_t,
 };
+use crate::doom::info::*;
 use crate::doom::m_fixed::{fixed_t, FixedDiv, FixedMul};
 
 // ---------------------------------------------------------------------------
@@ -23,9 +24,6 @@ const MAPBLOCKSHIFT: c_int = FRACBITS as c_int + 7;
 const MAPBLOCKSIZE: c_int = 128 * FRACUNIT;
 const MAPBMASK: c_int = MAPBLOCKSIZE - 1;
 const MAPBTOFRAC: c_int = MAPBLOCKSHIFT - FRACBITS as c_int;
-
-const MF_NOSECTOR: c_int = 0x00000008;
-const MF_NOBLOCKMAP: c_int = 0x00000010;
 
 const ST_HORIZONTAL: c_int = 0;
 const ST_VERTICAL: c_int = 1;

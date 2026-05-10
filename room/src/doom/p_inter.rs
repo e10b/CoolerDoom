@@ -11,7 +11,7 @@ use std::os::raw::c_int;
 use crate::doom::d_items::weaponinfo;
 use crate::doom::d_player::{consoleplayer, players, PlayerT};
 use crate::doom::doomstat::{gamemode, gameversion};
-use crate::doom::info::{self, MobjInfo, State};
+use crate::doom::info::{self, *};
 use crate::doom::m_fixed::{fixed_t, FixedMul};
 use crate::doom::m_random::P_Random;
 use crate::doom::p_pspr::P_DropWeapon;
@@ -75,71 +75,6 @@ const pw_invisibility: usize = 2;
 const pw_ironfeet: usize = 3;
 const pw_allmap: usize = 4;
 const pw_infrared: usize = 5;
-
-// Mobj flags
-const MF_DROPPED: c_int = 0x00020000;
-const MF_COUNTITEM: c_int = 0x00800000;
-const MF_SHOOTABLE: c_int = 0x00000004;
-const MF_FLOAT: c_int = 0x00004000;
-const MF_SKULLFLY: c_int = 0x01000000;
-const MF_NOGRAVITY: c_int = 0x00000200;
-const MF_CORPSE: c_int = 0x00100000;
-const MF_DROPOFF: c_int = 0x00000400;
-const MF_NOCLIP: c_int = 0x00001000;
-const MF_SHADOW: c_int = 0x00040000;
-const MF_JUSTHIT: c_int = 0x00000040;
-const MF_SOLID: c_int = 0x00000002;
-const MF_COUNTKILL: c_int = 0x00400000;
-const S_NULL: c_int = 0;
-
-// Mobj types
-const MT_POSSESSED: c_int = 1;
-const MT_SHOTGUY: c_int = 2;
-const MT_CHAINGUY: c_int = 10;
-const MT_WOLFSS: c_int = 23;
-const MT_SKULL: c_int = 18;
-const MT_VILE: c_int = 3;
-const MT_CLIP: c_int = 63;
-const MT_SHOTGUN: c_int = 77;
-const MT_CHAINGUN: c_int = 73;
-
-// Sprite names (from info.rs)
-const SPR_ARM1: c_int = 55;
-const SPR_ARM2: c_int = 56;
-const SPR_BON1: c_int = 60;
-const SPR_BON2: c_int = 61;
-const SPR_SOUL: c_int = 70;
-const SPR_MEGA: c_int = 74;
-const SPR_BKEY: c_int = 62;
-const SPR_YKEY: c_int = 64;
-const SPR_RKEY: c_int = 63;
-const SPR_BSKU: c_int = 65;
-const SPR_YSKU: c_int = 67;
-const SPR_RSKU: c_int = 66;
-const SPR_STIM: c_int = 68;
-const SPR_MEDI: c_int = 69;
-const SPR_PINV: c_int = 71;
-const SPR_PSTR: c_int = 72;
-const SPR_PINS: c_int = 73;
-const SPR_SUIT: c_int = 75;
-const SPR_PMAP: c_int = 76;
-const SPR_PVIS: c_int = 77;
-const SPR_CLIP: c_int = 78;
-const SPR_AMMO: c_int = 79;
-const SPR_ROCK: c_int = 80;
-const SPR_BROK: c_int = 81;
-const SPR_CELL: c_int = 82;
-const SPR_CELP: c_int = 83;
-const SPR_SHEL: c_int = 84;
-const SPR_SBOX: c_int = 85;
-const SPR_BPAK: c_int = 86;
-const SPR_BFUG: c_int = 87;
-const SPR_MGUN: c_int = 88;
-const SPR_CSAW: c_int = 89;
-const SPR_LAUN: c_int = 90;
-const SPR_PLAS: c_int = 91;
-const SPR_SHOT: c_int = 92;
-const SPR_SGN2: c_int = 93;
 
 // Sound effects
 const sfx_itemup: c_int = 32;

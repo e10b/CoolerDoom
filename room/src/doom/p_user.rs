@@ -9,6 +9,7 @@ use std::ffi::c_int;
 use crate::doom::d_mode::{commercial, shareware};
 use crate::doom::d_player::PlayerT;
 use crate::doom::doomstat::gamemode;
+use crate::doom::info::*;
 use crate::doom::m_fixed::{fixed_t, FixedMul};
 use crate::doom::p_telept::mobj_t;
 use crate::doom::p_tick::leveltime;
@@ -59,17 +60,8 @@ const PST_LIVE: c_int = 0;
 const PST_DEAD: c_int = 1;
 const PST_REBORN: c_int = 2;
 
-// Mobj flags (from p_mobj.h)
-const MF_NOCLIP: c_int = 0x1000;
-const MF_JUSTATTACKED: c_int = 128;
-const MF_SHADOW: c_int = 0x40000;
-
 // Colormap index
 const INVERSECOLORMAP: c_int = 32;
-
-// States (from info.h) — enumerated in order; S_PLAY is at index 149.
-const S_PLAY: c_int = 149;
-const S_PLAY_RUN1: c_int = 150;
 
 /// Size of state_t on x86_64 Linux (sprite+frame+tics=12 + 4 pad + action=8
 /// + nextstate+misc1+misc2=12 + 4 pad = 40 bytes).

@@ -10,7 +10,7 @@ use std::ptr;
 
 use crate::doom::c_ffi::{spriteframe_t, vissprite_t};
 use crate::doom::d_player::{PlayerT, PspdefT, NUMPSPRITES};
-use crate::doom::info::State;
+use crate::doom::info::*;
 use crate::doom::m_fixed::{fixed_t, FixedDiv, FixedMul};
 use crate::doom::r_bsp::{drawseg_t, sector_t, seg_t};
 use crate::doom::w_wad::lumpinfo_t;
@@ -36,10 +36,6 @@ const ANGLETOFINESHIFT: u32 = 19;
 
 const FF_FRAMEMASK: c_int = 0x7fff;
 const FF_FULLBRIGHT: c_int = 0x8000;
-
-const MF_SHADOW: c_int = 0x0004_0000;
-const MF_TRANSLATION: c_int = 0x0c00_0000;
-const MF_TRANSSHIFT: c_int = 26;
 
 const pw_invisibility: usize = 2;
 

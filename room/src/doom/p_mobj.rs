@@ -11,7 +11,7 @@ use std::ptr;
 use crate::doom::c_ffi::ITEMQUESIZE;
 use crate::doom::d_player::{PlayerT, MAXPLAYERS};
 use crate::doom::hu_stuff::HU_Start;
-use crate::doom::info::{self, MobjInfo, State, NUMMOBJTYPES};
+use crate::doom::info::{self, *};
 use crate::doom::m_fixed::{fixed_t, FixedMul};
 use crate::doom::m_random::P_Random;
 use crate::doom::p_maputl::{P_AproxDistance, P_SetThingPosition, P_UnsetThingPosition};
@@ -39,47 +39,9 @@ const MELEERANGE: c_int = 64 * FRACUNIT;
 const TICRATE: c_int = 35;
 const PU_LEVEL: c_int = 5;
 
-const MF_SPECIAL: c_int = 0x00000001;
-const MF_SOLID: c_int = 0x00000002;
-const MF_SHOOTABLE: c_int = 0x00000004;
-const MF_NOSECTOR: c_int = 0x00000008;
-const MF_NOBLOCKMAP: c_int = 0x00000010;
-const MF_AMBUSH: c_int = 0x00000020;
-const MF_JUSTHIT: c_int = 0x00000040;
-const MF_JUSTATTACKED: c_int = 0x00000080;
-const MF_SPAWNCEILING: c_int = 0x00000100;
-const MF_NOGRAVITY: c_int = 0x00000200;
-const MF_DROPOFF: c_int = 0x00000400;
-const MF_PICKUP: c_int = 0x00000800;
-const MF_NOCLIP: c_int = 0x00001000;
-const MF_SLIDE: c_int = 0x00002000;
-const MF_FLOAT: c_int = 0x00004000;
-const MF_TELEPORT: c_int = 0x00008000;
-const MF_MISSILE: c_int = 0x00010000;
-const MF_DROPPED: c_int = 0x00020000;
-const MF_SHADOW: c_int = 0x00040000;
-const MF_NOBLOOD: c_int = 0x00080000;
-const MF_CORPSE: c_int = 0x00100000;
-const MF_INFLOAT: c_int = 0x00200000;
-const MF_COUNTKILL: c_int = 0x00400000;
-const MF_COUNTITEM: c_int = 0x00800000;
-const MF_SKULLFLY: c_int = 0x01000000;
-const MF_NOTDMATCH: c_int = 0x02000000;
-const MF_TRANSLATION: c_int = 0x0c000000;
-const MF_TRANSSHIFT: c_int = 26;
-
 const CF_NOMOMENTUM: c_int = 0x00000002;
 
 const MTF_AMBUSH: c_int = 8;
-
-const MT_PLAYER: c_int = 0;
-const MT_INV: c_int = 56;
-const MT_INS: c_int = 58;
-const MT_SKULL: c_int = 18;
-const MT_PUFF: c_int = 37;
-const MT_BLOOD: c_int = 38;
-const MT_TFOG: c_int = 39;
-const MT_IFOG: c_int = 40;
 
 const sfx_oof: c_int = 34;
 const sfx_telept: c_int = 35;
@@ -92,8 +54,6 @@ const ANGLETOFINESHIFT: c_int = 19;
 const ANG45: u32 = 1 << 29;
 
 const exe_ultimate: c_int = 6;
-
-include!(concat!(env!("OUT_DIR"), "/statenum.rs"));
 
 extern "C" {
     fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;

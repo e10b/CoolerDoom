@@ -11,7 +11,7 @@ use crate::doom::d_items::weaponinfo;
 use crate::doom::d_mode::{commercial, shareware};
 use crate::doom::d_player::{PlayerT, PspdefT, NUMAMMO, NUMPSPRITES, NUMWEAPONS};
 use crate::doom::doomstat::gamemode;
-use crate::doom::info::{self, State};
+use crate::doom::info::{self, *};
 use crate::doom::m_fixed::{fixed_t, FixedMul};
 use crate::doom::m_random::P_Random;
 use crate::doom::p_telept::mobj_t;
@@ -20,8 +20,6 @@ use crate::doom::s_sound::S_StartSound;
 use crate::doom::tables::{finecosine, finesine, FINEANGLES};
 
 const FINEMASK: c_int = FINEANGLES as c_int - 1;
-
-include!(concat!(env!("OUT_DIR"), "/statenum.rs"));
 
 const FRACBITS: u32 = 16;
 const FRACUNIT: c_int = 1 << FRACBITS;
@@ -59,9 +57,6 @@ const BT_ATTACK: u8 = 1;
 // Player state constants
 const PST_DEAD: c_int = 1;
 
-// Mobj flags
-const MF_JUSTATTACKED: c_int = 0x00000080;
-
 // Angle constants
 const ANG90: u32 = 0x40000000;
 const ANG180: u32 = 0x80000000;
@@ -83,13 +78,6 @@ const sfx_shotgn: c_int = 2;
 const sfx_dshtgn: c_int = 4;
 const sfx_bfg: c_int = 9;
 const sfx_punch: c_int = 83;
-
-// Mobj type constants
-const MT_ROCKET: c_int = 33;
-const MT_BFG: c_int = 35;
-const MT_PLASMA: c_int = 34;
-const MT_EXTRABFG: c_int = 42;
-const MT_PUFF: c_int = 37;
 
 extern "C" {
     fn P_SetMobjState(mobj: *mut mobj_t, state: c_int) -> c_int;
