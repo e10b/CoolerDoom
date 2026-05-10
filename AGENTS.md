@@ -89,7 +89,7 @@ A `dhat-heap.json` file is produced; view it with the [dhat viewer](https://valg
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **room** (6078 symbols, 10093 relationships, 245 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **room** (6454 symbols, 10695 relationships, 253 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
