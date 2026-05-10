@@ -41,8 +41,8 @@ fn main() {
     let lib_sources: &[&str] = &[
         // Stub / dummy implementations (networking, etc.)
         // dummy  — ported to Rust (room/src/doom/dummy.rs)
-        // Automap
-        "am_map.c",
+        // Automap — ported to Rust (room/src/doom/am_map.rs)
+        // "am_map.c",
         // Doom definitions & state
         // doomdef  — removed, no symbols
         // doomstat — ported to Rust (room/src/doom/doomstat.rs)

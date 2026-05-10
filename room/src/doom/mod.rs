@@ -4,6 +4,7 @@
 //! Functions are exported with `#[no_mangle] extern "C"` so the
 //! remaining C code resolves them at final link time.
 
+pub mod am_map;
 pub mod c_ffi;
 
 pub mod d_event;

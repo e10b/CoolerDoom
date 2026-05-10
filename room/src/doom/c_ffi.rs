@@ -557,15 +557,6 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// am_map.c
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    /// True while the automap is open.
-    pub static mut automapactive: c_int;
-}
-
-// ---------------------------------------------------------------------------
 // i_scale.c
 // Screen-scaling mode descriptors.
 // ---------------------------------------------------------------------------
@@ -923,20 +914,3 @@ pub const ST_MUCHPAIN: c_int = 20;
 pub const ST_X: c_int = 0;
 /// X pixel offset of the arms display (ST_X2 = 104).
 pub const ST_X2: c_int = 104;
-
-// ---------------------------------------------------------------------------
-// am_map.c — automap constants
-// ---------------------------------------------------------------------------
-
-/// Number of mark points the player can drop on the automap
-/// (AM_NUMMARKPOINTS = 10).
-pub const AM_NUMMARKPOINTS: usize = 10;
-/// Initial scale factor (map-to-frame) expressed as a fraction of FRACUNIT
-/// (INITSCALEMTOF = 0.2 × FRACUNIT).
-pub const INITSCALEMTOF: c_int = (0.2 * FRACUNIT as f64) as c_int;
-/// Zoom-in factor per tic (M_ZOOMIN = 1.02 × FRACUNIT, truncated).
-pub const M_ZOOMIN: c_int = (1.02 * FRACUNIT as f64) as c_int;
-/// Zoom-out factor per tic (M_ZOOMOUT = FRACUNIT / 1.02, truncated).
-pub const M_ZOOMOUT: c_int = (FRACUNIT as f64 / 1.02) as c_int;
-/// Pan speed in map units per tic (F_PANINC = 4).
-pub const F_PANINC: c_int = 4;

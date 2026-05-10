@@ -1,6 +1,6 @@
-//! Tests for `am_map.c` — automap globals and constants.
+//! Tests for `am_map.rs` — automap globals and constants.
 //!
-//! `am_map.c` implements the full-screen automap: player position, line
+//! `am_map.rs` implements the full-screen automap: player position, line
 //! drawing, zoom/pan, and mark points.  Most of its state is in `static`
 //! locals, but `automapactive` is a public global that the HUD checks.
 //! The color index constants must match the vanilla palette layout or the map
@@ -15,6 +15,7 @@
 
 #![allow(non_snake_case)]
 
+use crate::doom::am_map;
 use crate::doom::c_ffi;
 
 // ---------------------------------------------------------------------------
@@ -27,7 +28,7 @@ use crate::doom::c_ffi;
 fn automapactive_default_false() {
     unsafe {
         assert_eq!(
-            c_ffi::automapactive,
+            am_map::automapactive,
             0,
             "automapactive should be false at startup"
         );
@@ -41,7 +42,7 @@ fn automapactive_default_false() {
 /// `AM_NUMMARKPOINTS = 10`: the player can drop up to 10 location markers.
 #[test]
 fn am_nummarkpoints_is_10() {
-    assert_eq!(c_ffi::AM_NUMMARKPOINTS, 10);
+    assert_eq!(am_map::AM_NUMMARKPOINTS, 10);
 }
 
 // ---------------------------------------------------------------------------
@@ -53,7 +54,7 @@ fn am_nummarkpoints_is_10() {
 #[test]
 fn initscalemtof_value() {
     // 0.2 * 65536 = 13107.2 → truncated to 13107
-    assert_eq!(c_ffi::INITSCALEMTOF, 13107);
+    assert_eq!(am_map::INITSCALEMTOF, 13107);
 }
 
 /// `M_ZOOMIN = 1.02 × FRACUNIT = 66846` (truncated).
@@ -63,9 +64,9 @@ fn m_zoomin_value() {
     // 1.02 * 65536 = 66847.0... → 66846 after cast from f64
     // Accept either 66846 or 66847 since different C compilers may truncate/round.
     assert!(
-        c_ffi::M_ZOOMIN == 66846 || c_ffi::M_ZOOMIN == 66847,
+        am_map::M_ZOOMIN == 66846 || am_map::M_ZOOMIN == 66847,
         "M_ZOOMIN = {} (expected 66846 or 66847)",
-        c_ffi::M_ZOOMIN
+        am_map::M_ZOOMIN
     );
 }
 
@@ -75,9 +76,9 @@ fn m_zoomin_value() {
 fn m_zoomout_value() {
     // 65536 / 1.02 = 64250.98... → truncates to 64250 (or 64251 on some platforms)
     assert!(
-        c_ffi::M_ZOOMOUT == 64250 || c_ffi::M_ZOOMOUT == 64251,
+        am_map::M_ZOOMOUT == 64250 || am_map::M_ZOOMOUT == 64251,
         "M_ZOOMOUT = {} (expected 64250 or 64251)",
-        c_ffi::M_ZOOMOUT
+        am_map::M_ZOOMOUT
     );
 }
 
@@ -86,7 +87,7 @@ fn m_zoomout_value() {
 /// near FRACUNIT.
 #[test]
 fn zoomin_and_zoomout_are_near_reciprocals() {
-    let product = (c_ffi::M_ZOOMIN as i64) * (c_ffi::M_ZOOMOUT as i64);
+    let product = (am_map::M_ZOOMIN as i64) * (am_map::M_ZOOMOUT as i64);
     let fracunit_sq = (c_ffi::FRACUNIT as i64) * (c_ffi::FRACUNIT as i64);
     // Within 1% of each other
     let diff = (product - fracunit_sq).unsigned_abs();
@@ -99,7 +100,7 @@ fn zoomin_and_zoomout_are_near_reciprocals() {
 /// `F_PANINC = 4`: the automap pans 4 pixels (in map coords) per tic.
 #[test]
 fn f_paninc_is_4() {
-    assert_eq!(c_ffi::F_PANINC, 4);
+    assert_eq!(am_map::F_PANINC, 4);
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +111,7 @@ fn f_paninc_is_4() {
 #[test]
 fn zoomin_greater_than_fracunit() {
     assert!(
-        c_ffi::M_ZOOMIN > c_ffi::FRACUNIT,
+        am_map::M_ZOOMIN > c_ffi::FRACUNIT,
         "M_ZOOMIN should be > FRACUNIT to increase scale"
     );
 }
@@ -119,7 +120,7 @@ fn zoomin_greater_than_fracunit() {
 #[test]
 fn zoomout_less_than_fracunit() {
     assert!(
-        c_ffi::M_ZOOMOUT < c_ffi::FRACUNIT,
+        am_map::M_ZOOMOUT < c_ffi::FRACUNIT,
         "M_ZOOMOUT should be < FRACUNIT to decrease scale"
     );
 }
@@ -128,8 +129,8 @@ fn zoomout_less_than_fracunit() {
 #[test]
 fn initscalemtof_less_than_fracunit() {
     assert!(
-        c_ffi::INITSCALEMTOF < c_ffi::FRACUNIT,
+        am_map::INITSCALEMTOF < c_ffi::FRACUNIT,
         "INITSCALEMTOF ({}) should be < FRACUNIT — the map starts zoomed out",
-        c_ffi::INITSCALEMTOF
+        am_map::INITSCALEMTOF
     );
 }
