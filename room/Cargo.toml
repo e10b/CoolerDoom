@@ -5,9 +5,16 @@ edition = "2021"
 description = "A Rust implementation of the doomgeneric platform layer using winit and wgpu"
 license = "GPL-2.0-or-later"
 
+[lib]
+name = "room"
+path = "src/lib.rs"
+
 [[bin]]
 name = "room"
 path = "src/main.rs"
+
+[features]
+dhat-heap = ["dep:dhat"]
 
 [dependencies]
 # Low-level Doom engine bindings (vendored C source compiled via cc).
@@ -30,3 +37,9 @@ log = "0.4"
 
 # Simple logger backed by stderr.
 env_logger = "0.11"
+
+# libc bindings for C FFI (FILE, fopen, fclose, fseek, fread, printf, etc.)
+libc = "0.2"
+
+# Optional heap profiler (use with --features dhat-heap).
+dhat = { version = "0.3", optional = true }

@@ -47,5 +47,25 @@ int M_vsnprintf(char *buf, size_t buf_len, const char *s, va_list args);
 int M_snprintf(char *buf, size_t buf_len, const char *s, ...);
 char *M_OEMToUTF8(const char *ansi);
 
+// Non-variadic helper implemented in Rust.
+// `strs` is a NULL-terminated array of `const char *`.
+char *M_StringJoinA(const char *const *strs);
+
+// Trailing-clamp helper used by the M_snprintf / M_vsnprintf macros.
+// NOTE: M_snprintf macro evaluates `buf` and `len` twice. All current
+// call-sites pass plain lvalues, so this is safe.
+int M_snprintf_clamp(char *buf, size_t len, int result);
+
+// Macro replacements that redirect C callers to non-variadic helpers.
+// Rust callers cannot use these macros and must call snprintf/M_StringJoinA directly.
+#define M_StringJoin(...)                                              \
+    M_StringJoinA((const char *const[]){ __VA_ARGS__ })
+
+#define M_snprintf(buf, len, ...)                                      \
+    M_snprintf_clamp((buf), (len), snprintf((buf), (len), __VA_ARGS__))
+
+#define M_vsnprintf(buf, len, fmt, ap)                                 \
+    M_snprintf_clamp((buf), (len), vsnprintf((buf), (len), (fmt), (ap)))
+
 #endif
 

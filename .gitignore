@@ -1,1 +1,5 @@
 /target/
+.gitnexus
+*.log
+*.savegame
+*.json

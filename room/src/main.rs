@@ -37,6 +37,10 @@
 //! GPU resources through [`thread_local!`] statics, which is safe because
 //! everything runs on the main thread.
 
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
+
 mod gpu;
 mod platform;
 
@@ -95,10 +99,7 @@ impl App {
             .map(|a| CString::new(a).expect("argument contained null byte"))
             .collect();
 
-        let mut argv: Vec<*mut c_char> = args
-            .iter()
-            .map(|s| s.as_ptr() as *mut c_char)
-            .collect();
+        let mut argv: Vec<*mut c_char> = args.iter().map(|s| s.as_ptr() as *mut c_char).collect();
         // The C standard requires `argv[argc]` to be a null pointer.
         argv.push(std::ptr::null_mut());
 
@@ -116,7 +117,11 @@ impl ApplicationHandler for App {
     /// Creates the OS window, initialises wgpu, and stores both in the
     /// thread-local platform state so the `DG_*` callbacks can reach them.
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        log::info!("Creating window ({}×{})", DOOMGENERIC_RESX, DOOMGENERIC_RESY);
+        log::info!(
+            "Creating window ({}×{})",
+            DOOMGENERIC_RESX,
+            DOOMGENERIC_RESY
+        );
 
         let window_attrs = Window::default_attributes()
             .with_title("room")
@@ -158,14 +163,11 @@ impl ApplicationHandler for App {
         event: WindowEvent,
     ) {
         match event {
-            // --- Close button pressed ---
             WindowEvent::CloseRequested => {
                 log::info!("Close requested – exiting");
                 QUIT_REQUESTED.with(|q| q.set(true));
                 event_loop.exit();
             }
-
-            // --- Window resized ---
             WindowEvent::Resized(new_size) => {
                 GPU.with_borrow_mut(|g| {
                     if let Some(gpu) = g.as_mut() {
@@ -173,8 +175,6 @@ impl ApplicationHandler for App {
                     }
                 });
             }
-
-            // --- Keyboard input ---
             WindowEvent::KeyboardInput { event, .. } => {
                 if let PhysicalKey::Code(code) = event.physical_key {
                     // Ignore auto-repeat key presses (key held down).
@@ -241,6 +241,9 @@ impl ApplicationHandler for App {
 // ---------------------------------------------------------------------------
 
 fn main() {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
     // Initialise the logger.  Set `RUST_LOG=debug` for verbose output.
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 

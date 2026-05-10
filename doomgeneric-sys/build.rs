@@ -37,163 +37,161 @@ fn main() {
     // Platform files (doomgeneric_xlib.c, doomgeneric_sdl.c, etc.) are
     // excluded because the `room` crate provides its own implementation
     // of the DG_* functions via Rust.
-    let sources: &[&str] = &[
+    // Build the main library (everything except layout_probe.c).
+    let lib_sources: &[&str] = &[
         // Stub / dummy implementations (networking, etc.)
-        "dummy.c",
+        // dummy  — ported to Rust (room/src/doom/dummy.rs)
         // Automap
         "am_map.c",
         // Doom definitions & state
-        "doomdef.c",
-        "doomstat.c",
+        // doomdef  — removed, no symbols
+        // doomstat — ported to Rust (room/src/doom/doomstat.rs)
         // String tables
-        "dstrings.c",
-        // Events
-        "d_event.c",
-        // Items
-        "d_items.c",
-        // IWAD loading
-        "d_iwad.c",
-        // Main game loop
-        "d_loop.c",
+        // dstrings — ported to Rust (room/src/doom/dstrings.rs)
+        // Events — ported to Rust (room/src/doom/d_event.rs)
+        // "d_event.c",
+        // Items — ported to Rust (room/src/doom/d_items.rs)
+        // "d_items.c",
+        // IWAD loading — ported to Rust (room/src/doom/d_iwad.rs)
+        // "d_iwad.c",
+        // Main game loop — ported to Rust (room/src/doom/d_loop.rs)
+        // "d_loop.c",
         "d_main.c",
         // Game mode detection
-        "d_mode.c",
-        // Networking stub
-        "d_net.c",
-        // Finale / end screens
-        "f_finale.c",
-        // Screen wipe effect
-        "f_wipe.c",
+        // d_mode   — ported to Rust (room/src/doom/d_mode.rs)
+        // Networking stub — ported to Rust (room/src/doom/d_net.rs)
+        // "d_net.c",
+        // Finale / end screens — ported to Rust (room/src/doom/f_finale.rs)
+        // "f_finale.c",
+        // Screen wipe effect — ported to Rust (room/src/doom/f_wipe.rs)
+        // "f_wipe.c",
         // Core game logic
         "g_game.c",
-        // HUD text library
-        "hu_lib.c",
-        "hu_stuff.c",
+        // HUD text library — ported to Rust (room/src/doom/hu_lib.rs)
+        // "hu_lib.c",
         // Thing info tables
-        "info.c",
+        // info      — ported to Rust (room/src/doom/info.rs)
         // CD music stub
-        "i_cdmus.c",
+        // i_cdmus  — ported to Rust (room/src/doom/i_cdmus.rs)
         // ENDOOM screen
-        "i_endoom.c",
+        // i_endoom — ported to Rust (room/src/doom/i_endoom.rs)
         // Joystick stub
-        "i_joystick.c",
+        // i_joystick — ported to Rust (room/src/doom/i_joystick.rs)
         // Screen scaling
         "i_scale.c",
         // Sound stub
-        "i_sound.c",
-        // System functions (error handling, etc.)
-        "i_system.c",
+        // i_sound   — ported to Rust (room/src/doom/i_sound.rs)
+        // System functions (error handling, etc.) — ported to Rust (room/src/doom/i_system.rs)
+        // "i_system.c",
         // Timer
-        "i_timer.c",
+        // i_timer   — ported to Rust (room/src/doom/i_timer.rs)
         // Miscellaneous I/O
-        "memio.c",
+        // memio — ported to Rust (room/src/doom/memio.rs)
         // Command-line argument parsing
-        "m_argv.c",
-        // Bounding box
-        "m_bbox.c",
+        // m_argv    — ported to Rust (room/src/doom/m_argv.rs)
+        // Bounding box — ported to Rust (room/src/doom/m_bbox.rs)
         // Cheat codes
-        "m_cheat.c",
-        // Configuration file
-        "m_config.c",
+        // m_cheat  — ported to Rust (room/src/doom/m_cheat.rs)
+        // m_config  — ported to Rust (room/src/doom/m_config.rs)
         // Control bindings
-        "m_controls.c",
-        // Fixed-point math
-        "m_fixed.c",
+        // m_controls — ported to Rust (room/src/doom/m_controls.rs)
+        // Fixed-point math — ported to Rust (room/src/doom/m_fixed.rs)
         // Menus
-        "m_menu.c",
+        // m_menu  — ported to Rust (room/src/doom/m_menu.rs)
+        // M_Menu_SetPlayerMessage moved to room/src/doom/d_player.rs
         // Miscellaneous utilities
-        "m_misc.c",
-        // Random number generator
-        "m_random.c",
-        // Ceiling actions
-        "p_ceilng.c",
-        // Door actions
-        "p_doors.c",
+        // m_misc    — ported to Rust (room/src/doom/m_misc.rs)
+        // Variadic helpers replaced by M_StringJoinA/M_snprintf_clamp in Rust + macros in m_misc.h
+        // Random number generator — ported to Rust (room/src/doom/m_random.rs)
+        // Ceiling actions — ported to Rust (room/src/doom/p_ceilng.rs)
+        // "p_ceilng.c",
+        // Door actions — ported to Rust (room/src/doom/p_doors.rs)
+        // "p_doors.c",
         // AI / enemy logic
         "p_enemy.c",
-        // Floor actions
-        "p_floor.c",
-        // Player interactions
-        "p_inter.c",
-        // Lighting effects
-        "p_lights.c",
+        // Floor actions — ported to Rust (room/src/doom/p_floor.rs)
+        // "p_floor.c",
+        // Player interactions — ported to Rust (room/src/doom/p_inter.rs)
+        // "p_inter.c",
+        // Lighting effects — ported to Rust (room/src/doom/p_lights.rs)
+        // "p_lights.c",
         // Map collisions
         "p_map.c",
         // Map utility functions
         "p_maputl.c",
         // Map objects (things)
         "p_mobj.c",
-        // Moving platforms
-        "p_plats.c",
-        // Player sprite logic
-        "p_pspr.c",
+        // Moving platforms — ported to Rust (room/src/doom/p_plats.rs)
+        // "p_plats.c",
+        // Player sprite logic — ported to Rust (room/src/doom/p_pspr.rs)
+        // "p_pspr.c",
         // Save games
         "p_saveg.c",
-        // Map loading
-        "p_setup.c",
-        // Line-of-sight checks
-        "p_sight.c",
+        // Map loading — ported to Rust (room/src/doom/p_setup.rs)
+        // "p_setup.c",
+        // Line-of-sight checks — ported to Rust (room/src/doom/p_sight.rs)
+        // "p_sight.c",
         // Special actions
         "p_spec.c",
-        // Switch actions
-        "p_switch.c",
-        // Teleporter
-        "p_telept.c",
-        // Thinker / object tick
-        "p_tick.c",
-        // Player movement
-        "p_user.c",
-        // Binary space partitioner traversal
-        "r_bsp.c",
-        // Texture / flat data
-        "r_data.c",
-        // Column / span drawing
-        "r_draw.c",
-        // Renderer main
-        "r_main.c",
-        // Visplane rendering
-        "r_plane.c",
-        // Segment rendering
-        "r_segs.c",
-        // Sky rendering
-        "r_sky.c",
+        // Switch actions — ported to Rust (room/src/doom/p_switch.rs)
+        // "p_switch.c",
+        // Teleporter — ported to Rust (room/src/doom/p_telept.rs)
+        // "p_telept.c",
+        // Thinker / object tick — ported to Rust (room/src/doom/p_tick.rs)
+        // "p_tick.c",
+        // Player movement — ported to Rust (room/src/doom/p_user.rs)
+        // "p_user.c",
+        // Binary space partitioner traversal — ported to Rust (room/src/doom/r_bsp.rs)
+        // "r_bsp.c",
+        // Texture / flat data — ported to Rust (room/src/doom/r_data.rs)
+        // "r_data.c",
+        // Column / span drawing — ported to Rust (room/src/doom/r_draw.rs)
+        // "r_draw.c",
+        // Renderer main — ported to Rust (room/src/doom/r_main.rs)
+        // "r_main.c",
+        // Visplane rendering — ported to Rust (room/src/doom/r_plane.rs)
+        // "r_plane.c",
+        // Segment rendering — ported to Rust (room/src/doom/r_segs.rs)
+        // "r_segs.c",
+        // Sky rendering — ported to Rust (room/src/doom/r_sky.rs)
+        // "r_sky.c",
         // Sprite rendering
         "r_things.c",
         // SHA-1 hash (for WAD checksums)
-        "sha1.c",
+        // sha1 — ported to Rust (room/src/doom/sha1.rs)
         // Sound data tables
-        "sounds.c",
+        // sounds — ported to Rust (room/src/doom/sounds.rs)
         // Intermission stats
-        "statdump.c",
-        // Status bar library
-        "st_lib.c",
+        // statdump  — ported to Rust (room/src/doom/statdump.rs)
+        // Status bar library — ported to Rust (room/src/doom/st_lib.rs)
+        // "st_lib.c",
         // Status bar
         "st_stuff.c",
         // Sound subsystem (no-op when FEATURE_SOUND is not defined)
-        "s_sound.c",
+        // s_sound   — ported to Rust (room/src/doom/s_sound.rs)
         // Trigonometry tables
-        "tables.c",
-        // Video / screen buffer management
-        "v_video.c",
+        // tables — ported to Rust (room/src/doom/tables.rs)
+        // Video / screen buffer management — ported to Rust (room/src/doom/v_video.rs)
+        // "v_video.c",
         // Intermission / victory screens
         "wi_stuff.c",
         // WAD checksum
-        "w_checksum.c",
-        // WAD file abstraction
-        "w_file.c",
-        "w_file_stdc.c",
-        // WAD main loader
-        "w_main.c",
-        // WAD directory
-        "w_wad.c",
-        // Zone memory allocator
-        "z_zone.c",
-        // Input handling (calls DG_GetKey)
-        "i_input.c",
-        // Video output (calls DG_DrawFrame, DG_Init)
-        "i_video.c",
-        // doomgeneric glue (allocates DG_ScreenBuffer, calls DG_Init)
-        "doomgeneric.c",
+        // w_checksum — ported to Rust (room/src/doom/w_checksum.rs)
+        // WAD file abstraction — ported to Rust (room/src/doom/w_file.rs)
+        // "w_file.c",
+        // "w_file_stdc.c",
+        // WAD main loader — ported to Rust (room/src/doom/w_main.rs)
+        // "w_main.c",
+        // WAD directory — ported to Rust (room/src/doom/w_wad.rs)
+        // "w_wad.c",
+        // Zone memory allocator — ported to Rust (room/src/doom/z_zone.rs)
+        // "z_zone.c",
+        // Input handling (calls DG_GetKey) — ported to Rust (room/src/doom/i_input.rs)
+        // "i_input.c",
+        // Video output (calls DG_DrawFrame, DG_Init) — ported to Rust (room/src/doom/i_video.rs)
+        // "i_video.c",
+        // doomgeneric glue — ported to Rust (room/src/doom/doomgeneric.rs)
+        // "doomgeneric.c",
     ];
 
     let mut build = cc::Build::new();
@@ -214,7 +212,17 @@ fn main() {
         .flag_if_supported("-Wno-unused-but-set-variable")
         .flag_if_supported("-Wno-maybe-uninitialized");
 
-    for src in sources {
+    // If the user is running with AddressSanitizer on the Rust side, also
+    // instrument the C code so that overflows in C are reported with exact
+    // line numbers instead of being hidden behind the FFI boundary.
+    if std::env::var("ASAN").is_ok() {
+        build
+            .flag_if_supported("-fsanitize=address")
+            .flag_if_supported("-fno-omit-frame-pointer")
+            .flag_if_supported("-g");
+    }
+
+    for src in lib_sources {
         build.file(vendor.join(src));
     }
 
