@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 13 |
-| Total remaining LoC | 20,070 |
-| Already ported LoC | ~35,634 (est.) |
-| Port completeness | ~64.0% (by line count) |
+| Remaining C modules | 12 |
+| Total remaining LoC | ~19,084 |
+| Already ported LoC | ~36,620 (est.) |
+| Port completeness | ~65.1% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -27,7 +27,7 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-**Recently ported**: `p_inter.c` (922 LoC), `r_data.c` (912 LoC), `r_draw.c` (975 LoC), `p_pspr.c` (888 LoC), `p_setup.c` (855 LoC), `d_iwad.c` (848 LoC), `d_loop.c` (826 LoC), `p_doors.c` (778 LoC), `r_segs.c` (743 LoC), `f_finale.c` (718 LoC), `p_switch.c` (648 LoC), `hu_stuff.c` (641 LoC).
+**Recently ported**: `r_things.c` (986 LoC), `p_inter.c` (922 LoC), `r_data.c` (912 LoC), `r_draw.c` (975 LoC), `p_pspr.c` (888 LoC), `p_setup.c` (855 LoC), `d_iwad.c` (848 LoC), `d_loop.c` (826 LoC), `p_doors.c` (778 LoC), `r_segs.c` (743 LoC), `f_finale.c` (718 LoC), `p_switch.c` (648 LoC), `hu_stuff.c` (641 LoC).
 
 ### Medium-Small — 350–550 LoC (0 files, 0 LoC)
 
@@ -37,11 +37,10 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Medium-Large — 900–1,100 LoC (2 files, 1,983 LoC)
+### Medium-Large — 900–1,100 LoC (1 file, 1,001 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `r_things.c` | 986 | Renderer | Sprite rendering and scaling |
 | `p_maputl.c` | 1,001 | Game logic | Map collision utilities (P_PathTraverse, etc.) |
 
 ### Large — 1,000–1,500 LoC (6 files, 8,209 LoC)
@@ -72,9 +71,9 @@ With only 13 modules left, the strategy shifts from "quick wins" to
 orchestrators (`d_main.c`, `g_game.c`) depend on first, then tackle the
 orchestrators themselves.
 
-1. **Finish the renderer** — `r_things.c`. All upstream dependencies
-   (`r_data`, `r_draw`, `r_segs`, `r_main`, `r_plane`, `r_bsp`, `r_sky`) are
-   already ported, so this closes the renderer pipeline.
+1. ~~**Finish the renderer** — `r_things.c` is now ported. The renderer pipeline
+   (`r_data`, `r_draw`, `r_segs`, `r_main`, `r_plane`, `r_bsp`, `r_sky`,
+   `r_things`) is fully Rust-native.~~
 2. **Map utilities** — `p_maputl.c`. Building block for `p_map.c` and
    `p_mobj.c`; many of its types (`divline_t`, `intercept_t`, `mobj_t`) are
    already mirrored in `c_ffi.rs`.
@@ -114,8 +113,8 @@ orchestrators themselves.
 - **`z_zone.c` is ported**: The zone memory allocator is now Rust-native
   (`room/src/doom/z_zone.rs`). Subsequent ports can rely on safe allocation
   and automatic zeroing.
-- **Renderer inner loops**: `r_draw.c` was ported with explicit wrapping
-  arithmetic to match C overflow semantics. The same pattern should be used
-  for `r_things.c` to preserve demo determinism.
+- **Renderer inner loops**: `r_draw.c` and `r_things.c` were ported with
+  explicit wrapping arithmetic to match C overflow semantics and preserve
+  demo determinism.
 
 (End of file - total 104 lines)

@@ -168,7 +168,7 @@ recommended porting order.
 - [x] `r_plane.c`
 - [x] `r_segs.c`
 - [x] `r_sky.c`
-- [ ] `r_things.c`
+- [x] `r_things.c`
 
 ### Automap / HUD / status bar / finale / intermission
 
