@@ -172,7 +172,7 @@ recommended porting order.
 
 ### Automap / HUD / status bar / finale / intermission
 
-- [ ] `am_map.c`
+- [x] `am_map.c`
 - [x] `hu_lib.c`
 - [x] `hu_stuff.c`
 - [x] `st_lib.c`
