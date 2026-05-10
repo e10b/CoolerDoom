@@ -111,8 +111,8 @@ fn main() {
         "p_enemy.c",
         // Floor actions — ported to Rust (room/src/doom/p_floor.rs)
         // "p_floor.c",
-        // Player interactions (not yet ported)
-        "p_inter.c",
+        // Player interactions — ported to Rust (room/src/doom/p_inter.rs)
+        // "p_inter.c",
         // Lighting effects — ported to Rust (room/src/doom/p_lights.rs)
         // "p_lights.c",
         // Map collisions

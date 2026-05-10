@@ -117,7 +117,7 @@ recommended porting order.
 - [ ] `p_doors.c`
 - [ ] `p_enemy.c`
 - [x] `p_floor.c`
-- [ ] `p_inter.c`
+- [x] `p_inter.c`
 - [x] `p_lights.c`
 - [ ] `p_map.c`
 - [ ] `p_maputl.c`

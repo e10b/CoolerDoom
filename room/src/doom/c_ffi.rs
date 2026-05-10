@@ -205,29 +205,6 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// p_inter.c
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    pub static mut maxammo: [c_int; 4];
-    pub static mut clipammo: [c_int; 4];
-
-    pub fn P_GiveAmmo(player: *mut c_void, ammo: c_int, num: c_int) -> c_uint;
-    pub fn P_GiveWeapon(player: *mut c_void, weapon: c_int, dropped: c_uint) -> c_uint;
-    pub fn P_GiveBody(player: *mut c_void, num: c_int) -> c_uint;
-    pub fn P_GiveArmor(player: *mut c_void, armortype: c_int) -> c_uint;
-    pub fn P_GivePower(player: *mut c_void, power: c_int) -> c_uint;
-    pub fn P_TouchSpecialThing(special: *mut mobj_t, toucher: *mut mobj_t);
-    pub fn P_KillMobj(source: *mut mobj_t, target: *mut mobj_t);
-    pub fn P_DamageMobj(
-        target: *mut mobj_t,
-        inflictor: *mut mobj_t,
-        source: *mut mobj_t,
-        damage: c_int,
-    );
-}
-
-// ---------------------------------------------------------------------------
 // p_spec.c
 // ---------------------------------------------------------------------------
 

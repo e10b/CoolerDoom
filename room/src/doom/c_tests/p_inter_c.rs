@@ -13,6 +13,7 @@
 #![allow(non_snake_case)]
 
 use crate::doom::c_ffi;
+use crate::doom::p_inter;
 
 // ---------------------------------------------------------------------------
 // NUMAMMO / BONUSADD constants
@@ -38,7 +39,7 @@ fn bonusadd_is_6() {
 #[test]
 fn maxammo_bullets_is_200() {
     unsafe {
-        assert_eq!(c_ffi::maxammo[0], 200, "maxammo[am_clip] should be 200");
+        assert_eq!(p_inter::maxammo[0], 200, "maxammo[am_clip] should be 200");
     }
 }
 
@@ -46,7 +47,7 @@ fn maxammo_bullets_is_200() {
 #[test]
 fn maxammo_shells_is_50() {
     unsafe {
-        assert_eq!(c_ffi::maxammo[1], 50, "maxammo[am_shell] should be 50");
+        assert_eq!(p_inter::maxammo[1], 50, "maxammo[am_shell] should be 50");
     }
 }
 
@@ -54,7 +55,7 @@ fn maxammo_shells_is_50() {
 #[test]
 fn maxammo_cells_is_300() {
     unsafe {
-        assert_eq!(c_ffi::maxammo[2], 300, "maxammo[am_cell] should be 300");
+        assert_eq!(p_inter::maxammo[2], 300, "maxammo[am_cell] should be 300");
     }
 }
 
@@ -62,7 +63,7 @@ fn maxammo_cells_is_300() {
 #[test]
 fn maxammo_missiles_is_50() {
     unsafe {
-        assert_eq!(c_ffi::maxammo[3], 50, "maxammo[am_misl] should be 50");
+        assert_eq!(p_inter::maxammo[3], 50, "maxammo[am_misl] should be 50");
     }
 }
 
@@ -70,7 +71,11 @@ fn maxammo_missiles_is_50() {
 #[test]
 fn maxammo_exact_values() {
     unsafe {
-        assert_eq!(c_ffi::maxammo, [200, 50, 300, 50], "maxammo array mismatch");
+        assert_eq!(
+            p_inter::maxammo,
+            [200, 50, 300, 50],
+            "maxammo array mismatch"
+        );
     }
 }
 
@@ -82,7 +87,7 @@ fn maxammo_exact_values() {
 #[test]
 fn clipammo_bullets_is_10() {
     unsafe {
-        assert_eq!(c_ffi::clipammo[0], 10, "clipammo[am_clip] should be 10");
+        assert_eq!(p_inter::clipammo[0], 10, "clipammo[am_clip] should be 10");
     }
 }
 
@@ -90,7 +95,7 @@ fn clipammo_bullets_is_10() {
 #[test]
 fn clipammo_shells_is_4() {
     unsafe {
-        assert_eq!(c_ffi::clipammo[1], 4, "clipammo[am_shell] should be 4");
+        assert_eq!(p_inter::clipammo[1], 4, "clipammo[am_shell] should be 4");
     }
 }
 
@@ -98,7 +103,7 @@ fn clipammo_shells_is_4() {
 #[test]
 fn clipammo_cells_is_20() {
     unsafe {
-        assert_eq!(c_ffi::clipammo[2], 20, "clipammo[am_cell] should be 20");
+        assert_eq!(p_inter::clipammo[2], 20, "clipammo[am_cell] should be 20");
     }
 }
 
@@ -106,7 +111,7 @@ fn clipammo_cells_is_20() {
 #[test]
 fn clipammo_missiles_is_1() {
     unsafe {
-        assert_eq!(c_ffi::clipammo[3], 1, "clipammo[am_misl] should be 1");
+        assert_eq!(p_inter::clipammo[3], 1, "clipammo[am_misl] should be 1");
     }
 }
 
@@ -114,7 +119,7 @@ fn clipammo_missiles_is_1() {
 #[test]
 fn clipammo_exact_values() {
     unsafe {
-        assert_eq!(c_ffi::clipammo, [10, 4, 20, 1], "clipammo array mismatch");
+        assert_eq!(p_inter::clipammo, [10, 4, 20, 1], "clipammo array mismatch");
     }
 }
 
@@ -126,7 +131,7 @@ fn clipammo_exact_values() {
 #[test]
 fn bullets_max_is_20_clips() {
     unsafe {
-        assert_eq!(c_ffi::maxammo[0], 20 * c_ffi::clipammo[0]);
+        assert_eq!(p_inter::maxammo[0], 20 * p_inter::clipammo[0]);
     }
 }
 
@@ -136,8 +141,8 @@ fn bullets_max_is_20_clips() {
 fn shells_max_to_clip_ratio() {
     unsafe {
         // 50 / 4 = 12 with remainder 2.
-        assert_eq!(c_ffi::maxammo[1] / c_ffi::clipammo[1], 12);
-        assert_eq!(c_ffi::maxammo[1] % c_ffi::clipammo[1], 2);
+        assert_eq!(p_inter::maxammo[1] / p_inter::clipammo[1], 12);
+        assert_eq!(p_inter::maxammo[1] % p_inter::clipammo[1], 2);
     }
 }
 
@@ -145,7 +150,7 @@ fn shells_max_to_clip_ratio() {
 #[test]
 fn cells_max_is_15_clips() {
     unsafe {
-        assert_eq!(c_ffi::maxammo[2], 15 * c_ffi::clipammo[2]);
+        assert_eq!(p_inter::maxammo[2], 15 * p_inter::clipammo[2]);
     }
 }
 
@@ -153,7 +158,7 @@ fn cells_max_is_15_clips() {
 #[test]
 fn missiles_max_is_50_clips() {
     unsafe {
-        assert_eq!(c_ffi::maxammo[3], 50 * c_ffi::clipammo[3]);
+        assert_eq!(p_inter::maxammo[3], 50 * p_inter::clipammo[3]);
     }
 }
 
@@ -167,7 +172,7 @@ fn ammo_arrays_are_c_int_width() {
     use std::ffi::c_int;
     const _: () = assert!(std::mem::size_of::<c_int>() == 4);
     unsafe {
-        let _: c_int = c_ffi::maxammo[0];
-        let _: c_int = c_ffi::clipammo[0];
+        let _: c_int = p_inter::maxammo[0];
+        let _: c_int = p_inter::clipammo[0];
     }
 }

@@ -12,10 +12,10 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 14 |
-| Total remaining LoC | 20,988 |
-| Already ported LoC | ~34,712 (est.) |
-| Port completeness | ~62.3% (by line count) |
+| Remaining C modules | 13 |
+| Total remaining LoC | 20,066 |
+| Already ported LoC | ~35,634 (est.) |
+| Port completeness | ~64.0% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -27,7 +27,7 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-**Recently ported**: `r_draw.c` (975 LoC), `r_data.c` (912 LoC), `p_pspr.c` (888 LoC), `p_setup.c` (855 LoC), `d_iwad.c` (848 LoC), `d_loop.c` (826 LoC), `r_segs.c` (743 LoC), `f_finale.c` (718 LoC), `p_switch.c` (648 LoC), `hu_stuff.c` (641 LoC), `r_main.c` (891 LoC), `v_video.c` (932 LoC), `i_system.c` (578 LoC), `w_wad.c` (612 LoC), `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC), `hu_lib.c` (347 LoC), `i_input.c` (341 LoC), `p_ceilng.c` (324 LoC), `p_plats.c` (304 LoC).
+**Recently ported**: `p_inter.c` (922 LoC), `r_draw.c` (975 LoC), `r_data.c` (912 LoC), `p_pspr.c` (888 LoC), `p_setup.c` (855 LoC), `d_iwad.c` (848 LoC), `d_loop.c` (826 LoC), `r_segs.c` (743 LoC), `f_finale.c` (718 LoC), `p_switch.c` (648 LoC), `hu_stuff.c` (641 LoC), `r_main.c` (891 LoC), `v_video.c` (932 LoC), `i_system.c` (578 LoC), `w_wad.c` (612 LoC), `z_zone.c` (488 LoC), `i_video.c` (495 LoC), `r_bsp.c` (573 LoC), `r_plane.c` (446 LoC), `p_tick.c` (151 LoC), `d_net.c` (281 LoC), `f_wipe.c` (294 LoC), `p_lights.c` (350 LoC), `st_lib.c` (284 LoC), `p_telept.c` (133 LoC), `p_sight.c` (350 LoC), `p_floor.c` (546 LoC), `p_user.c` (379 LoC), `hu_lib.c` (347 LoC), `i_input.c` (341 LoC), `p_ceilng.c` (324 LoC), `p_plats.c` (304 LoC).
 
 ### Medium-Small — 350–550 LoC (0 files, 0 LoC)
 
@@ -37,11 +37,10 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Medium-Large — 900–1,100 LoC (3 files, 2,905 LoC)
+### Medium-Large — 900–1,100 LoC (2 files, 1,983 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `p_inter.c` | 922 | Game logic | Player/item interactions and damage |
 | `r_things.c` | 982 | Renderer | Sprite rendering and scaling |
 | `p_maputl.c` | 1,001 | Game logic | Map collision utilities (P_PathTraverse, etc.) |
 
