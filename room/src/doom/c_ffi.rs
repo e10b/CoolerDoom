@@ -174,33 +174,6 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// p_mobj.c
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    pub static mut itemrespawnque: [u8; 128 * 10]; // mapthing_t[ITEMQUESIZE]
-    pub static mut itemrespawntime: [c_int; 128];
-    pub static mut iquehead: c_int;
-    pub static mut iquetail: c_int;
-
-    pub fn P_SetMobjState(mobj: *mut mobj_t, state: c_int) -> c_uint;
-    pub fn P_ExplodeMissile(mo: *mut mobj_t);
-    pub fn P_XYMovement(mo: *mut mobj_t);
-    pub fn P_ZMovement(mo: *mut mobj_t);
-    pub fn P_NightmareRespawn(mobj: *mut mobj_t);
-    pub fn P_MobjThinker(mobj: *mut mobj_t);
-    pub fn P_SpawnMobj(x: c_int, y: c_int, z: c_int, type_: c_int) -> *mut mobj_t;
-    pub fn P_RemoveMobj(mobj: *mut mobj_t);
-    pub fn P_RespawnSpecials();
-    pub fn P_SpawnPuff(x: c_int, y: c_int, z: c_int);
-    pub fn P_SpawnBlood(x: c_int, y: c_int, z: c_int, damage: c_int);
-    pub fn P_CheckMissileSpawn(th: *mut mobj_t);
-    pub fn P_SubstNullMobj(mobj: *mut mobj_t) -> *mut mobj_t;
-    pub fn P_SpawnMissile(source: *mut mobj_t, dest: *mut mobj_t, type_: c_int) -> *mut mobj_t;
-    pub fn P_SpawnPlayerMissile(source: *mut mobj_t, type_: c_int);
-}
-
-// ---------------------------------------------------------------------------
 // r_draw.c
 // ---------------------------------------------------------------------------
 

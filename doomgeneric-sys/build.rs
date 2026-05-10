@@ -119,8 +119,8 @@ fn main() {
         "p_map.c",
         // Map utility functions — ported to Rust (room/src/doom/p_maputl.rs)
         // "p_maputl.c",
-        // Map objects (things)
-        "p_mobj.c",
+        // Map objects (things) — ported to Rust (room/src/doom/p_mobj.rs)
+        // "p_mobj.c",
         // Moving platforms — ported to Rust (room/src/doom/p_plats.rs)
         // "p_plats.c",
         // Player sprite logic — ported to Rust (room/src/doom/p_pspr.rs)

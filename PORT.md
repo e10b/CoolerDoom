@@ -31,8 +31,6 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-**Recently ported**: `p_maputl.c` (1,001 LoC), `r_things.c` (986 LoC), `p_inter.c` (922 LoC), `r_data.c` (912 LoC), `r_draw.c` (975 LoC), `p_pspr.c` (888 LoC), `p_setup.c` (855 LoC), `d_iwad.c` (848 LoC), `d_loop.c` (826 LoC), `p_doors.c` (778 LoC), `r_segs.c` (743 LoC), `f_finale.c` (718 LoC), `p_switch.c` (648 LoC), `hu_stuff.c` (641 LoC).
-
 ### Medium-Small — 350–550 LoC (0 files, 0 LoC)
 
 _All modules in this bucket have been ported._
