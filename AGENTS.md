@@ -67,6 +67,55 @@ ASan reports three locations: the bad access, the free, and the allocation.
 - Best on Linux/macOS x86_64/aarch64.
 - Does not replace Miri or prove memory safety.
 
+## c2rust Intermediate Reference
+
+A fully-automated `c2rust transpile` output lives in `c2rust-intermediate/`. It is **not** linked into the main binary and is excluded from the default workspace build (`default-members`). Its sole purpose is as a behavioural reference when porting or debugging C modules.
+
+### Regenerating
+
+```bash
+./tools/c2rust-transpile.sh
+```
+
+This script:
+1. Scans `vendor/doomgeneric/*.c` and filters out non-transpilable files.
+2. Emits `compile_commands.json` with the exact flags from `doomgeneric-sys/build.rs`.
+3. Runs `c2rust transpile --emit-build-files --overwrite-existing`.
+4. Fixes up `Cargo.toml` and `src/lib.rs` so the crate is usable.
+
+### Checking the reference crate
+
+The transpiled code requires nightly because c2rust emits `extern type` declarations (still unstable):
+
+```bash
+cargo +nightly check -p c2rust-intermediate
+```
+
+### Excluded files
+
+| File | Reason |
+|------|--------|
+| `layout_probe.c` | Explicitly excluded from upstream Makefile |
+| `gusconf.c` | Requires `FEATURE_SOUND` |
+| `m_menu_shim.c` | Variadic shim — not transpilable |
+| `m_misc_varargs.c` | Variadic shim — not transpilable |
+| `m_misc.c` | Contains variadic macros (`M_StringJoin`, `M_vsnprintf`) that crash c2rust |
+| `dummy.c` | Empty stub |
+| `doomdef.c` | Header-only in practice, no symbols |
+
+### How to use it
+
+- **Type layout validation**: Compare `#[repr(C)]` struct definitions against `room/src/doom/c_ffi.rs`.
+- **Behavioural comparison**: When a hand-ported module behaves differently, compare its logic to the transpiled version (which faithfully reproduces C semantics).
+- **Symbol inventory**: See exactly which functions, globals, and types a given C module exports before porting it.
+
+### Caveats
+
+- All code is `unsafe` and non-idiomatic — do not copy-paste into the hand-ported codebase.
+- Duplicate type definitions exist across modules (e.g. `mobj_t` appears in many files). This is expected because each transpiled file is standalone.
+- `#define` values are baked in at transpile time.
+- Cross-module calls remain `extern "C"` FFI; there are no Rust `use` imports between modules.
+
 ## dhat Heap Profiler
 
 For callsite-level allocation tracking (volume and ownership paths), use `dhat` separately from ASan.
@@ -93,7 +142,7 @@ A `dhat-heap.json` file is produced; view it with the [dhat viewer](https://valg
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **room** (6454 symbols, 10695 relationships, 253 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **room** (71159 symbols, 86538 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
