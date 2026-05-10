@@ -165,45 +165,6 @@ pub struct mobj_t {
 // p_maputl.c
 // ---------------------------------------------------------------------------
 
-pub const MAXINTERCEPTS_ORIGINAL: usize = 128;
-pub const MAXINTERCEPTS: usize = MAXINTERCEPTS_ORIGINAL + 61;
-
-extern "C" {
-    pub static mut opentop: c_int;
-    pub static mut openbottom: c_int;
-    pub static mut openrange: c_int;
-    pub static mut lowfloor: c_int;
-
-    pub static mut intercepts: [intercept_t; MAXINTERCEPTS];
-    pub static mut intercept_p: *mut intercept_t;
-
-    pub static mut trace: divline_t;
-
-    pub fn P_AproxDistance(dx: c_int, dy: c_int) -> c_int;
-    pub fn P_PointOnLineSide(x: c_int, y: c_int, line: *mut line_t) -> c_int;
-    pub fn P_PointOnDivlineSide(x: c_int, y: c_int, line: *mut divline_t) -> c_int;
-    pub fn P_MakeDivline(li: *mut line_t, dl: *mut divline_t);
-    pub fn P_InterceptVector(v2: *mut divline_t, v1: *mut divline_t) -> c_int;
-    pub fn P_BoxOnLineSide(tmbox: *mut c_int, ld: *mut line_t) -> c_int;
-    pub fn P_LineOpening(linedef: *mut line_t);
-    pub fn P_UnsetThingPosition(thing: *mut mobj_t);
-    pub fn P_SetThingPosition(thing: *mut mobj_t);
-    pub fn P_PathTraverse(
-        x1: c_int,
-        y1: c_int,
-        x2: c_int,
-        y2: c_int,
-        flags: c_int,
-        trav: Option<unsafe extern "C" fn(*mut intercept_t) -> c_uint>,
-    ) -> c_uint;
-    pub fn P_TraverseIntercepts(
-        func: Option<unsafe extern "C" fn(*mut intercept_t) -> c_uint>,
-        maxfrac: c_int,
-    ) -> c_uint;
-    pub fn PIT_AddLineIntercepts(ld: *mut line_t) -> c_uint;
-    pub fn PIT_AddThingIntercepts(thing: *mut mobj_t) -> c_uint;
-}
-
 // ---------------------------------------------------------------------------
 // p_spec.c
 // ---------------------------------------------------------------------------
@@ -293,10 +254,6 @@ pub const ANG90: c_uint = 1 << 30;
 pub const ANG180: c_uint = 1 << 31;
 
 pub const ITEMQUESIZE: usize = 128;
-
-pub const PT_ADDLINES: c_int = 1;
-pub const PT_ADDTHINGS: c_int = 2;
-pub const PT_EARLYOUT: c_int = 4;
 
 pub const BOXTOP: usize = 0;
 pub const BOXBOTTOM: usize = 1;

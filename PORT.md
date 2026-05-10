@@ -8,14 +8,18 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 > crate.  The checklist in [README.md](README.md#porting-progress) is the
 > source of truth.
 
+A transpiled reference Rust code is available in `c2rust-intermediate/`. Use it to verify assumptions in addition to the original C code. The transpiled code is not part of the build.
+
+The ported code must be validated against the unit tests, as well as the `demo_playthrough` integration test.
+
 ## Summary
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 12 |
-| Total remaining LoC | ~19,084 |
-| Already ported LoC | ~36,620 (est.) |
-| Port completeness | ~65.1% (by line count) |
+| Remaining C modules | 11 |
+| Total remaining LoC | ~18,083 |
+| Already ported LoC | ~37,621 (est.) |
+| Port completeness | ~67.5% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -27,7 +31,7 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-**Recently ported**: `r_things.c` (986 LoC), `p_inter.c` (922 LoC), `r_data.c` (912 LoC), `r_draw.c` (975 LoC), `p_pspr.c` (888 LoC), `p_setup.c` (855 LoC), `d_iwad.c` (848 LoC), `d_loop.c` (826 LoC), `p_doors.c` (778 LoC), `r_segs.c` (743 LoC), `f_finale.c` (718 LoC), `p_switch.c` (648 LoC), `hu_stuff.c` (641 LoC).
+**Recently ported**: `p_maputl.c` (1,001 LoC), `r_things.c` (986 LoC), `p_inter.c` (922 LoC), `r_data.c` (912 LoC), `r_draw.c` (975 LoC), `p_pspr.c` (888 LoC), `p_setup.c` (855 LoC), `d_iwad.c` (848 LoC), `d_loop.c` (826 LoC), `p_doors.c` (778 LoC), `r_segs.c` (743 LoC), `f_finale.c` (718 LoC), `p_switch.c` (648 LoC), `hu_stuff.c` (641 LoC).
 
 ### Medium-Small — 350–550 LoC (0 files, 0 LoC)
 
@@ -37,11 +41,9 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Medium-Large — 900–1,100 LoC (1 file, 1,001 LoC)
+### Medium-Large — 900–1,100 LoC (0 files, 0 LoC)
 
-| File | Lines | Category | Porting notes |
-|------|------:|----------|---------------|
-| `p_maputl.c` | 1,001 | Game logic | Map collision utilities (P_PathTraverse, etc.) |
+_All modules in this bucket have been ported._
 
 ### Large — 1,000–1,500 LoC (6 files, 8,209 LoC)
 

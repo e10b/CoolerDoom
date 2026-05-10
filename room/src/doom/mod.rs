@@ -46,6 +46,7 @@ pub mod p_doors;
 pub mod p_floor;
 pub mod p_inter;
 pub mod p_lights;
+pub mod p_maputl;
 pub mod p_plats;
 pub mod p_pspr;
 pub mod p_setup;

@@ -117,8 +117,8 @@ fn main() {
         // "p_lights.c",
         // Map collisions
         "p_map.c",
-        // Map utility functions
-        "p_maputl.c",
+        // Map utility functions — ported to Rust (room/src/doom/p_maputl.rs)
+        // "p_maputl.c",
         // Map objects (things)
         "p_mobj.c",
         // Moving platforms — ported to Rust (room/src/doom/p_plats.rs)
