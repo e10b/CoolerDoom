@@ -1,0 +1,1052 @@
+//! Rust port of vendor/doomgeneric/r_things.c.
+//!
+//! Sprite rendering: projection of things onto the screen, visible sprite
+//! sorting, masked column drawing, and player weapon (psprite) rendering.
+
+#![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
+
+use std::ffi::{c_char, c_int, c_short, c_void};
+use std::ptr;
+
+use crate::doom::c_ffi::{spriteframe_t, vissprite_t};
+use crate::doom::d_player::{PlayerT, PspdefT, NUMPSPRITES};
+use crate::doom::info::State;
+use crate::doom::m_fixed::{fixed_t, FixedDiv, FixedMul};
+use crate::doom::r_bsp::{drawseg_t, sector_t, seg_t};
+use crate::doom::w_wad::lumpinfo_t;
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const MINZ: fixed_t = FRACUNIT * 4;
+const BASEYCENTER: c_int = 100;
+const FRACBITS: u32 = 16;
+const FRACUNIT: fixed_t = 1 << FRACBITS;
+const SCREENWIDTH: usize = 320;
+const MAXVISSPRITES: usize = 128;
+
+const LIGHTLEVELS: usize = 16;
+const LIGHTSEGSHIFT: u32 = 4;
+const MAXLIGHTSCALE: usize = 48;
+const LIGHTSCALESHIFT: u32 = 12;
+
+const ANG45: u32 = 0x2000_0000;
+const ANGLETOFINESHIFT: u32 = 19;
+
+const FF_FRAMEMASK: c_int = 0x7fff;
+const FF_FULLBRIGHT: c_int = 0x8000;
+
+const MF_SHADOW: c_int = 0x0004_0000;
+const MF_TRANSLATION: c_int = 0x0c00_0000;
+const MF_TRANSSHIFT: c_int = 26;
+
+const pw_invisibility: usize = 2;
+
+const SIL_BOTTOM: c_int = 1;
+const SIL_TOP: c_int = 2;
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct spritedef_t {
+    numframes: c_int,
+    spriteframes: *mut spriteframe_t,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy)]
+struct patch_t {
+    width: i16,
+    height: i16,
+    leftoffset: i16,
+    topoffset: i16,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy)]
+struct column_t {
+    topdelta: u8,
+    length: u8,
+}
+
+// ---------------------------------------------------------------------------
+// Externs from other modules
+// ---------------------------------------------------------------------------
+
+extern "C" {
+    fn I_Error(format: *const c_char, ...);
+    fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
+
+    fn W_CacheLumpNum(lumpnum: c_int, tag: c_int) -> *mut c_void;
+    fn W_GetNumForName(name: *mut c_char) -> c_int;
+
+    fn strncasecmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
+
+    fn R_PointToAngle(x: fixed_t, y: fixed_t) -> u32;
+    fn R_PointOnSegSide(x: fixed_t, y: fixed_t, line: *const seg_t) -> c_int;
+    fn R_RenderMaskedSegRange(ds: *mut drawseg_t, x1: c_int, x2: c_int);
+
+    static mut viewx: fixed_t;
+    static mut viewy: fixed_t;
+    static mut viewz: fixed_t;
+    static mut viewangle: u32;
+    static mut viewcos: fixed_t;
+    static mut viewsin: fixed_t;
+    static mut viewwidth: c_int;
+    static mut viewheight: c_int;
+    static mut centerxfrac: fixed_t;
+    static mut centeryfrac: fixed_t;
+    static mut projection: fixed_t;
+    static mut detailshift: c_int;
+    static mut extralight: c_int;
+    static mut validcount: c_int;
+    static mut fixedcolormap: *mut u8;
+    static mut colormaps: *mut u8;
+    static mut scalelight: [[*mut u8; MAXLIGHTSCALE]; LIGHTLEVELS];
+    static mut viewplayer: *mut PlayerT;
+    static mut viewangleoffset: c_int;
+
+    static mut dc_colormap: *mut u8;
+    static mut dc_x: c_int;
+    static mut dc_yl: c_int;
+    static mut dc_yh: c_int;
+    static mut dc_iscale: c_int;
+    static mut dc_texturemid: c_int;
+    static mut dc_source: *mut u8;
+    static mut dc_translation: *mut u8;
+
+    static mut colfunc: Option<unsafe extern "C" fn()>;
+    static mut basecolfunc: Option<unsafe extern "C" fn()>;
+    static mut fuzzcolfunc: Option<unsafe extern "C" fn()>;
+    static mut transcolfunc: Option<unsafe extern "C" fn()>;
+
+    static mut ds_p: *mut drawseg_t;
+    static mut drawsegs: [drawseg_t; 256];
+
+    static mut firstspritelump: c_int;
+    static mut lastspritelump: c_int;
+
+    static mut spritewidth: *mut c_int;
+    static mut spriteoffset: *mut c_int;
+    static mut spritetopoffset: *mut c_int;
+
+    static mut lumpinfo: *mut lumpinfo_t;
+    static mut modifiedgame: c_int;
+}
+
+// ---------------------------------------------------------------------------
+// Globals defined by this module
+// ---------------------------------------------------------------------------
+
+/// Scale applied to player weapon (psprite) columns this frame.
+#[no_mangle]
+pub static mut pspritescale: fixed_t = 0;
+
+/// Inverse of pspritescale.
+#[no_mangle]
+pub static mut pspriteiscale: fixed_t = 0;
+
+/// Pointer to the active light-table array for sprites this frame.
+#[no_mangle]
+pub static mut spritelights: *mut *mut u8 = ptr::null_mut();
+
+/// Clipping array initialised to -1 for psprite bottom clipping.
+#[no_mangle]
+pub static mut negonearray: [c_short; SCREENWIDTH] = [0; SCREENWIDTH];
+
+/// Clipping array initialised to viewheight for psprite top clipping.
+#[no_mangle]
+pub static mut screenheightarray: [c_short; SCREENWIDTH] = [0; SCREENWIDTH];
+
+/// Pointer to the sprite definition table.
+#[no_mangle]
+pub static mut sprites: *mut c_void = ptr::null_mut();
+
+/// Total number of sprite names found in the WAD.
+#[no_mangle]
+pub static mut numsprites: c_int = 0;
+
+/// Temporary frame-building array used during R_InitSprites.
+#[no_mangle]
+pub static mut sprtemp: [spriteframe_t; 29] = [spriteframe_t {
+    rotate: 0,
+    lump: [0; 8],
+    flip: [0; 8],
+}; 29];
+
+/// Highest frame index seen for the current sprite during R_InitSprites.
+#[no_mangle]
+pub static mut maxframe: c_int = 0;
+
+/// Name of the sprite currently being processed by R_InitSprites.
+#[no_mangle]
+pub static mut spritename: *mut c_char = ptr::null_mut();
+
+// ---------------------------------------------------------------------------
+// Module-local state
+// ---------------------------------------------------------------------------
+
+static mut vissprites: [vissprite_t; MAXVISSPRITES] = unsafe { std::mem::zeroed() };
+
+// ---------------------------------------------------------------------------
+// Module-local state (also referenced by r_segs.rs via extern "C")
+// ---------------------------------------------------------------------------
+
+static mut vissprite_p: *mut vissprite_t = ptr::null_mut();
+static mut newvissprite: c_int = 0;
+
+static mut overflowsprite: vissprite_t = unsafe { std::mem::zeroed() };
+
+/// Mutable pointers used by masked column drawing (read by r_segs.rs).
+#[no_mangle]
+pub static mut mfloorclip: *mut c_short = ptr::null_mut();
+
+/// Mutable pointers used by masked column drawing (read by r_segs.rs).
+#[no_mangle]
+pub static mut mceilingclip: *mut c_short = ptr::null_mut();
+
+/// Current sprite Y scale (read by r_segs.rs).
+#[no_mangle]
+pub static mut spryscale: fixed_t = 0;
+
+/// Screen Y coordinate of sprite top (read by r_segs.rs).
+#[no_mangle]
+pub static mut sprtopscreen: fixed_t = 0;
+
+static mut vsprsortedhead: vissprite_t = unsafe { std::mem::zeroed() };
+
+// ---------------------------------------------------------------------------
+// R_InstallSpriteLump
+// ---------------------------------------------------------------------------
+
+unsafe fn R_InstallSpriteLump(lump: c_int, frame: u32, rotation: u32, flipped: c_int) {
+    if frame >= 29 || rotation > 8 {
+        I_Error(
+            b"R_InstallSpriteLump: Bad frame characters in lump %i\0".as_ptr() as *const c_char,
+            lump,
+        );
+    }
+
+    if frame as c_int > maxframe {
+        maxframe = frame as c_int;
+    }
+
+    if rotation == 0 {
+        // The lump should be used for all rotations.
+        if sprtemp[frame as usize].rotate == 0 {
+            I_Error(
+                b"R_InitSprites: Sprite %s frame %c has multip rot=0 lump\0".as_ptr()
+                    as *const c_char,
+                spritename,
+                b'A' as c_int + frame as c_int,
+            );
+        }
+        if sprtemp[frame as usize].rotate == 1 {
+            I_Error(
+                b"R_InitSprites: Sprite %s frame %c has rotations and a rot=0 lump\0".as_ptr()
+                    as *const c_char,
+                spritename,
+                b'A' as c_int + frame as c_int,
+            );
+        }
+        sprtemp[frame as usize].rotate = 0;
+        for r in 0..8 {
+            sprtemp[frame as usize].lump[r] = (lump - firstspritelump) as c_short;
+            sprtemp[frame as usize].flip[r] = flipped as u8;
+        }
+        return;
+    }
+
+    // The lump is only used for one rotation.
+    if sprtemp[frame as usize].rotate == 0 {
+        I_Error(
+            b"R_InitSprites: Sprite %s frame %c has rotations and a rot=0 lump\0".as_ptr()
+                as *const c_char,
+            spritename,
+            b'A' as c_int + frame as c_int,
+        );
+    }
+
+    sprtemp[frame as usize].rotate = 1;
+
+    // Make 0 based.
+    let rot = (rotation - 1) as usize;
+    if sprtemp[frame as usize].lump[rot] != -1 {
+        I_Error(
+            b"R_InitSprites: Sprite %s : %c : %c has two lumps mapped to it\0".as_ptr()
+                as *const c_char,
+            spritename,
+            b'A' as c_int + frame as c_int,
+            b'1' as c_int + rot as c_int,
+        );
+    }
+
+    sprtemp[frame as usize].lump[rot] = (lump - firstspritelump) as c_short;
+    sprtemp[frame as usize].flip[rot] = flipped as u8;
+}
+
+// ---------------------------------------------------------------------------
+// R_InitSpriteDefs
+// ---------------------------------------------------------------------------
+
+unsafe fn R_InitSpriteDefs(namelist: *mut *mut c_char) {
+    let mut check = namelist;
+    while !(*check).is_null() {
+        check = check.add(1);
+    }
+
+    numsprites = check.offset_from(namelist) as c_int;
+
+    if numsprites == 0 {
+        return;
+    }
+
+    sprites = Z_Malloc(
+        (numsprites as usize * std::mem::size_of::<spritedef_t>()) as c_int,
+        1, // PU_STATIC
+        ptr::null_mut(),
+    );
+
+    let start = firstspritelump - 1;
+    let end = lastspritelump + 1;
+
+    for i in 0..numsprites {
+        spritename = *namelist.add(i as usize);
+        ptr::write_bytes(sprtemp.as_mut_ptr(), 0xFF, sprtemp.len());
+
+        maxframe = -1;
+
+        // Scan the lumps, filling in the frames for whatever is found.
+        for l in (start + 1)..end {
+            let li = &*lumpinfo.add(l as usize);
+            if strncasecmp(li.name.as_ptr(), spritename, 4) == 0 {
+                let frame = (li.name[4] as u8 - b'A') as u32;
+                let rotation = (li.name[5] as u8 - b'0') as u32;
+
+                let patched = if modifiedgame != 0 {
+                    // Need a null-terminated copy for W_GetNumForName
+                    let mut name_buf: [c_char; 9] = [0; 9];
+                    ptr::copy_nonoverlapping(li.name.as_ptr(), name_buf.as_mut_ptr(), 8);
+                    W_GetNumForName(name_buf.as_mut_ptr())
+                } else {
+                    l
+                };
+
+                R_InstallSpriteLump(patched, frame, rotation, 0);
+
+                if li.name[6] != 0 {
+                    let frame = (li.name[6] as u8 - b'A') as u32;
+                    let rotation = (li.name[7] as u8 - b'0') as u32;
+                    R_InstallSpriteLump(l, frame, rotation, 1);
+                }
+            }
+        }
+
+        // Check the frames that were found for completeness.
+        if maxframe == -1 {
+            let spr = &mut *(sprites as *mut spritedef_t).add(i as usize);
+            spr.numframes = 0;
+            continue;
+        }
+
+        maxframe += 1;
+
+        for frame in 0..maxframe {
+            match sprtemp[frame as usize].rotate {
+                -1 => {
+                    // No rotations were found for that frame at all.
+                    I_Error(
+                        b"R_InitSprites: No patches found for %s frame %c\0".as_ptr()
+                            as *const c_char,
+                        spritename,
+                        b'A' as c_int + frame,
+                    );
+                }
+                0 => {
+                    // Only the first rotation is needed.
+                }
+                1 => {
+                    // Must have all 8 frames.
+                    for rotation in 0..8 {
+                        if sprtemp[frame as usize].lump[rotation] == -1 {
+                            I_Error(
+                                b"R_InitSprites: Sprite %s frame %c is missing rotations\0".as_ptr()
+                                    as *const c_char,
+                                spritename,
+                                b'A' as c_int + frame,
+                            );
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        // Allocate space for the frames present and copy sprtemp to it.
+        let spr = &mut *(sprites as *mut spritedef_t).add(i as usize);
+        spr.numframes = maxframe;
+        spr.spriteframes = Z_Malloc(
+            (maxframe as usize * std::mem::size_of::<spriteframe_t>()) as c_int,
+            1, // PU_STATIC
+            ptr::null_mut(),
+        ) as *mut spriteframe_t;
+        ptr::copy_nonoverlapping(sprtemp.as_ptr(), spr.spriteframes, maxframe as usize);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// R_InitSprites
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_InitSprites(namelist: *mut *mut c_char) {
+    for i in 0..SCREENWIDTH {
+        negonearray[i] = -1;
+    }
+    R_InitSpriteDefs(namelist);
+}
+
+// ---------------------------------------------------------------------------
+// R_ClearSprites
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_ClearSprites() {
+    vissprite_p = vissprites.as_mut_ptr();
+}
+
+// ---------------------------------------------------------------------------
+// R_NewVisSprite
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_NewVisSprite() -> *mut vissprite_t {
+    if vissprite_p == vissprites.as_mut_ptr().add(MAXVISSPRITES) {
+        return &mut overflowsprite;
+    }
+    vissprite_p = vissprite_p.add(1);
+    vissprite_p.sub(1)
+}
+
+// ---------------------------------------------------------------------------
+// R_DrawMaskedColumn
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_DrawMaskedColumn(column: *mut c_void) {
+    let mut column = column as *mut column_t;
+    let basetexturemid = dc_texturemid;
+
+    while (*column).topdelta != 0xff {
+        // Calculate unclipped screen coordinates for post.
+        let topscreen = sprtopscreen + spryscale * (*column).topdelta as c_int;
+        let bottomscreen = topscreen + spryscale * (*column).length as c_int;
+
+        dc_yl = (topscreen + FRACUNIT - 1) >> FRACBITS;
+        dc_yh = (bottomscreen - 1) >> FRACBITS;
+
+        if dc_yh >= *mfloorclip.add(dc_x as usize) as c_int {
+            dc_yh = *mfloorclip.add(dc_x as usize) as c_int - 1;
+        }
+        if dc_yl <= *mceilingclip.add(dc_x as usize) as c_int {
+            dc_yl = *mceilingclip.add(dc_x as usize) as c_int + 1;
+        }
+
+        if dc_yl <= dc_yh {
+            dc_source = (column as *mut u8).add(3);
+            dc_texturemid = basetexturemid - (((*column).topdelta as c_int) << FRACBITS);
+
+            if let Some(func) = colfunc {
+                func();
+            }
+        }
+        column = (column as *mut u8).add((*column).length as usize + 4) as *mut column_t;
+    }
+
+    dc_texturemid = basetexturemid;
+}
+
+// ---------------------------------------------------------------------------
+// R_DrawVisSprite
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_DrawVisSprite(vis: *mut vissprite_t, x1: c_int, x2: c_int) {
+    let patch = W_CacheLumpNum((*vis).patch + firstspritelump, 8) as *mut patch_t; // PU_CACHE = 8
+
+    dc_colormap = (*vis).colormap;
+
+    if dc_colormap.is_null() {
+        // NULL colormap = shadow draw.
+        colfunc = fuzzcolfunc;
+    } else if (*vis).mobjflags & MF_TRANSLATION != 0 {
+        colfunc = transcolfunc;
+        dc_translation = colormaps
+            .sub(256)
+            .add((((*vis).mobjflags & MF_TRANSLATION) >> (MF_TRANSSHIFT - 8)) as usize);
+    }
+
+    dc_iscale = ((*vis).xiscale.abs() >> detailshift) as c_int;
+    dc_texturemid = (*vis).texturemid;
+    let mut frac = (*vis).startfrac;
+    spryscale = (*vis).scale;
+    sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
+
+    for x in (*vis).x1..=(*vis).x2 {
+        dc_x = x;
+        let texturecolumn = frac >> FRACBITS;
+
+        #[cfg(feature = "rangecheck")]
+        {
+            let patch_width = (*patch).width as c_int;
+            if texturecolumn < 0 || texturecolumn >= patch_width {
+                I_Error(b"R_DrawSpriteRange: bad texturecolumn\0".as_ptr() as *const c_char);
+            }
+        }
+
+        let columnofs = (patch as *mut u8).add(8) as *mut c_int;
+        let col_offset = *columnofs.add(texturecolumn as usize);
+        let col = (patch as *mut u8).add(col_offset as usize) as *mut column_t;
+        R_DrawMaskedColumn(col as *mut c_void);
+
+        frac += (*vis).xiscale;
+    }
+
+    colfunc = basecolfunc;
+}
+
+// ---------------------------------------------------------------------------
+// R_ProjectSprite
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_ProjectSprite(thing: *mut c_void) {
+    let thing = thing as *mut crate::doom::c_ffi::mobj_t;
+
+    // Transform the origin point.
+    let tr_x = (*thing).x - viewx;
+    let tr_y = (*thing).y - viewy;
+
+    let gxt = FixedMul(tr_x, viewcos);
+    let gyt = -FixedMul(tr_y, viewsin);
+
+    let tz = gxt - gyt;
+
+    // Thing is behind view plane?
+    if tz < MINZ {
+        return;
+    }
+
+    let xscale = FixedDiv(projection, tz);
+
+    let gxt = -FixedMul(tr_x, viewsin);
+    let gyt = FixedMul(tr_y, viewcos);
+    let tx = -(gyt + gxt);
+
+    // Too far off the side?
+    if tx.abs() > (tz << 2) {
+        return;
+    }
+
+    // Decide which patch to use for sprite relative to player.
+    #[cfg(feature = "rangecheck")]
+    {
+        if (*thing).sprite as u32 >= numsprites as u32 {
+            I_Error(
+                b"R_ProjectSprite: invalid sprite number %i \0".as_ptr() as *const c_char,
+                (*thing).sprite,
+            );
+        }
+    }
+
+    let sprdef = &*(sprites as *mut spritedef_t).add((*thing).sprite as usize);
+    #[cfg(feature = "rangecheck")]
+    {
+        if ((*thing).frame & FF_FRAMEMASK) >= sprdef.numframes {
+            if sprdef.numframes == 0 {
+                return; // sprite lump not present in this WAD — skip silently
+            }
+            I_Error(
+                b"R_ProjectSprite [THING]: invalid sprite frame %i : %i \0".as_ptr()
+                    as *const c_char,
+                (*thing).sprite,
+                (*thing).frame,
+            );
+        }
+    }
+    let sprframe = &*sprdef
+        .spriteframes
+        .add(((*thing).frame & FF_FRAMEMASK) as usize);
+
+    let (lump, flip): (c_int, c_int);
+    if sprframe.rotate == 0 {
+        // Use single rotation for all views.
+        lump = sprframe.lump[0] as c_int;
+        flip = sprframe.flip[0] as c_int;
+    } else {
+        // Choose a different rotation based on player view.
+        let ang = R_PointToAngle((*thing).x, (*thing).y);
+        let rot = ((ang
+            .wrapping_sub((*thing).angle)
+            .wrapping_add((ANG45 / 2) * 9))
+            >> 29) as usize;
+        lump = sprframe.lump[rot] as c_int;
+        flip = sprframe.flip[rot] as c_int;
+    }
+
+    // Calculate edges of the shape.
+    let mut tx = tx - *spriteoffset.add(lump as usize);
+    let x1 = (centerxfrac + FixedMul(tx, xscale)) >> FRACBITS;
+
+    // Off the right side?
+    if x1 > viewwidth {
+        return;
+    }
+
+    tx += *spritewidth.add(lump as usize);
+    let x2 = ((centerxfrac + FixedMul(tx, xscale)) >> FRACBITS) - 1;
+
+    // Off the left side.
+    if x2 < 0 {
+        return;
+    }
+
+    // Store information in a vissprite.
+    let vis = R_NewVisSprite();
+    (*vis).mobjflags = (*thing).flags;
+    (*vis).scale = xscale << detailshift;
+    (*vis).gx = (*thing).x;
+    (*vis).gy = (*thing).y;
+    (*vis).gz = (*thing).z;
+    (*vis).gzt = (*thing).z + *spritetopoffset.add(lump as usize);
+    (*vis).texturemid = (*vis).gzt - viewz;
+    (*vis).x1 = if x1 < 0 { 0 } else { x1 };
+    (*vis).x2 = if x2 >= viewwidth { viewwidth - 1 } else { x2 };
+    let iscale = FixedDiv(FRACUNIT, xscale);
+
+    if flip != 0 {
+        (*vis).startfrac = *spritewidth.add(lump as usize) - 1;
+        (*vis).xiscale = -iscale;
+    } else {
+        (*vis).startfrac = 0;
+        (*vis).xiscale = iscale;
+    }
+
+    if (*vis).x1 > x1 {
+        (*vis).startfrac += (*vis).xiscale * ((*vis).x1 - x1);
+    }
+    (*vis).patch = lump;
+
+    // Get light level.
+    if (*thing).flags & MF_SHADOW != 0 {
+        // Shadow draw.
+        (*vis).colormap = ptr::null_mut();
+    } else if !fixedcolormap.is_null() {
+        // Fixed map.
+        (*vis).colormap = fixedcolormap;
+    } else if (*thing).frame & FF_FULLBRIGHT != 0 {
+        // Full bright.
+        (*vis).colormap = colormaps;
+    } else {
+        // Diminished light.
+        let mut index = (xscale >> (LIGHTSCALESHIFT - detailshift as u32)) as usize;
+        if index >= MAXLIGHTSCALE {
+            index = MAXLIGHTSCALE - 1;
+        }
+        (*vis).colormap = *spritelights.add(index);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// R_AddSprites
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_AddSprites(sec: *mut sector_t) {
+    let sec = &*sec;
+
+    // BSP is traversed by subsector.
+    // A sector might have been split into several subsectors during BSP building.
+    // Thus we check whether it's already added.
+    if sec.validcount == validcount {
+        return;
+    }
+
+    // Well, now it will be done.
+    (*(sec as *const sector_t as *mut sector_t)).validcount = validcount;
+
+    let mut lightnum = (sec.lightlevel >> LIGHTSEGSHIFT as i16) as c_int + extralight;
+
+    if lightnum < 0 {
+        spritelights = scalelight[0].as_mut_ptr();
+    } else if lightnum >= LIGHTLEVELS as c_int {
+        spritelights = scalelight[LIGHTLEVELS - 1].as_mut_ptr();
+    } else {
+        spritelights = scalelight[lightnum as usize].as_mut_ptr();
+    }
+
+    // Handle all things in sector.
+    let mut thing = sec.thinglist as *mut crate::doom::c_ffi::mobj_t;
+    while !thing.is_null() {
+        R_ProjectSprite(thing as *mut c_void);
+        thing = (*thing).snext as *mut crate::doom::c_ffi::mobj_t;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// R_DrawPSprite
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_DrawPSprite(psp: *mut PspdefT) {
+    let psp = &*psp;
+
+    // Decide which patch to use.
+    if psp.state.is_null() {
+        return;
+    }
+
+    let state = psp.state as *mut State;
+
+    #[cfg(feature = "rangecheck")]
+    {
+        let sprite = (*state).sprite;
+        if sprite as u32 >= numsprites as u32 {
+            I_Error(
+                b"R_ProjectSprite: invalid sprite number %i \0".as_ptr() as *const c_char,
+                sprite,
+            );
+        }
+    }
+
+    let sprdef = &*(sprites as *mut spritedef_t).add((*state).sprite as usize);
+    #[cfg(feature = "rangecheck")]
+    {
+        if ((*state).frame & FF_FRAMEMASK) >= sprdef.numframes {
+            I_Error(
+                b"R_ProjectSprite [PSPRITE]: invalid sprite frame %i : %i \0".as_ptr()
+                    as *const c_char,
+                (*state).sprite,
+                (*state).frame,
+            );
+        }
+    }
+    let sprframe = &*sprdef
+        .spriteframes
+        .add(((*state).frame & FF_FRAMEMASK) as usize);
+
+    let lump = sprframe.lump[0] as c_int;
+    let flip = sprframe.flip[0] as c_int;
+
+    // Calculate edges of the shape.
+    let mut tx = psp.sx - 160 * FRACUNIT;
+    tx -= *spriteoffset.add(lump as usize);
+    let x1 = (centerxfrac + FixedMul(tx, pspritescale)) >> FRACBITS;
+
+    // Off the right side.
+    if x1 > viewwidth {
+        return;
+    }
+
+    tx += *spritewidth.add(lump as usize);
+    let x2 = ((centerxfrac + FixedMul(tx, pspritescale)) >> FRACBITS) - 1;
+
+    // Off the left side.
+    if x2 < 0 {
+        return;
+    }
+
+    // Store information in a vissprite.
+    let mut avis: vissprite_t = unsafe { std::mem::zeroed() };
+    let vis = &mut avis;
+    vis.mobjflags = 0;
+    vis.texturemid =
+        (BASEYCENTER << FRACBITS) + FRACUNIT / 2 - (psp.sy - *spritetopoffset.add(lump as usize));
+    vis.x1 = if x1 < 0 { 0 } else { x1 };
+    vis.x2 = if x2 >= viewwidth { viewwidth - 1 } else { x2 };
+    vis.scale = pspritescale << detailshift;
+
+    if flip != 0 {
+        vis.xiscale = -pspriteiscale;
+        vis.startfrac = *spritewidth.add(lump as usize) - 1;
+    } else {
+        vis.xiscale = pspriteiscale;
+        vis.startfrac = 0;
+    }
+
+    if vis.x1 > x1 {
+        vis.startfrac += vis.xiscale * (vis.x1 - x1);
+    }
+
+    vis.patch = lump;
+
+    let player = &*viewplayer;
+    if player.powers[pw_invisibility] > 4 * 32 || player.powers[pw_invisibility] & 8 != 0 {
+        // Shadow draw.
+        vis.colormap = ptr::null_mut();
+    } else if !fixedcolormap.is_null() {
+        // Fixed color.
+        vis.colormap = fixedcolormap;
+    } else if (*state).frame & FF_FULLBRIGHT != 0 {
+        // Full bright.
+        vis.colormap = colormaps;
+    } else {
+        // Local light.
+        vis.colormap = *spritelights.add(MAXLIGHTSCALE - 1);
+    }
+
+    R_DrawVisSprite(vis, vis.x1, vis.x2);
+}
+
+// ---------------------------------------------------------------------------
+// R_DrawPlayerSprites
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_DrawPlayerSprites() {
+    let mo = (*viewplayer).mo as *mut crate::doom::c_ffi::mobj_t;
+    let sub = (*mo).subsector as *mut crate::doom::r_bsp::subsector_t;
+    let sec = (*sub).sector;
+    let lightnum = ((*sec).lightlevel >> LIGHTSEGSHIFT as i16) as c_int + extralight;
+
+    if lightnum < 0 {
+        spritelights = scalelight[0].as_mut_ptr();
+    } else if lightnum >= LIGHTLEVELS as c_int {
+        spritelights = scalelight[LIGHTLEVELS - 1].as_mut_ptr();
+    } else {
+        spritelights = scalelight[lightnum as usize].as_mut_ptr();
+    }
+
+    // Clip to screen bounds.
+    mfloorclip = screenheightarray.as_mut_ptr();
+    mceilingclip = negonearray.as_mut_ptr();
+
+    // Add all active psprites.
+    let psp = (*viewplayer).psprites.as_ptr() as *mut PspdefT;
+    for i in 0..NUMPSPRITES {
+        let psp_i = psp.add(i);
+        if !(*psp_i).state.is_null() {
+            R_DrawPSprite(psp_i);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// R_SortVisSprites
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_SortVisSprites() {
+    let count = vissprite_p.offset_from(vissprites.as_mut_ptr()) as isize;
+
+    let mut unsorted: vissprite_t = unsafe { std::mem::zeroed() };
+    unsorted.next = &mut unsorted;
+    unsorted.prev = &mut unsorted;
+
+    if count == 0 {
+        return;
+    }
+
+    for i in 0..count {
+        let ds = vissprites.as_mut_ptr().add(i as usize);
+        (*ds).next = ds.add(1);
+        (*ds).prev = ds.sub(1);
+    }
+
+    vissprites[0].prev = &mut unsorted;
+    unsorted.next = vissprites.as_mut_ptr();
+    (*vissprite_p.sub(1)).next = &mut unsorted;
+    unsorted.prev = vissprite_p.sub(1);
+
+    // Pull the vissprites out by scale.
+    vsprsortedhead.next = &mut vsprsortedhead;
+    vsprsortedhead.prev = &mut vsprsortedhead;
+
+    for _ in 0..count {
+        let mut bestscale = c_int::MAX;
+        let mut best = unsorted.next;
+
+        let mut ds = unsorted.next;
+        while ds != &mut unsorted {
+            if (*ds).scale < bestscale {
+                bestscale = (*ds).scale;
+                best = ds;
+            }
+            ds = (*ds).next;
+        }
+
+        (*(*best).next).prev = (*best).prev;
+        (*(*best).prev).next = (*best).next;
+        (*best).next = &mut vsprsortedhead;
+        (*best).prev = vsprsortedhead.prev;
+        (*vsprsortedhead.prev).next = best;
+        vsprsortedhead.prev = best;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// R_DrawSprite
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_DrawSprite(spr: *mut vissprite_t) {
+    let spr = &*spr;
+
+    static mut CLIPBOT: [c_short; SCREENWIDTH] = [0; SCREENWIDTH];
+    static mut CLIPTOP: [c_short; SCREENWIDTH] = [0; SCREENWIDTH];
+
+    for x in spr.x1..=spr.x2 {
+        CLIPBOT[x as usize] = -2;
+        CLIPTOP[x as usize] = -2;
+    }
+
+    // Scan drawsegs from end to start for obscuring segs.
+    let mut ds = ds_p.sub(1);
+    let drawsegs_base = drawsegs.as_mut_ptr();
+    while ds >= drawsegs_base {
+        // Determine if the drawseg obscures the sprite.
+        if (*ds).x1 > spr.x2
+            || (*ds).x2 < spr.x1
+            || ((*ds).silhouette == 0 && (*ds).maskedtexturecol.is_null())
+        {
+            // Does not cover sprite.
+            ds = ds.sub(1);
+            continue;
+        }
+
+        let r1 = if (*ds).x1 < spr.x1 { spr.x1 } else { (*ds).x1 };
+        let r2 = if (*ds).x2 > spr.x2 { spr.x2 } else { (*ds).x2 };
+
+        let (lowscale, scale): (fixed_t, fixed_t);
+        if (*ds).scale1 > (*ds).scale2 {
+            lowscale = (*ds).scale2;
+            scale = (*ds).scale1;
+        } else {
+            lowscale = (*ds).scale1;
+            scale = (*ds).scale2;
+        }
+
+        if scale < spr.scale
+            || (lowscale < spr.scale && R_PointOnSegSide(spr.gx, spr.gy, (*ds).curline) == 0)
+        {
+            // Masked mid texture?
+            if !(*ds).maskedtexturecol.is_null() {
+                R_RenderMaskedSegRange(ds, r1, r2);
+            }
+            // Seg is behind sprite.
+            ds = ds.sub(1);
+            continue;
+        }
+
+        // Clip this piece of the sprite.
+        let mut silhouette = (*ds).silhouette;
+
+        if spr.gz >= (*ds).bsilheight {
+            silhouette &= !SIL_BOTTOM;
+        }
+        if spr.gzt <= (*ds).tsilheight {
+            silhouette &= !SIL_TOP;
+        }
+
+        if silhouette == SIL_BOTTOM {
+            for x in r1..=r2 {
+                if CLIPBOT[x as usize] == -2 {
+                    CLIPBOT[x as usize] = *(*ds).sprbottomclip.add(x as usize);
+                }
+            }
+        } else if silhouette == SIL_TOP {
+            for x in r1..=r2 {
+                if CLIPTOP[x as usize] == -2 {
+                    CLIPTOP[x as usize] = *(*ds).sprtopclip.add(x as usize);
+                }
+            }
+        } else if silhouette == (SIL_TOP | SIL_BOTTOM) {
+            for x in r1..=r2 {
+                if CLIPBOT[x as usize] == -2 {
+                    CLIPBOT[x as usize] = *(*ds).sprbottomclip.add(x as usize);
+                }
+                if CLIPTOP[x as usize] == -2 {
+                    CLIPTOP[x as usize] = *(*ds).sprtopclip.add(x as usize);
+                }
+            }
+        }
+
+        ds = ds.sub(1);
+    }
+
+    // All clipping has been performed, so draw the sprite.
+    // Check for unclipped columns.
+    for x in spr.x1..=spr.x2 {
+        if CLIPBOT[x as usize] == -2 {
+            CLIPBOT[x as usize] = viewheight as c_short;
+        }
+        if CLIPTOP[x as usize] == -2 {
+            CLIPTOP[x as usize] = -1;
+        }
+    }
+
+    mfloorclip = CLIPBOT.as_mut_ptr();
+    mceilingclip = CLIPTOP.as_mut_ptr();
+    R_DrawVisSprite(
+        spr as *const vissprite_t as *mut vissprite_t,
+        spr.x1,
+        spr.x2,
+    );
+}
+
+// ---------------------------------------------------------------------------
+// R_DrawMasked
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_DrawMasked() {
+    R_SortVisSprites();
+
+    if vissprite_p > vissprites.as_mut_ptr() {
+        // Draw all vissprites back to front.
+        let mut spr = vsprsortedhead.next;
+        while spr != &mut vsprsortedhead {
+            R_DrawSprite(spr);
+            spr = (*spr).next;
+        }
+    }
+
+    // Render any remaining masked mid textures.
+    let mut ds = ds_p.sub(1);
+    let drawsegs_base = drawsegs.as_mut_ptr();
+    while ds >= drawsegs_base {
+        if !(*ds).maskedtexturecol.is_null() {
+            R_RenderMaskedSegRange(ds, (*ds).x1, (*ds).x2);
+        }
+        ds = ds.sub(1);
+    }
+
+    // Draw the psprites on top of everything.
+    if viewangleoffset == 0 {
+        R_DrawPlayerSprites();
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Anchor
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub unsafe extern "C" fn R_Things_Link_Anchor() {
+    let _ = R_InitSprites as *const () as usize;
+    let _ = R_ClearSprites as *const () as usize;
+    let _ = R_NewVisSprite as *const () as usize;
+    let _ = R_DrawMaskedColumn as *const () as usize;
+    let _ = R_DrawVisSprite as *const () as usize;
+    let _ = R_ProjectSprite as *const () as usize;
+    let _ = R_AddSprites as *const () as usize;
+    let _ = R_DrawPSprite as *const () as usize;
+    let _ = R_DrawPlayerSprites as *const () as usize;
+    let _ = R_SortVisSprites as *const () as usize;
+    let _ = R_DrawSprite as *const () as usize;
+    let _ = R_DrawMasked as *const () as usize;
+}

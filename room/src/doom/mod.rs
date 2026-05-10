@@ -61,6 +61,7 @@ pub mod r_main;
 pub mod r_plane;
 pub mod r_segs;
 pub mod r_sky;
+pub mod r_things;
 pub mod s_sound;
 pub mod sha1;
 pub mod sounds;
