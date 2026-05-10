@@ -10,11 +10,28 @@ for the platform layer.
 
 ## What is this?
 
-`room` is a Rust reimplementation of the classic DOOM engine.  The port follows
-a *functional approximation* approach: the initial implementation compiles the
-doomgeneric C source via the `cc` crate and provides all six platform callbacks
-(`DG_Init`, `DG_DrawFrame`, `DG_SleepMs`, `DG_GetTicksMs`, `DG_GetKey`,
-`DG_SetWindowTitle`) in pure Rust using modern, cross-platform libraries.
+`room` is an **incremental Rust port** of the classic DOOM engine based on
+[doomgeneric](https://github.com/ozkl/doomgeneric).  Rather than rewriting
+everything at once, the project follows a **module-by-module replacement**
+strategy:
+
+1. The remaining unported C modules are compiled into a static library by
+   `doomgeneric-sys/build.rs` using the `cc` crate.
+2. Each ported module is rewritten in Rust inside `room/src/doom/` and exported
+   with `#[no_mangle] extern "C"` so the final linker picks the Rust symbol
+   instead of the C one.
+3. The platform layer (window creation, GPU rendering, keyboard input) is
+   already pure Rust, built on [winit](https://github.com/rust-windowing/winit)
+   and [wgpu](https://github.com/gfx-rs/wgpu).
+
+This means the executable is a **mixed C/Rust binary**: some subsystems (e.g.
+`r_draw`, `p_setup`, `z_zone`) are now native Rust, while others (e.g.
+`g_game`, `p_enemy`, `d_main`) still run the original C code.  As each module
+is ported it is removed from `build.rs` and the C file is no longer linked.
+
+A regression-test harness (`room/src/doom/c_tests/`) runs the original C
+functions alongside their Rust replacements to verify bit-for-bit behavioural
+compatibility before a module is declared ported.
 
 As noted in the doomgeneric README, sound is hard – so we skip it for now.
 
@@ -25,16 +42,25 @@ room/
 ├── Cargo.toml               Workspace manifest
 ├── vendor/
 │   └── doomgeneric/         Vendored C source from ozkl/doomgeneric
-├── doomgeneric-sys/         Raw FFI bindings crate
-│   ├── build.rs             Compiles the C source via the `cc` crate
-│   └── src/lib.rs           Minimal extern "C" declarations
+├── doomgeneric-sys/         FFI + C compilation crate
+│   ├── build.rs             Compiles remaining C modules via the `cc` crate
+│   └── src/lib.rs           Declarations for C entry points (doomgeneric_Create, etc.)
 └── room/                    Rust binary crate
     └── src/
         ├── main.rs          winit ApplicationHandler and entry point
         ├── gpu.rs           wgpu renderer (texture upload + fullscreen blit)
-        └── platform/
-            ├── mod.rs       DG_* C-callable platform callbacks
-            └── keys.rs      winit KeyCode → Doom key byte mapping
+        ├── platform/
+        │   ├── mod.rs       DG_* C-callable platform callbacks
+        │   └── keys.rs      winit KeyCode → Doom key byte mapping
+        └── doom/
+            ├── mod.rs       Rust reimplementations of ported engine modules
+            ├── c_ffi.rs     FFI declarations for still-C modules (used by tests)
+            ├── c_tests/     Regression tests comparing C vs Rust behaviour
+            ├── d_main.rs    (stub – still compiled from C)
+            ├── r_draw.rs    Ported renderer core
+            ├── p_setup.rs   Ported map loader
+            ├── z_zone.rs    Ported zone memory allocator
+            └── …            One `.rs` module per original `.c` file
 ```
 
 ## Prerequisites
@@ -100,7 +126,7 @@ recommended porting order.
 - [x] `d_event.c`
 - [x] `d_items.c`
 - [x] `d_iwad.c`
-- [ ] `d_loop.c`
+- [x] `d_loop.c`
 - [ ] `d_main.c`
 - [x] `d_mode.c`
 - [x] `d_net.c`
@@ -114,7 +140,7 @@ recommended porting order.
 
 - [ ] `g_game.c`
 - [x] `p_ceilng.c`
-- [ ] `p_doors.c`
+- [x] `p_doors.c`
 - [ ] `p_enemy.c`
 - [x] `p_floor.c`
 - [x] `p_inter.c`
@@ -128,7 +154,7 @@ recommended porting order.
 - [x] `p_setup.c`
 - [x] `p_sight.c`
 - [ ] `p_spec.c`
-- [ ] `p_switch.c`
+- [x] `p_switch.c`
 - [x] `p_telept.c`
 - [x] `p_tick.c`
 - [x] `p_user.c`
