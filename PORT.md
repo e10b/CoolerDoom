@@ -16,10 +16,10 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 7 |
-| Total remaining LoC | ~12,815 |
-| Already ported LoC | ~42,889 (est.) |
-| Port completeness | ~77.0% (by line count) |
+| Remaining C modules | 6 |
+| Total remaining LoC | ~11,363 |
+| Already ported LoC | ~44,341 (est.) |
+| Port completeness | ~79.6% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -43,11 +43,10 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Large — 1,000–1,500 LoC (2 files, 2,941 LoC)
+### Large — 1,000–1,500 LoC (1 file, 1,489 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `i_scale.c` | 1,452 | Platform | Screen scaling algorithms |
 | `p_spec.c` | 1,489 | Game logic | Special sector/line action dispatcher |
 
 ### Very Large — > 1,500 LoC (5 files, 9,874 LoC)
@@ -85,9 +84,9 @@ orchestrators themselves.
 6. **Enemy AI** — `p_enemy.c`. Complex state machines, but all dependencies
    (`p_mobj`, `p_map`, `p_maputl`, `p_spec`) should be in place by this
    point.
-7. ~~**UI / display modules** — `st_stuff.c` is now ported. `wi_stuff.c`
-     and `i_scale.c` remain; they are large but relatively self-contained
-     and can be worked on in parallel with the gameplay modules.~~
+7. ~~**UI / display modules** — `st_stuff.c` and `i_scale.c` are now ported.
+      `wi_stuff.c` remains; it is large but relatively self-contained
+      and can be worked on in parallel with the gameplay modules.~~
 8. **Save/load** — `p_saveg.c`. Heavy struct-layout and serialization work.
    Best done after `p_map.c` is stable so the serialized types do not drift.
 9. **Main orchestrators last** — `d_main.c`, `g_game.c`. These have the

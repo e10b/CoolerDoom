@@ -27,6 +27,7 @@ pub mod i_cdmus;
 pub mod i_endoom;
 pub mod i_input;
 pub mod i_joystick;
+pub mod i_scale;
 pub mod i_sound;
 pub mod i_system;
 pub mod i_timer;

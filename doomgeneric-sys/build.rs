@@ -77,8 +77,6 @@ fn main() {
         // i_endoom — ported to Rust (room/src/doom/i_endoom.rs)
         // Joystick stub
         // i_joystick — ported to Rust (room/src/doom/i_joystick.rs)
-        // Screen scaling
-        "i_scale.c",
         // Sound stub
         // i_sound   — ported to Rust (room/src/doom/i_sound.rs)
         // System functions (error handling, etc.) — ported to Rust (room/src/doom/i_system.rs)

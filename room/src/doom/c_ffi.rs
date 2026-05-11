@@ -584,28 +584,12 @@ pub struct screen_mode_t {
     pub poor_quality: c_int,
 }
 
-extern "C" {
-    // Direct pixel-double scale modes (320×200 → N×(320×200))
-    pub static mut mode_scale_1x: screen_mode_t; // 320×200
-    pub static mut mode_scale_2x: screen_mode_t; // 640×400
-    pub static mut mode_scale_3x: screen_mode_t; // 960×600
-    pub static mut mode_scale_4x: screen_mode_t; // 1280×800
-    pub static mut mode_scale_5x: screen_mode_t; // 1600×1000
-
-    // Vertically-stretched modes (320×200 → N×(320×240))
-    pub static mut mode_stretch_1x: screen_mode_t; // 320×240  (poor)
-    pub static mut mode_stretch_2x: screen_mode_t; // 640×480
-    pub static mut mode_stretch_3x: screen_mode_t; // 960×720
-    pub static mut mode_stretch_4x: screen_mode_t; // 1280×960
-    pub static mut mode_stretch_5x: screen_mode_t; // 1600×1200
-
-    // Horizontally-squashed modes (320×200 → N×(256×200))
-    pub static mut mode_squash_1x: screen_mode_t; // 256×200  (poor)
-    pub static mut mode_squash_2x: screen_mode_t; // 512×400
-    pub static mut mode_squash_3x: screen_mode_t; // 800×600  (quirk: not 768×600)
-    pub static mut mode_squash_4x: screen_mode_t; // 1024×800
-    pub static mut mode_squash_5x: screen_mode_t; // 1280×1000
-}
+// Re-exported from the Rust port of i_scale.c.
+pub use crate::doom::i_scale::{
+    mode_scale_1x, mode_scale_2x, mode_scale_3x, mode_scale_4x, mode_scale_5x, mode_squash_1x,
+    mode_squash_2x, mode_squash_3x, mode_squash_4x, mode_squash_5x, mode_stretch_1x,
+    mode_stretch_2x, mode_stretch_3x, mode_stretch_4x, mode_stretch_5x,
+};
 
 // ---------------------------------------------------------------------------
 // Additional constants from C headers
