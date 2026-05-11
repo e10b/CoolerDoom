@@ -7,11 +7,9 @@
 use std::ffi::{c_int, c_short, c_void};
 use std::ptr;
 
+use super::c_ffi::{ANG90, ANGLETOFINESHIFT};
+use super::m_fixed::{angle_t, fixed_t};
 use super::tables;
-
-const ANGLETOFINESHIFT: u32 = 19;
-const ANG90: u32 = 0x4000_0000;
-const FINEMASK: usize = 0x1FFF;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -38,13 +36,6 @@ unsafe fn seg_index(line: *const seg_t) -> isize {
         (line as isize - segs as isize) / std::mem::size_of::<seg_t>() as isize
     }
 }
-
-// ---------------------------------------------------------------------------
-// Type aliases
-// ---------------------------------------------------------------------------
-
-pub type fixed_t = c_int;
-pub type angle_t = u32;
 
 // ---------------------------------------------------------------------------
 // Mirrored C structs (from r_defs.h) — only fields read by r_bsp.c
@@ -614,7 +605,7 @@ unsafe fn R_AddLine(line: *mut seg_t) {
 
     // Back side?
     if span >= 0x8000_0000 {
-        log::debug!(
+        log::trace!(
             "R_AddLine SKIP backface: orig_a1={:#x} orig_a2={:#x} va={:#x}",
             orig_angle1,
             orig_angle2,
@@ -633,7 +624,7 @@ unsafe fn R_AddLine(line: *mut seg_t) {
     if tspan > clipangle_d2 {
         tspan = tspan.wrapping_sub(clipangle_d2);
         if tspan >= span {
-            log::debug!("R_AddLine SKIP off-left: orig_a1={:#x} orig_a2={:#x} va={:#x} a1={:#x} a2={:#x} span={:#x} tspan={:#x}", orig_angle1, orig_angle2, viewangle, angle1, angle2, span, tspan);
+            log::trace!("R_AddLine SKIP off-left: orig_a1={:#x} orig_a2={:#x} va={:#x} a1={:#x} a2={:#x} span={:#x} tspan={:#x}", orig_angle1, orig_angle2, viewangle, angle1, angle2, span, tspan);
             return;
         }
         angle1 = clipangle;
@@ -643,7 +634,7 @@ unsafe fn R_AddLine(line: *mut seg_t) {
     if tspan > clipangle_d2 {
         tspan = tspan.wrapping_sub(clipangle_d2);
         if tspan >= span {
-            log::debug!("R_AddLine SKIP off-right: orig_a1={:#x} orig_a2={:#x} va={:#x} a1={:#x} a2={:#x} span={:#x} tspan={:#x}", orig_angle1, orig_angle2, viewangle, angle1, angle2, span, tspan);
+            log::trace!("R_AddLine SKIP off-right: orig_a1={:#x} orig_a2={:#x} va={:#x} a1={:#x} a2={:#x} span={:#x} tspan={:#x}", orig_angle1, orig_angle2, viewangle, angle1, angle2, span, tspan);
             return;
         }
         angle2 = 0u32.wrapping_sub(clipangle);
@@ -656,7 +647,7 @@ unsafe fn R_AddLine(line: *mut seg_t) {
 
     // Log walls that land in the right portion of the screen
     if x2 >= 200 || x1 >= 200 {
-        log::debug!(
+        log::trace!(
             "R_AddLine wall: orig_a1={:#x} orig_a2={:#x} va={:#x} clip={:#x} a1={:#x} a2={:#x} idx1={} idx2={} x1={} x2={}",
             orig_angle1, orig_angle2, viewangle, clipangle, angle1, angle2, idx1, idx2, x1, x2
         );
@@ -673,7 +664,7 @@ unsafe fn R_AddLine(line: *mut seg_t) {
     );
 
     if x1 == x2 {
-        log::debug!(
+        log::trace!(
             "R_AddLine SKIP x1==x2: orig_a1={:#x} orig_a2={:#x} x1={} x2={}",
             orig_angle1,
             orig_angle2,

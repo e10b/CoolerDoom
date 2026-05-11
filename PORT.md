@@ -8,14 +8,18 @@ ordered by size (lines of code).  Use it to plan incremental porting work.
 > crate.  The checklist in [README.md](README.md#porting-progress) is the
 > source of truth.
 
+A transpiled reference Rust code is available in `c2rust-intermediate/`. Use it to verify assumptions in addition to the original C code. The transpiled code is not part of the build.
+
+The ported code must be validated against the unit tests, as well as the `demo_playthrough` integration test.
+
 ## Summary
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 13 |
-| Total remaining LoC | 20,070 |
-| Already ported LoC | ~35,634 (est.) |
-| Port completeness | ~64.0% (by line count) |
+| Remaining C modules | 5 |
+| Total remaining LoC | ~9,874 |
+| Already ported LoC | ~45,830 (est.) |
+| Port completeness | ~82.3% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -27,8 +31,6 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-**Recently ported**: `p_inter.c` (922 LoC), `r_data.c` (912 LoC), `r_draw.c` (975 LoC), `p_pspr.c` (888 LoC), `p_setup.c` (855 LoC), `d_iwad.c` (848 LoC), `d_loop.c` (826 LoC), `p_doors.c` (778 LoC), `r_segs.c` (743 LoC), `f_finale.c` (718 LoC), `p_switch.c` (648 LoC), `hu_stuff.c` (641 LoC).
-
 ### Medium-Small — 350–550 LoC (0 files, 0 LoC)
 
 _All modules in this bucket have been ported._
@@ -37,23 +39,13 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Medium-Large — 900–1,100 LoC (2 files, 1,983 LoC)
+### Medium-Large — 900–1,100 LoC (0 files, 0 LoC)
 
-| File | Lines | Category | Porting notes |
-|------|------:|----------|---------------|
-| `r_things.c` | 986 | Renderer | Sprite rendering and scaling |
-| `p_maputl.c` | 1,001 | Game logic | Map collision utilities (P_PathTraverse, etc.) |
+_All modules in this bucket have been ported._
 
-### Large — 1,000–1,500 LoC (6 files, 8,209 LoC)
+### Large — 1,000–1,500 LoC (0 files, 0 LoC)
 
-| File | Lines | Category | Porting notes |
-|------|------:|----------|---------------|
-| `p_mobj.c` | 1,049 | Game logic | Map object (mobj) creation, movement, spawning |
-| `am_map.c` | 1,355 | Automap | Full automap implementation |
-| `st_stuff.c` | 1,416 | Status bar | Full status bar logic |
-| `p_map.c` | 1,448 | Game logic | Map collision detection; dense geometry code |
-| `i_scale.c` | 1,452 | Platform | Screen scaling algorithms |
-| `p_spec.c` | 1,489 | Game logic | Special sector/line action dispatcher |
+_All modules in this bucket have been ported._
 
 ### Very Large — > 1,500 LoC (5 files, 9,874 LoC)
 
@@ -67,36 +59,32 @@ _All modules in this bucket have been ported._
 
 ## Recommended Porting Order
 
-With only 13 modules left, the strategy shifts from "quick wins" to
+With only 5 modules left, the strategy shifts from "quick wins" to
 **dependency-driven sequencing**: unblock the modules that the largest
 orchestrators (`d_main.c`, `g_game.c`) depend on first, then tackle the
 orchestrators themselves.
 
-1. **Finish the renderer** — `r_things.c`. All upstream dependencies
-   (`r_data`, `r_draw`, `r_segs`, `r_main`, `r_plane`, `r_bsp`, `r_sky`) are
-   already ported, so this closes the renderer pipeline.
-2. **Map utilities** — `p_maputl.c`. Building block for `p_map.c` and
-   `p_mobj.c`; many of its types (`divline_t`, `intercept_t`, `mobj_t`) are
-   already mirrored in `c_ffi.rs`.
-3. **Map objects** — `p_mobj.c`. Needed by `p_enemy.c`, `g_game.c`, and
-   `p_map.c`. Once ported, the thinker list becomes fully Rust-native.
-4. **Collision detection** — `p_map.c`. Required by `p_enemy.c` and
+1. ~~**Finish the renderer** — `r_things.c` is now ported. The renderer pipeline
+   (`r_data`, `r_draw`, `r_segs`, `r_main`, `r_plane`, `r_bsp`, `r_sky`,
+   `r_things`) is fully Rust-native.~~
+2. ~~**Map objects** — `p_mobj.c`. Needed by `p_enemy.c`, `g_game.c`, and
+   `p_map.c`. Once ported, the thinker list becomes fully Rust-native.~~
+3. ~~**Map utilities** — `p_maputl.c`. Building block for `p_map.c`; many of
+   its types (`divline_t`, `intercept_t`, `mobj_t`) are already mirrored in
+   `c_ffi.rs`.~~
+4. ~~**Collision detection** — `p_map.c`. Required by `p_enemy.c` and
    `g_game.c`. Heavy geometry code, but its utility layer (`p_maputl.c`)
-   should be done first.
-5. **Special actions** — `p_spec.c`. Dispatcher for sector/line specials.
-   Many of the individual action handlers it calls (`p_floor`, `p_ceilng`,
-   `p_plats`, `p_doors`, `p_lights`, `p_switch`, `p_telept`) are already
-   ported, so this becomes mainly wiring and state management.
+   should be done first.~~
+5. ~~**Special actions** — `p_spec.c` is now ported. The sector/line
+   special dispatcher (`p_spec.rs`) is fully Rust-native.~~
 6. **Enemy AI** — `p_enemy.c`. Complex state machines, but all dependencies
    (`p_mobj`, `p_map`, `p_maputl`, `p_spec`) should be in place by this
    point.
-7. **UI / display modules** — `st_stuff.c`, `am_map.c`, `wi_stuff.c`,
-   `i_scale.c`. Large but relatively self-contained; they can be worked on
-   in parallel with (or slightly after) the gameplay modules. `st_stuff.c`
-   depends on `st_lib.c` (ported) and `p_mobj.c` types.
+7. ~~**UI / display modules** — `st_stuff.c` and `i_scale.c` are now ported.
+      `wi_stuff.c` remains; it is large but relatively self-contained
+      and can be worked on in parallel with the gameplay modules.~~
 8. **Save/load** — `p_saveg.c`. Heavy struct-layout and serialization work.
-   Best done after `p_mobj.c` and `p_map.c` are stable so the serialized
-   types do not drift.
+   Best done after `p_map.c` is stable so the serialized types do not drift.
 9. **Main orchestrators last** — `d_main.c`, `g_game.c`. These have the
    most cross-cutting dependencies and should be ported only when everything
    they call is already Rust.
@@ -114,8 +102,8 @@ orchestrators themselves.
 - **`z_zone.c` is ported**: The zone memory allocator is now Rust-native
   (`room/src/doom/z_zone.rs`). Subsequent ports can rely on safe allocation
   and automatic zeroing.
-- **Renderer inner loops**: `r_draw.c` was ported with explicit wrapping
-  arithmetic to match C overflow semantics. The same pattern should be used
-  for `r_things.c` to preserve demo determinism.
+- **Renderer inner loops**: `r_draw.c` and `r_things.c` were ported with
+  explicit wrapping arithmetic to match C overflow semantics and preserve
+  demo determinism.
 
 (End of file - total 104 lines)

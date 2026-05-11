@@ -13,144 +13,144 @@ const FRACUNIT: c_int = 65536;
 
 // Sprite name indices
 
-const SPR_TROO: c_int = 0;
-const SPR_SHTG: c_int = 1;
-const SPR_PUNG: c_int = 2;
-const SPR_PISG: c_int = 3;
-const SPR_PISF: c_int = 4;
-const SPR_SHTF: c_int = 5;
-const SPR_SHT2: c_int = 6;
-const SPR_CHGG: c_int = 7;
-const SPR_CHGF: c_int = 8;
-const SPR_MISG: c_int = 9;
-const SPR_MISF: c_int = 10;
-const SPR_SAWG: c_int = 11;
-const SPR_PLSG: c_int = 12;
-const SPR_PLSF: c_int = 13;
-const SPR_BFGG: c_int = 14;
-const SPR_BFGF: c_int = 15;
-const SPR_BLUD: c_int = 16;
-const SPR_PUFF: c_int = 17;
-const SPR_BAL1: c_int = 18;
-const SPR_BAL2: c_int = 19;
-const SPR_PLSS: c_int = 20;
-const SPR_PLSE: c_int = 21;
-const SPR_MISL: c_int = 22;
-const SPR_BFS1: c_int = 23;
-const SPR_BFE1: c_int = 24;
-const SPR_BFE2: c_int = 25;
-const SPR_TFOG: c_int = 26;
-const SPR_IFOG: c_int = 27;
-const SPR_PLAY: c_int = 28;
-const SPR_POSS: c_int = 29;
-const SPR_SPOS: c_int = 30;
-const SPR_VILE: c_int = 31;
-const SPR_FIRE: c_int = 32;
-const SPR_FATB: c_int = 33;
-const SPR_FBXP: c_int = 34;
-const SPR_SKEL: c_int = 35;
-const SPR_MANF: c_int = 36;
-const SPR_FATT: c_int = 37;
-const SPR_CPOS: c_int = 38;
-const SPR_SARG: c_int = 39;
-const SPR_HEAD: c_int = 40;
-const SPR_BAL7: c_int = 41;
-const SPR_BOSS: c_int = 42;
-const SPR_BOS2: c_int = 43;
-const SPR_SKUL: c_int = 44;
-const SPR_SPID: c_int = 45;
-const SPR_BSPI: c_int = 46;
-const SPR_APLS: c_int = 47;
-const SPR_APBX: c_int = 48;
-const SPR_CYBR: c_int = 49;
-const SPR_PAIN: c_int = 50;
-const SPR_SSWV: c_int = 51;
-const SPR_KEEN: c_int = 52;
-const SPR_BBRN: c_int = 53;
-const SPR_BOSF: c_int = 54;
-const SPR_ARM1: c_int = 55;
-const SPR_ARM2: c_int = 56;
-const SPR_BAR1: c_int = 57;
-const SPR_BEXP: c_int = 58;
-const SPR_FCAN: c_int = 59;
-const SPR_BON1: c_int = 60;
-const SPR_BON2: c_int = 61;
-const SPR_BKEY: c_int = 62;
-const SPR_RKEY: c_int = 63;
-const SPR_YKEY: c_int = 64;
-const SPR_BSKU: c_int = 65;
-const SPR_RSKU: c_int = 66;
-const SPR_YSKU: c_int = 67;
-const SPR_STIM: c_int = 68;
-const SPR_MEDI: c_int = 69;
-const SPR_SOUL: c_int = 70;
-const SPR_PINV: c_int = 71;
-const SPR_PSTR: c_int = 72;
-const SPR_PINS: c_int = 73;
-const SPR_MEGA: c_int = 74;
-const SPR_SUIT: c_int = 75;
-const SPR_PMAP: c_int = 76;
-const SPR_PVIS: c_int = 77;
-const SPR_CLIP: c_int = 78;
-const SPR_AMMO: c_int = 79;
-const SPR_ROCK: c_int = 80;
-const SPR_BROK: c_int = 81;
-const SPR_CELL: c_int = 82;
-const SPR_CELP: c_int = 83;
-const SPR_SHEL: c_int = 84;
-const SPR_SBOX: c_int = 85;
-const SPR_BPAK: c_int = 86;
-const SPR_BFUG: c_int = 87;
-const SPR_MGUN: c_int = 88;
-const SPR_CSAW: c_int = 89;
-const SPR_LAUN: c_int = 90;
-const SPR_PLAS: c_int = 91;
-const SPR_SHOT: c_int = 92;
-const SPR_SGN2: c_int = 93;
-const SPR_COLU: c_int = 94;
-const SPR_SMT2: c_int = 95;
-const SPR_GOR1: c_int = 96;
-const SPR_POL2: c_int = 97;
-const SPR_POL5: c_int = 98;
-const SPR_POL4: c_int = 99;
-const SPR_POL3: c_int = 100;
-const SPR_POL1: c_int = 101;
-const SPR_POL6: c_int = 102;
-const SPR_GOR2: c_int = 103;
-const SPR_GOR3: c_int = 104;
-const SPR_GOR4: c_int = 105;
-const SPR_GOR5: c_int = 106;
-const SPR_SMIT: c_int = 107;
-const SPR_COL1: c_int = 108;
-const SPR_COL2: c_int = 109;
-const SPR_COL3: c_int = 110;
-const SPR_COL4: c_int = 111;
-const SPR_CAND: c_int = 112;
-const SPR_CBRA: c_int = 113;
-const SPR_COL6: c_int = 114;
-const SPR_TRE1: c_int = 115;
-const SPR_TRE2: c_int = 116;
-const SPR_ELEC: c_int = 117;
-const SPR_CEYE: c_int = 118;
-const SPR_FSKU: c_int = 119;
-const SPR_COL5: c_int = 120;
-const SPR_TBLU: c_int = 121;
-const SPR_TGRN: c_int = 122;
-const SPR_TRED: c_int = 123;
-const SPR_SMBT: c_int = 124;
-const SPR_SMGT: c_int = 125;
-const SPR_SMRT: c_int = 126;
-const SPR_HDB1: c_int = 127;
-const SPR_HDB2: c_int = 128;
-const SPR_HDB3: c_int = 129;
-const SPR_HDB4: c_int = 130;
-const SPR_HDB5: c_int = 131;
-const SPR_HDB6: c_int = 132;
-const SPR_POB1: c_int = 133;
-const SPR_POB2: c_int = 134;
-const SPR_BRS1: c_int = 135;
-const SPR_TLMP: c_int = 136;
-const SPR_TLP2: c_int = 137;
+pub const SPR_TROO: c_int = 0;
+pub const SPR_SHTG: c_int = 1;
+pub const SPR_PUNG: c_int = 2;
+pub const SPR_PISG: c_int = 3;
+pub const SPR_PISF: c_int = 4;
+pub const SPR_SHTF: c_int = 5;
+pub const SPR_SHT2: c_int = 6;
+pub const SPR_CHGG: c_int = 7;
+pub const SPR_CHGF: c_int = 8;
+pub const SPR_MISG: c_int = 9;
+pub const SPR_MISF: c_int = 10;
+pub const SPR_SAWG: c_int = 11;
+pub const SPR_PLSG: c_int = 12;
+pub const SPR_PLSF: c_int = 13;
+pub const SPR_BFGG: c_int = 14;
+pub const SPR_BFGF: c_int = 15;
+pub const SPR_BLUD: c_int = 16;
+pub const SPR_PUFF: c_int = 17;
+pub const SPR_BAL1: c_int = 18;
+pub const SPR_BAL2: c_int = 19;
+pub const SPR_PLSS: c_int = 20;
+pub const SPR_PLSE: c_int = 21;
+pub const SPR_MISL: c_int = 22;
+pub const SPR_BFS1: c_int = 23;
+pub const SPR_BFE1: c_int = 24;
+pub const SPR_BFE2: c_int = 25;
+pub const SPR_TFOG: c_int = 26;
+pub const SPR_IFOG: c_int = 27;
+pub const SPR_PLAY: c_int = 28;
+pub const SPR_POSS: c_int = 29;
+pub const SPR_SPOS: c_int = 30;
+pub const SPR_VILE: c_int = 31;
+pub const SPR_FIRE: c_int = 32;
+pub const SPR_FATB: c_int = 33;
+pub const SPR_FBXP: c_int = 34;
+pub const SPR_SKEL: c_int = 35;
+pub const SPR_MANF: c_int = 36;
+pub const SPR_FATT: c_int = 37;
+pub const SPR_CPOS: c_int = 38;
+pub const SPR_SARG: c_int = 39;
+pub const SPR_HEAD: c_int = 40;
+pub const SPR_BAL7: c_int = 41;
+pub const SPR_BOSS: c_int = 42;
+pub const SPR_BOS2: c_int = 43;
+pub const SPR_SKUL: c_int = 44;
+pub const SPR_SPID: c_int = 45;
+pub const SPR_BSPI: c_int = 46;
+pub const SPR_APLS: c_int = 47;
+pub const SPR_APBX: c_int = 48;
+pub const SPR_CYBR: c_int = 49;
+pub const SPR_PAIN: c_int = 50;
+pub const SPR_SSWV: c_int = 51;
+pub const SPR_KEEN: c_int = 52;
+pub const SPR_BBRN: c_int = 53;
+pub const SPR_BOSF: c_int = 54;
+pub const SPR_ARM1: c_int = 55;
+pub const SPR_ARM2: c_int = 56;
+pub const SPR_BAR1: c_int = 57;
+pub const SPR_BEXP: c_int = 58;
+pub const SPR_FCAN: c_int = 59;
+pub const SPR_BON1: c_int = 60;
+pub const SPR_BON2: c_int = 61;
+pub const SPR_BKEY: c_int = 62;
+pub const SPR_RKEY: c_int = 63;
+pub const SPR_YKEY: c_int = 64;
+pub const SPR_BSKU: c_int = 65;
+pub const SPR_RSKU: c_int = 66;
+pub const SPR_YSKU: c_int = 67;
+pub const SPR_STIM: c_int = 68;
+pub const SPR_MEDI: c_int = 69;
+pub const SPR_SOUL: c_int = 70;
+pub const SPR_PINV: c_int = 71;
+pub const SPR_PSTR: c_int = 72;
+pub const SPR_PINS: c_int = 73;
+pub const SPR_MEGA: c_int = 74;
+pub const SPR_SUIT: c_int = 75;
+pub const SPR_PMAP: c_int = 76;
+pub const SPR_PVIS: c_int = 77;
+pub const SPR_CLIP: c_int = 78;
+pub const SPR_AMMO: c_int = 79;
+pub const SPR_ROCK: c_int = 80;
+pub const SPR_BROK: c_int = 81;
+pub const SPR_CELL: c_int = 82;
+pub const SPR_CELP: c_int = 83;
+pub const SPR_SHEL: c_int = 84;
+pub const SPR_SBOX: c_int = 85;
+pub const SPR_BPAK: c_int = 86;
+pub const SPR_BFUG: c_int = 87;
+pub const SPR_MGUN: c_int = 88;
+pub const SPR_CSAW: c_int = 89;
+pub const SPR_LAUN: c_int = 90;
+pub const SPR_PLAS: c_int = 91;
+pub const SPR_SHOT: c_int = 92;
+pub const SPR_SGN2: c_int = 93;
+pub const SPR_COLU: c_int = 94;
+pub const SPR_SMT2: c_int = 95;
+pub const SPR_GOR1: c_int = 96;
+pub const SPR_POL2: c_int = 97;
+pub const SPR_POL5: c_int = 98;
+pub const SPR_POL4: c_int = 99;
+pub const SPR_POL3: c_int = 100;
+pub const SPR_POL1: c_int = 101;
+pub const SPR_POL6: c_int = 102;
+pub const SPR_GOR2: c_int = 103;
+pub const SPR_GOR3: c_int = 104;
+pub const SPR_GOR4: c_int = 105;
+pub const SPR_GOR5: c_int = 106;
+pub const SPR_SMIT: c_int = 107;
+pub const SPR_COL1: c_int = 108;
+pub const SPR_COL2: c_int = 109;
+pub const SPR_COL3: c_int = 110;
+pub const SPR_COL4: c_int = 111;
+pub const SPR_CAND: c_int = 112;
+pub const SPR_CBRA: c_int = 113;
+pub const SPR_COL6: c_int = 114;
+pub const SPR_TRE1: c_int = 115;
+pub const SPR_TRE2: c_int = 116;
+pub const SPR_ELEC: c_int = 117;
+pub const SPR_CEYE: c_int = 118;
+pub const SPR_FSKU: c_int = 119;
+pub const SPR_COL5: c_int = 120;
+pub const SPR_TBLU: c_int = 121;
+pub const SPR_TGRN: c_int = 122;
+pub const SPR_TRED: c_int = 123;
+pub const SPR_SMBT: c_int = 124;
+pub const SPR_SMGT: c_int = 125;
+pub const SPR_SMRT: c_int = 126;
+pub const SPR_HDB1: c_int = 127;
+pub const SPR_HDB2: c_int = 128;
+pub const SPR_HDB3: c_int = 129;
+pub const SPR_HDB4: c_int = 130;
+pub const SPR_HDB5: c_int = 131;
+pub const SPR_HDB6: c_int = 132;
+pub const SPR_POB1: c_int = 133;
+pub const SPR_POB2: c_int = 134;
+pub const SPR_BRS1: c_int = 135;
+pub const SPR_TLMP: c_int = 136;
+pub const SPR_TLP2: c_int = 137;
 
 // Sound index constants
 
@@ -273,33 +273,173 @@ include!(concat!(env!("OUT_DIR"), "/statenum.rs"));
 // and the C simulation code (`p_map.c`, `p_enemy.c`, `p_inter.c`, ...) tests
 // those stored bits against the `p_mobj.h` values. A mismatch silently
 // corrupts every `flags & MF_*` check in the game.
-const MF_SPECIAL: c_int = 0x00000001;
-const MF_SOLID: c_int = 0x00000002;
-const MF_SHOOTABLE: c_int = 0x00000004;
-const MF_NOSECTOR: c_int = 0x00000008;
-const MF_NOBLOCKMAP: c_int = 0x00000010;
-const MF_AMBUSH: c_int = 0x00000020;
-const MF_JUSTHIT: c_int = 0x00000040;
-const MF_JUSTATTACKED: c_int = 0x00000080;
-const MF_SPAWNCEILING: c_int = 0x00000100;
-const MF_NOGRAVITY: c_int = 0x00000200;
-const MF_DROPOFF: c_int = 0x00000400;
-const MF_PICKUP: c_int = 0x00000800;
-const MF_NOCLIP: c_int = 0x00001000;
-const MF_SLIDE: c_int = 0x00002000;
-const MF_FLOAT: c_int = 0x00004000;
-const MF_TELEPORT: c_int = 0x00008000;
-const MF_MISSILE: c_int = 0x00010000;
-const MF_DROPPED: c_int = 0x00020000;
-const MF_SHADOW: c_int = 0x00040000;
-const MF_NOBLOOD: c_int = 0x00080000;
-const MF_CORPSE: c_int = 0x00100000;
-const MF_INFLOAT: c_int = 0x00200000;
-const MF_COUNTKILL: c_int = 0x00400000;
-const MF_COUNTITEM: c_int = 0x00800000;
-const MF_SKULLFLY: c_int = 0x01000000;
-const MF_NOTDMATCH: c_int = 0x02000000;
-const MF_TRANSLATION: c_int = 0x0c000000;
+pub const MF_SPECIAL: c_int = 0x00000001;
+pub const MF_SOLID: c_int = 0x00000002;
+pub const MF_SHOOTABLE: c_int = 0x00000004;
+pub const MF_NOSECTOR: c_int = 0x00000008;
+pub const MF_NOBLOCKMAP: c_int = 0x00000010;
+pub const MF_AMBUSH: c_int = 0x00000020;
+pub const MF_JUSTHIT: c_int = 0x00000040;
+pub const MF_JUSTATTACKED: c_int = 0x00000080;
+pub const MF_SPAWNCEILING: c_int = 0x00000100;
+pub const MF_NOGRAVITY: c_int = 0x00000200;
+pub const MF_DROPOFF: c_int = 0x00000400;
+pub const MF_PICKUP: c_int = 0x00000800;
+pub const MF_NOCLIP: c_int = 0x00001000;
+pub const MF_SLIDE: c_int = 0x00002000;
+pub const MF_FLOAT: c_int = 0x00004000;
+pub const MF_TELEPORT: c_int = 0x00008000;
+pub const MF_MISSILE: c_int = 0x00010000;
+pub const MF_DROPPED: c_int = 0x00020000;
+pub const MF_SHADOW: c_int = 0x00040000;
+pub const MF_NOBLOOD: c_int = 0x00080000;
+pub const MF_CORPSE: c_int = 0x00100000;
+pub const MF_INFLOAT: c_int = 0x00200000;
+pub const MF_COUNTKILL: c_int = 0x00400000;
+pub const MF_COUNTITEM: c_int = 0x00800000;
+pub const MF_SKULLFLY: c_int = 0x01000000;
+pub const MF_NOTDMATCH: c_int = 0x02000000;
+pub const MF_TRANSLATION: c_int = 0x0c000000;
+pub const MF_TRANSSHIFT: c_int = 26;
+
+// Mobj type indices (from info.h mobjtype_t enum).
+pub const MT_PLAYER: c_int = 0;
+pub const MT_POSSESSED: c_int = 1;
+pub const MT_SHOTGUY: c_int = 2;
+pub const MT_VILE: c_int = 3;
+pub const MT_FIRE: c_int = 4;
+pub const MT_UNDEAD: c_int = 5;
+pub const MT_TRACER: c_int = 6;
+pub const MT_SMOKE: c_int = 7;
+pub const MT_FATSO: c_int = 8;
+pub const MT_FATSHOT: c_int = 9;
+pub const MT_CHAINGUY: c_int = 10;
+pub const MT_TROOP: c_int = 11;
+pub const MT_SERGEANT: c_int = 12;
+pub const MT_SHADOWS: c_int = 13;
+pub const MT_HEAD: c_int = 14;
+pub const MT_BRUISER: c_int = 15;
+pub const MT_BRUISERSHOT: c_int = 16;
+pub const MT_KNIGHT: c_int = 17;
+pub const MT_SKULL: c_int = 18;
+pub const MT_SPIDER: c_int = 19;
+pub const MT_BABY: c_int = 20;
+pub const MT_CYBORG: c_int = 21;
+pub const MT_PAIN: c_int = 22;
+pub const MT_WOLFSS: c_int = 23;
+pub const MT_KEEN: c_int = 24;
+pub const MT_BOSSBRAIN: c_int = 25;
+pub const MT_BOSSSPIT: c_int = 26;
+pub const MT_BOSSTARGET: c_int = 27;
+pub const MT_SPAWNSHOT: c_int = 28;
+pub const MT_SPAWNFIRE: c_int = 29;
+pub const MT_BARREL: c_int = 30;
+pub const MT_TROOPSHOT: c_int = 31;
+pub const MT_HEADSHOT: c_int = 32;
+pub const MT_ROCKET: c_int = 33;
+pub const MT_PLASMA: c_int = 34;
+pub const MT_BFG: c_int = 35;
+pub const MT_ARACHPLAZ: c_int = 36;
+pub const MT_PUFF: c_int = 37;
+pub const MT_BLOOD: c_int = 38;
+pub const MT_TFOG: c_int = 39;
+pub const MT_IFOG: c_int = 40;
+pub const MT_TELEPORTMAN: c_int = 41;
+pub const MT_EXTRABFG: c_int = 42;
+pub const MT_MISC0: c_int = 43;
+pub const MT_MISC1: c_int = 44;
+pub const MT_MISC2: c_int = 45;
+pub const MT_MISC3: c_int = 46;
+pub const MT_MISC4: c_int = 47;
+pub const MT_MISC5: c_int = 48;
+pub const MT_MISC6: c_int = 49;
+pub const MT_MISC7: c_int = 50;
+pub const MT_MISC8: c_int = 51;
+pub const MT_MISC9: c_int = 52;
+pub const MT_MISC10: c_int = 53;
+pub const MT_MISC11: c_int = 54;
+pub const MT_MISC12: c_int = 55;
+pub const MT_INV: c_int = 56;
+pub const MT_MISC13: c_int = 57;
+pub const MT_INS: c_int = 58;
+pub const MT_MISC14: c_int = 59;
+pub const MT_MISC15: c_int = 60;
+pub const MT_MISC16: c_int = 61;
+pub const MT_MEGA: c_int = 62;
+pub const MT_CLIP: c_int = 63;
+pub const MT_MISC17: c_int = 64;
+pub const MT_MISC18: c_int = 65;
+pub const MT_MISC19: c_int = 66;
+pub const MT_MISC20: c_int = 67;
+pub const MT_MISC21: c_int = 68;
+pub const MT_MISC22: c_int = 69;
+pub const MT_MISC23: c_int = 70;
+pub const MT_MISC24: c_int = 71;
+pub const MT_MISC25: c_int = 72;
+pub const MT_CHAINGUN: c_int = 73;
+pub const MT_MISC26: c_int = 74;
+pub const MT_MISC27: c_int = 75;
+pub const MT_MISC28: c_int = 76;
+pub const MT_SHOTGUN: c_int = 77;
+pub const MT_SUPERSHOTGUN: c_int = 78;
+pub const MT_MISC29: c_int = 79;
+pub const MT_MISC30: c_int = 80;
+pub const MT_MISC31: c_int = 81;
+pub const MT_MISC32: c_int = 82;
+pub const MT_MISC33: c_int = 83;
+pub const MT_MISC34: c_int = 84;
+pub const MT_MISC35: c_int = 85;
+pub const MT_MISC36: c_int = 86;
+pub const MT_MISC37: c_int = 87;
+pub const MT_MISC38: c_int = 88;
+pub const MT_MISC39: c_int = 89;
+pub const MT_MISC40: c_int = 90;
+pub const MT_MISC41: c_int = 91;
+pub const MT_MISC42: c_int = 92;
+pub const MT_MISC43: c_int = 93;
+pub const MT_MISC44: c_int = 94;
+pub const MT_MISC45: c_int = 95;
+pub const MT_MISC46: c_int = 96;
+pub const MT_MISC47: c_int = 97;
+pub const MT_MISC48: c_int = 98;
+pub const MT_MISC49: c_int = 99;
+pub const MT_MISC50: c_int = 100;
+pub const MT_MISC51: c_int = 101;
+pub const MT_MISC52: c_int = 102;
+pub const MT_MISC53: c_int = 103;
+pub const MT_MISC54: c_int = 104;
+pub const MT_MISC55: c_int = 105;
+pub const MT_MISC56: c_int = 106;
+pub const MT_MISC57: c_int = 107;
+pub const MT_MISC58: c_int = 108;
+pub const MT_MISC59: c_int = 109;
+pub const MT_MISC60: c_int = 110;
+pub const MT_MISC61: c_int = 111;
+pub const MT_MISC62: c_int = 112;
+pub const MT_MISC63: c_int = 113;
+pub const MT_MISC64: c_int = 114;
+pub const MT_MISC65: c_int = 115;
+pub const MT_MISC66: c_int = 116;
+pub const MT_MISC67: c_int = 117;
+pub const MT_MISC68: c_int = 118;
+pub const MT_MISC69: c_int = 119;
+pub const MT_MISC70: c_int = 120;
+pub const MT_MISC71: c_int = 121;
+pub const MT_MISC72: c_int = 122;
+pub const MT_MISC73: c_int = 123;
+pub const MT_MISC74: c_int = 124;
+pub const MT_MISC75: c_int = 125;
+pub const MT_MISC76: c_int = 126;
+pub const MT_MISC77: c_int = 127;
+pub const MT_MISC78: c_int = 128;
+pub const MT_MISC79: c_int = 129;
+pub const MT_MISC80: c_int = 130;
+pub const MT_MISC81: c_int = 131;
+pub const MT_MISC82: c_int = 132;
+pub const MT_MISC83: c_int = 133;
+pub const MT_MISC84: c_int = 134;
+pub const MT_MISC85: c_int = 135;
+pub const MT_MISC86: c_int = 136;
 
 #[repr(C)]
 pub struct State {
@@ -12700,3 +12840,338 @@ pub static mut mobjinfo: [MobjInfo; NUMMOBJTYPES] = [
         raisestate: S_NULL,
     },
 ];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    /// Parse `vendor/doomgeneric/info.h` and extract the `mobjtype_t` enum
+    /// values, then assert that every Rust `MT_*` constant matches the C
+    /// source exactly.  This prevents ordering drift: if a new entry is
+    /// inserted into the middle of the enum, the index-based Rust constants
+    /// would silently shift every subsequent value.
+    #[test]
+    fn mt_enum_matches_c_header() {
+        let manifest = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let path = std::path::Path::new(&manifest).join("../vendor/doomgeneric/info.h");
+        let h = fs::read_to_string(path).unwrap();
+        let mut found = Vec::new();
+        let mut inside = false;
+        for line in h.lines() {
+            if line.contains("MT_PLAYER,") {
+                inside = true;
+            }
+            if inside {
+                if let Some(name) = line.trim().strip_suffix(",") {
+                    found.push(name.to_string());
+                } else if line.trim() == "} mobjtype_t;" {
+                    break;
+                }
+            }
+        }
+        assert!(
+            !found.is_empty(),
+            "could not find mobjtype_t enum in info.h"
+        );
+        for (i, name) in found.iter().enumerate() {
+            let expected = i as c_int;
+            let actual = match name.as_str() {
+                "MT_PLAYER" => MT_PLAYER,
+                "MT_POSSESSED" => MT_POSSESSED,
+                "MT_SHOTGUY" => MT_SHOTGUY,
+                "MT_VILE" => MT_VILE,
+                "MT_FIRE" => MT_FIRE,
+                "MT_UNDEAD" => MT_UNDEAD,
+                "MT_TRACER" => MT_TRACER,
+                "MT_SMOKE" => MT_SMOKE,
+                "MT_FATSO" => MT_FATSO,
+                "MT_FATSHOT" => MT_FATSHOT,
+                "MT_CHAINGUY" => MT_CHAINGUY,
+                "MT_TROOP" => MT_TROOP,
+                "MT_SERGEANT" => MT_SERGEANT,
+                "MT_SHADOWS" => MT_SHADOWS,
+                "MT_HEAD" => MT_HEAD,
+                "MT_BRUISER" => MT_BRUISER,
+                "MT_BRUISERSHOT" => MT_BRUISERSHOT,
+                "MT_KNIGHT" => MT_KNIGHT,
+                "MT_SKULL" => MT_SKULL,
+                "MT_SPIDER" => MT_SPIDER,
+                "MT_BABY" => MT_BABY,
+                "MT_CYBORG" => MT_CYBORG,
+                "MT_PAIN" => MT_PAIN,
+                "MT_WOLFSS" => MT_WOLFSS,
+                "MT_KEEN" => MT_KEEN,
+                "MT_BOSSBRAIN" => MT_BOSSBRAIN,
+                "MT_BOSSSPIT" => MT_BOSSSPIT,
+                "MT_BOSSTARGET" => MT_BOSSTARGET,
+                "MT_SPAWNSHOT" => MT_SPAWNSHOT,
+                "MT_SPAWNFIRE" => MT_SPAWNFIRE,
+                "MT_BARREL" => MT_BARREL,
+                "MT_TROOPSHOT" => MT_TROOPSHOT,
+                "MT_HEADSHOT" => MT_HEADSHOT,
+                "MT_ROCKET" => MT_ROCKET,
+                "MT_PLASMA" => MT_PLASMA,
+                "MT_BFG" => MT_BFG,
+                "MT_ARACHPLAZ" => MT_ARACHPLAZ,
+                "MT_PUFF" => MT_PUFF,
+                "MT_BLOOD" => MT_BLOOD,
+                "MT_TFOG" => MT_TFOG,
+                "MT_IFOG" => MT_IFOG,
+                "MT_TELEPORTMAN" => MT_TELEPORTMAN,
+                "MT_EXTRABFG" => MT_EXTRABFG,
+                "MT_MISC0" => MT_MISC0,
+                "MT_MISC1" => MT_MISC1,
+                "MT_MISC2" => MT_MISC2,
+                "MT_MISC3" => MT_MISC3,
+                "MT_MISC4" => MT_MISC4,
+                "MT_MISC5" => MT_MISC5,
+                "MT_MISC6" => MT_MISC6,
+                "MT_MISC7" => MT_MISC7,
+                "MT_MISC8" => MT_MISC8,
+                "MT_MISC9" => MT_MISC9,
+                "MT_MISC10" => MT_MISC10,
+                "MT_MISC11" => MT_MISC11,
+                "MT_MISC12" => MT_MISC12,
+                "MT_INV" => MT_INV,
+                "MT_MISC13" => MT_MISC13,
+                "MT_INS" => MT_INS,
+                "MT_MISC14" => MT_MISC14,
+                "MT_MISC15" => MT_MISC15,
+                "MT_MISC16" => MT_MISC16,
+                "MT_MEGA" => MT_MEGA,
+                "MT_CLIP" => MT_CLIP,
+                "MT_MISC17" => MT_MISC17,
+                "MT_MISC18" => MT_MISC18,
+                "MT_MISC19" => MT_MISC19,
+                "MT_MISC20" => MT_MISC20,
+                "MT_MISC21" => MT_MISC21,
+                "MT_MISC22" => MT_MISC22,
+                "MT_MISC23" => MT_MISC23,
+                "MT_MISC24" => MT_MISC24,
+                "MT_MISC25" => MT_MISC25,
+                "MT_CHAINGUN" => MT_CHAINGUN,
+                "MT_MISC26" => MT_MISC26,
+                "MT_MISC27" => MT_MISC27,
+                "MT_MISC28" => MT_MISC28,
+                "MT_SHOTGUN" => MT_SHOTGUN,
+                "MT_SUPERSHOTGUN" => MT_SUPERSHOTGUN,
+                "MT_MISC29" => MT_MISC29,
+                "MT_MISC30" => MT_MISC30,
+                "MT_MISC31" => MT_MISC31,
+                "MT_MISC32" => MT_MISC32,
+                "MT_MISC33" => MT_MISC33,
+                "MT_MISC34" => MT_MISC34,
+                "MT_MISC35" => MT_MISC35,
+                "MT_MISC36" => MT_MISC36,
+                "MT_MISC37" => MT_MISC37,
+                "MT_MISC38" => MT_MISC38,
+                "MT_MISC39" => MT_MISC39,
+                "MT_MISC40" => MT_MISC40,
+                "MT_MISC41" => MT_MISC41,
+                "MT_MISC42" => MT_MISC42,
+                "MT_MISC43" => MT_MISC43,
+                "MT_MISC44" => MT_MISC44,
+                "MT_MISC45" => MT_MISC45,
+                "MT_MISC46" => MT_MISC46,
+                "MT_MISC47" => MT_MISC47,
+                "MT_MISC48" => MT_MISC48,
+                "MT_MISC49" => MT_MISC49,
+                "MT_MISC50" => MT_MISC50,
+                "MT_MISC51" => MT_MISC51,
+                "MT_MISC52" => MT_MISC52,
+                "MT_MISC53" => MT_MISC53,
+                "MT_MISC54" => MT_MISC54,
+                "MT_MISC55" => MT_MISC55,
+                "MT_MISC56" => MT_MISC56,
+                "MT_MISC57" => MT_MISC57,
+                "MT_MISC58" => MT_MISC58,
+                "MT_MISC59" => MT_MISC59,
+                "MT_MISC60" => MT_MISC60,
+                "MT_MISC61" => MT_MISC61,
+                "MT_MISC62" => MT_MISC62,
+                "MT_MISC63" => MT_MISC63,
+                "MT_MISC64" => MT_MISC64,
+                "MT_MISC65" => MT_MISC65,
+                "MT_MISC66" => MT_MISC66,
+                "MT_MISC67" => MT_MISC67,
+                "MT_MISC68" => MT_MISC68,
+                "MT_MISC69" => MT_MISC69,
+                "MT_MISC70" => MT_MISC70,
+                "MT_MISC71" => MT_MISC71,
+                "MT_MISC72" => MT_MISC72,
+                "MT_MISC73" => MT_MISC73,
+                "MT_MISC74" => MT_MISC74,
+                "MT_MISC75" => MT_MISC75,
+                "MT_MISC76" => MT_MISC76,
+                "MT_MISC77" => MT_MISC77,
+                "MT_MISC78" => MT_MISC78,
+                "MT_MISC79" => MT_MISC79,
+                "MT_MISC80" => MT_MISC80,
+                "MT_MISC81" => MT_MISC81,
+                "MT_MISC82" => MT_MISC82,
+                "MT_MISC83" => MT_MISC83,
+                "MT_MISC84" => MT_MISC84,
+                "MT_MISC85" => MT_MISC85,
+                "MT_MISC86" => MT_MISC86,
+                _ => panic!("unknown mobjtype enum member: {}", name),
+            };
+            assert_eq!(
+                actual, expected,
+                "{} should be {} (C enum order)",
+                name, expected
+            );
+        }
+        assert_eq!(
+            found.len() as c_int,
+            NUMMOBJTYPES as c_int,
+            "mobjtype_t enum size mismatch"
+        );
+    }
+
+    /// Parse `vendor/doomgeneric/p_mobj.h` and extract the `mobjflag_t` enum
+    /// values, then assert that every Rust `MF_*` constant matches the C
+    /// source exactly.  A mismatch here silently corrupts every `flags & MF_*`
+    /// test in the game because `mobjinfo[].flags` is initialised with these
+    /// bit patterns.
+    #[test]
+    fn mf_flags_match_c_header() {
+        let manifest = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        let path = std::path::Path::new(&manifest).join("../vendor/doomgeneric/p_mobj.h");
+        let h = fs::read_to_string(path).unwrap();
+        let mut inside = false;
+        for line in h.lines() {
+            if line.contains("typedef enum") && !inside {
+                // The first enum in p_mobj.h is mobjflag_t
+                inside = true;
+                continue;
+            }
+            if inside {
+                if line.trim() == "} mobjflag_t;" {
+                    break;
+                }
+                let trimmed = line.trim();
+                if trimmed.starts_with("MF_") {
+                    let parts: Vec<&str> = trimmed.split('=').collect();
+                    let name = parts[0].trim();
+                    let val_str = parts[1].trim().trim_end_matches(',');
+                    let expected = if val_str.starts_with("0x") {
+                        c_int::from_str_radix(&val_str[2..], 16).unwrap()
+                    } else {
+                        val_str.parse::<c_int>().unwrap()
+                    };
+                    let actual = match name {
+                        "MF_SPECIAL" => MF_SPECIAL,
+                        "MF_SOLID" => MF_SOLID,
+                        "MF_SHOOTABLE" => MF_SHOOTABLE,
+                        "MF_NOSECTOR" => MF_NOSECTOR,
+                        "MF_NOBLOCKMAP" => MF_NOBLOCKMAP,
+                        "MF_AMBUSH" => MF_AMBUSH,
+                        "MF_JUSTHIT" => MF_JUSTHIT,
+                        "MF_JUSTATTACKED" => MF_JUSTATTACKED,
+                        "MF_SPAWNCEILING" => MF_SPAWNCEILING,
+                        "MF_NOGRAVITY" => MF_NOGRAVITY,
+                        "MF_DROPOFF" => MF_DROPOFF,
+                        "MF_PICKUP" => MF_PICKUP,
+                        "MF_NOCLIP" => MF_NOCLIP,
+                        "MF_SLIDE" => MF_SLIDE,
+                        "MF_FLOAT" => MF_FLOAT,
+                        "MF_TELEPORT" => MF_TELEPORT,
+                        "MF_MISSILE" => MF_MISSILE,
+                        "MF_DROPPED" => MF_DROPPED,
+                        "MF_SHADOW" => MF_SHADOW,
+                        "MF_NOBLOOD" => MF_NOBLOOD,
+                        "MF_CORPSE" => MF_CORPSE,
+                        "MF_INFLOAT" => MF_INFLOAT,
+                        "MF_COUNTKILL" => MF_COUNTKILL,
+                        "MF_COUNTITEM" => MF_COUNTITEM,
+                        "MF_SKULLFLY" => MF_SKULLFLY,
+                        "MF_NOTDMATCH" => MF_NOTDMATCH,
+                        "MF_TRANSLATION" => MF_TRANSLATION,
+                        "MF_TRANSSHIFT" => MF_TRANSSHIFT,
+                        _ => panic!("unknown flag: {}", name),
+                    };
+                    assert_eq!(actual, expected, "{} mismatch against p_mobj.h", name);
+                }
+            }
+        }
+    }
+
+    /// Verify that the mobjinfo table is internally consistent:
+    /// the spawnstate of each well-known mobj type should point to a state
+    /// whose sprite matches the expected SPR_* constant.  This catches
+    /// index-vs-table drift (e.g. MT_PUFF pointing at S_BLOOD1 because
+    /// the MT enum or states table was edited incorrectly).
+    #[test]
+    fn mobjinfo_spawnstate_sprite_cross_reference() {
+        unsafe {
+            let cases: [(c_int, c_int, c_int, &str); 7] = [
+                (MT_PUFF, S_PUFF1, SPR_PUFF, "MT_PUFF → S_PUFF1 → SPR_PUFF"),
+                (
+                    MT_BLOOD,
+                    S_BLOOD1,
+                    SPR_BLUD,
+                    "MT_BLOOD → S_BLOOD1 → SPR_BLUD",
+                ),
+                (MT_TFOG, S_TFOG, SPR_TFOG, "MT_TFOG → S_TFOG → SPR_TFOG"),
+                (MT_IFOG, S_IFOG, SPR_IFOG, "MT_IFOG → S_IFOG → SPR_IFOG"),
+                (MT_PLAYER, S_PLAY, SPR_PLAY, "MT_PLAYER → S_PLAY → SPR_PLAY"),
+                (
+                    MT_ROCKET,
+                    S_ROCKET,
+                    SPR_MISL,
+                    "MT_ROCKET → S_ROCKET → SPR_MISL",
+                ),
+                (
+                    MT_PLASMA,
+                    S_PLASBALL,
+                    SPR_PLSS,
+                    "MT_PLASMA → S_PLASBALL → SPR_PLSS",
+                ),
+            ];
+            for (mt, expected_state, expected_sprite, desc) in cases {
+                let info = &mobjinfo[mt as usize];
+                assert_eq!(
+                    info.spawnstate, expected_state,
+                    "{}: spawnstate mismatch",
+                    desc
+                );
+                let st = &states[info.spawnstate as usize];
+                assert_eq!(st.sprite, expected_sprite, "{}: sprite mismatch", desc);
+            }
+        }
+    }
+
+    /// Verify that the mobjinfo table entries for items have the expected
+    /// MF_SPECIAL flag.  MT_INV and MT_INS have MF_SPECIAL (they are
+    /// pick-up items) but are explicitly excluded from the respawn queue
+    /// in P_RemoveMobj.
+    #[test]
+    fn mobjinfo_respawn_flags_consistent() {
+        unsafe {
+            // Power-ups have MF_SPECIAL despite being excluded from respawn
+            assert!(
+                mobjinfo[MT_INV as usize].flags & MF_SPECIAL != 0,
+                "MT_INV should have MF_SPECIAL"
+            );
+            assert!(
+                mobjinfo[MT_INS as usize].flags & MF_SPECIAL != 0,
+                "MT_INS should have MF_SPECIAL"
+            );
+
+            // A few representative items that should also have it
+            assert!(
+                mobjinfo[MT_CLIP as usize].flags & MF_SPECIAL != 0,
+                "MT_CLIP should have MF_SPECIAL"
+            );
+            assert!(
+                mobjinfo[MT_MISC10 as usize].flags & MF_SPECIAL != 0,
+                "MT_MISC10 (stimpack) should have MF_SPECIAL"
+            );
+            assert!(
+                mobjinfo[MT_MISC11 as usize].flags & MF_SPECIAL != 0,
+                "MT_MISC11 (medikit) should have MF_SPECIAL"
+            );
+        }
+    }
+}

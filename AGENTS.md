@@ -7,6 +7,10 @@
 - **Null-terminated strings for C FFI**: Pass `&[u8] = b"/\0"` instead of `&str = "/"` when C code will call `strlen` on the pointer. `&str` is not null-terminated and causes `global-buffer-overflow`.
 - **Avoid `ptr::write_bytes` for precise zeroing**: `ptr::write_bytes` compiles to `memset`, which under ASan may use SIMD writes that overshoot non-aligned sizes and corrupt adjacent allocator metadata. Use a byte-by-byte loop instead.
 - **Have allocators zero internally**: Rather than relying on callers to `memset`, zero user data inside `Z_Malloc` before returning.
+- **Struct padding fields and zero-initialization**: When porting C structs that contain private `_pad` fields, you cannot use struct literal syntax. Use `std::mem::zeroed()` or `MaybeUninit::zeroed().assume_init()` instead.
+- **Moving globals between ported modules**: When a global was previously accessed via `extern "C"` in one Rust module and the C source gets ported, move the `#[no_mangle] pub static mut` definition to the new module and update the consumer to access it directly (e.g., `crate::doom::r_things::spryscale`).
+- **Unsigned angle arithmetic wrapping**: C `angle_t` is `u32`, and subtraction/addition can wrap around zero. Rust's default `-` and `+` on `u32` panic in debug mode. Always use `wrapping_sub`, `wrapping_add`, `wrapping_neg` for angle arithmetic.
+- **Opaque `state_t` vs concrete `State` struct**: `d_player.rs` declares `state_t` as an empty enum for FFI, but `info.rs` defines the real `State` struct. When accessing state fields from ported code, cast the pointer to `*mut State`.
 
 ## AddressSanitizer
 
@@ -63,6 +67,55 @@ ASan reports three locations: the bad access, the free, and the allocation.
 - Best on Linux/macOS x86_64/aarch64.
 - Does not replace Miri or prove memory safety.
 
+## c2rust Intermediate Reference
+
+A fully-automated `c2rust transpile` output lives in `c2rust-intermediate/`. It is **not** linked into the main binary and is excluded from the default workspace build (`default-members`). Its sole purpose is as a behavioural reference when porting or debugging C modules.
+
+### Regenerating
+
+```bash
+./tools/c2rust-transpile.sh
+```
+
+This script:
+1. Scans `vendor/doomgeneric/*.c` and filters out non-transpilable files.
+2. Emits `compile_commands.json` with the exact flags from `doomgeneric-sys/build.rs`.
+3. Runs `c2rust transpile --emit-build-files --overwrite-existing`.
+4. Fixes up `Cargo.toml` and `src/lib.rs` so the crate is usable.
+
+### Checking the reference crate
+
+The transpiled code requires nightly because c2rust emits `extern type` declarations (still unstable):
+
+```bash
+cargo +nightly check -p c2rust-intermediate
+```
+
+### Excluded files
+
+| File | Reason |
+|------|--------|
+| `layout_probe.c` | Explicitly excluded from upstream Makefile |
+| `gusconf.c` | Requires `FEATURE_SOUND` |
+| `m_menu_shim.c` | Variadic shim — not transpilable |
+| `m_misc_varargs.c` | Variadic shim — not transpilable |
+| `m_misc.c` | Contains variadic macros (`M_StringJoin`, `M_vsnprintf`) that crash c2rust |
+| `dummy.c` | Empty stub |
+| `doomdef.c` | Header-only in practice, no symbols |
+
+### How to use it
+
+- **Type layout validation**: Compare `#[repr(C)]` struct definitions against `room/src/doom/c_ffi.rs`.
+- **Behavioural comparison**: When a hand-ported module behaves differently, compare its logic to the transpiled version (which faithfully reproduces C semantics).
+- **Symbol inventory**: See exactly which functions, globals, and types a given C module exports before porting it.
+
+### Caveats
+
+- All code is `unsafe` and non-idiomatic — do not copy-paste into the hand-ported codebase.
+- Duplicate type definitions exist across modules (e.g. `mobj_t` appears in many files). This is expected because each transpiled file is standalone.
+- `#define` values are baked in at transpile time.
+- Cross-module calls remain `extern "C"` FFI; there are no Rust `use` imports between modules.
+
 ## dhat Heap Profiler
 
 For callsite-level allocation tracking (volume and ownership paths), use `dhat` separately from ASan.
@@ -89,7 +142,7 @@ A `dhat-heap.json` file is produced; view it with the [dhat viewer](https://valg
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **room** (6454 symbols, 10695 relationships, 253 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **room** (71159 symbols, 86538 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

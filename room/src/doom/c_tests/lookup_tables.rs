@@ -7,6 +7,7 @@ use std::ffi::c_int;
 use crate::doom::c_ffi;
 use crate::doom::c_tests::harness::C_GLOBAL_LOCK;
 use crate::doom::p_inter;
+use crate::doom::p_maputl;
 
 // ---------------------------------------------------------------------------
 // p_inter.c: maxammo and clipammo
@@ -49,7 +50,7 @@ fn ammo_arrays_positive() {
 #[test]
 fn intercepts_array_length() {
     unsafe {
-        assert_eq!(c_ffi::intercepts.len(), c_ffi::MAXINTERCEPTS);
+        assert_eq!(p_maputl::intercepts.len(), p_maputl::MAXINTERCEPTS);
     }
 }
 
@@ -58,7 +59,7 @@ fn intercept_p_initially_null() {
     let _guard = C_GLOBAL_LOCK.lock().unwrap();
     unsafe {
         // Ensure we test the null state even if another test ran first.
-        c_ffi::intercept_p = std::ptr::null_mut();
-        assert!(c_ffi::intercept_p.is_null());
+        p_maputl::intercept_p = std::ptr::null_mut();
+        assert!(p_maputl::intercept_p.is_null());
     }
 }

@@ -9,8 +9,8 @@
 use std::ffi::{c_int, c_short, c_uchar, c_void};
 use std::ptr;
 
-use super::m_fixed::FixedMul;
-use super::r_bsp::{angle_t, drawseg_t, fixed_t, line_t, sector_t, seg_t, side_t};
+use super::m_fixed::{angle_t, fixed_t, FixedMul};
+use super::r_bsp::{drawseg_t, line_t, sector_t, seg_t, side_t};
 use super::r_plane::visplane_t;
 use super::tables;
 
@@ -79,11 +79,6 @@ extern "C" {
     static mut dc_texturemid: fixed_t;
     static mut dc_source: *mut c_uchar;
     static mut dc_colormap: *mut c_uchar;
-
-    static mut spryscale: fixed_t;
-    static mut mfloorclip: *mut c_short;
-    static mut mceilingclip: *mut c_short;
-    static mut sprtopscreen: fixed_t;
 
     static mut colfunc: Option<unsafe extern "C" fn()>;
 
@@ -228,9 +223,9 @@ pub unsafe extern "C" fn R_RenderMaskedSegRange(ds: *mut drawseg_t, x1: c_int, x
 
     maskedtexturecol = (*ds).maskedtexturecol;
     rw_scalestep = (*ds).scalestep;
-    spryscale = (*ds).scale1 + (x1 - (*ds).x1) * rw_scalestep;
-    mfloorclip = (*ds).sprbottomclip;
-    mceilingclip = (*ds).sprtopclip;
+    crate::doom::r_things::spryscale = (*ds).scale1 + (x1 - (*ds).x1) * rw_scalestep;
+    crate::doom::r_things::mfloorclip = (*ds).sprbottomclip;
+    crate::doom::r_things::mceilingclip = (*ds).sprtopclip;
 
     if (*(*curline).linedef).flags & (super::c_ffi::ML_DONTPEGBOTTOM as c_short) != 0 {
         dc_texturemid = if (*frontsector).floorheight > (*backsector).floorheight {
@@ -257,15 +252,16 @@ pub unsafe extern "C" fn R_RenderMaskedSegRange(ds: *mut drawseg_t, x1: c_int, x
     while dc_x <= x2 {
         if *maskedtexturecol.add(dc_x as usize) != c_short::MAX {
             if fixedcolormap.is_null() {
-                let mut index = (spryscale as u32) >> LIGHTSCALESHIFT;
+                let mut index = (crate::doom::r_things::spryscale as u32) >> LIGHTSCALESHIFT;
                 if index >= MAXLIGHTSCALE as u32 {
                     index = (MAXLIGHTSCALE - 1) as u32;
                 }
                 dc_colormap = *walllights.add(index as usize);
             }
 
-            sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
-            dc_iscale = (0xffffffff_u32 / (spryscale as u32)) as c_int;
+            crate::doom::r_things::sprtopscreen =
+                centeryfrac - FixedMul(dc_texturemid, crate::doom::r_things::spryscale);
+            dc_iscale = (0xffffffff_u32 / (crate::doom::r_things::spryscale as u32)) as c_int;
 
             let raw = R_GetColumn(texnum, *maskedtexturecol.add(dc_x as usize) as c_int);
             let col = raw.sub(3);
@@ -273,7 +269,7 @@ pub unsafe extern "C" fn R_RenderMaskedSegRange(ds: *mut drawseg_t, x1: c_int, x
 
             *maskedtexturecol.add(dc_x as usize) = c_short::MAX;
         }
-        spryscale += rw_scalestep;
+        crate::doom::r_things::spryscale += rw_scalestep;
         dc_x += 1;
     }
 }

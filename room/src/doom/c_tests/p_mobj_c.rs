@@ -1,6 +1,6 @@
-//! Tests for `p_mobj.c` — map-object physics constants and item-queue globals.
+//! Tests for `p_mobj.rs` — map-object physics constants and item-queue globals.
 //!
-//! `p_mobj.c` owns the mobj (map object) creation, movement, and lifecycle.
+//! `p_mobj.rs` owns the mobj (map object) creation, movement, and lifecycle.
 //! Key constants (`STOPSPEED`, `FRICTION`) govern the sliding physics for all
 //! moving objects; they must not change between the C implementation and any
 //! Rust port.  The item-respawn circular queue globals (`iquehead`, `iquetail`,
@@ -15,6 +15,7 @@
 #![allow(non_snake_case)]
 
 use crate::doom::c_ffi;
+use crate::doom::p_mobj;
 
 // ---------------------------------------------------------------------------
 // STOPSPEED / FRICTION constants
@@ -68,12 +69,11 @@ fn itemquesize_is_128() {
     assert_eq!(c_ffi::ITEMQUESIZE, 128);
 }
 
-/// The respawn queue raw byte buffer is exactly ITEMQUESIZE × sizeof(mapthing_t).
-/// mapthing_t is 10 bytes (5 × i16, packed), so the buffer must be 1280 bytes.
+/// The respawn queue is exactly ITEMQUESIZE entries of mapthing_t.
 #[test]
-fn itemrespawnque_byte_length() {
+fn itemrespawnque_length() {
     unsafe {
-        assert_eq!(c_ffi::itemrespawnque.len(), c_ffi::ITEMQUESIZE * 10);
+        assert_eq!(p_mobj::itemrespawnque.len(), c_ffi::ITEMQUESIZE);
     }
 }
 
@@ -81,7 +81,11 @@ fn itemrespawnque_byte_length() {
 #[test]
 fn iquehead_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::iquehead, 0, "iquehead should be 0 before level load");
+        assert_eq!(
+            p_mobj::iquehead,
+            0,
+            "iquehead should be 0 before level load"
+        );
     }
 }
 
@@ -89,7 +93,11 @@ fn iquehead_default_zero() {
 #[test]
 fn iquetail_default_zero() {
     unsafe {
-        assert_eq!(c_ffi::iquetail, 0, "iquetail should be 0 before level load");
+        assert_eq!(
+            p_mobj::iquetail,
+            0,
+            "iquetail should be 0 before level load"
+        );
     }
 }
 
@@ -98,8 +106,8 @@ fn iquetail_default_zero() {
 fn itemque_starts_empty() {
     unsafe {
         assert_eq!(
-            c_ffi::iquehead,
-            c_ffi::iquetail,
+            p_mobj::iquehead,
+            p_mobj::iquetail,
             "item queue must be empty (head == tail) at startup"
         );
     }
@@ -109,7 +117,7 @@ fn itemque_starts_empty() {
 #[test]
 fn itemrespawntime_starts_zeroed() {
     unsafe {
-        for (i, &t) in c_ffi::itemrespawntime.iter().enumerate() {
+        for (i, &t) in p_mobj::itemrespawntime.iter().enumerate() {
             assert_eq!(t, 0, "itemrespawntime[{i}] should be 0 before level load");
         }
     }
@@ -119,7 +127,7 @@ fn itemrespawntime_starts_zeroed() {
 #[test]
 fn itemrespawntime_length_is_itemquesize() {
     unsafe {
-        assert_eq!(c_ffi::itemrespawntime.len(), c_ffi::ITEMQUESIZE);
+        assert_eq!(p_mobj::itemrespawntime.len(), c_ffi::ITEMQUESIZE);
     }
 }
 
@@ -133,7 +141,7 @@ fn queue_indices_are_c_int_width() {
     use std::ffi::c_int;
     const _: () = assert!(std::mem::size_of::<c_int>() == 4);
     unsafe {
-        let _: c_int = c_ffi::iquehead;
-        let _: c_int = c_ffi::iquetail;
+        let _: c_int = p_mobj::iquehead;
+        let _: c_int = p_mobj::iquetail;
     }
 }

@@ -145,9 +145,9 @@ recommended porting order.
 - [x] `p_floor.c`
 - [x] `p_inter.c`
 - [x] `p_lights.c`
-- [ ] `p_map.c`
-- [ ] `p_maputl.c`
-- [ ] `p_mobj.c`
+- [x] `p_map.c`
+- [x] `p_maputl.c`
+- [x] `p_mobj.c`
 - [x] `p_plats.c`
 - [x] `p_pspr.c`
 - [ ] `p_saveg.c`
@@ -168,15 +168,15 @@ recommended porting order.
 - [x] `r_plane.c`
 - [x] `r_segs.c`
 - [x] `r_sky.c`
-- [ ] `r_things.c`
+- [x] `r_things.c`
 
 ### Automap / HUD / status bar / finale / intermission
 
-- [ ] `am_map.c`
+- [x] `am_map.c`
 - [x] `hu_lib.c`
 - [x] `hu_stuff.c`
 - [x] `st_lib.c`
-- [ ] `st_stuff.c`
+- [x] `st_stuff.c`
 - [x] `f_finale.c`
 - [x] `f_wipe.c`
 - [ ] `wi_stuff.c`

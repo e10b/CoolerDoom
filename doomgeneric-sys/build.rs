@@ -41,8 +41,8 @@ fn main() {
     let lib_sources: &[&str] = &[
         // Stub / dummy implementations (networking, etc.)
         // dummy  — ported to Rust (room/src/doom/dummy.rs)
-        // Automap
-        "am_map.c",
+        // Automap — ported to Rust (room/src/doom/am_map.rs)
+        // "am_map.c",
         // Doom definitions & state
         // doomdef  — removed, no symbols
         // doomstat — ported to Rust (room/src/doom/doomstat.rs)
@@ -77,8 +77,6 @@ fn main() {
         // i_endoom — ported to Rust (room/src/doom/i_endoom.rs)
         // Joystick stub
         // i_joystick — ported to Rust (room/src/doom/i_joystick.rs)
-        // Screen scaling
-        "i_scale.c",
         // Sound stub
         // i_sound   — ported to Rust (room/src/doom/i_sound.rs)
         // System functions (error handling, etc.) — ported to Rust (room/src/doom/i_system.rs)
@@ -115,12 +113,12 @@ fn main() {
         // "p_inter.c",
         // Lighting effects — ported to Rust (room/src/doom/p_lights.rs)
         // "p_lights.c",
-        // Map collisions
-        "p_map.c",
-        // Map utility functions
-        "p_maputl.c",
-        // Map objects (things)
-        "p_mobj.c",
+        // Map collisions — ported to Rust (room/src/doom/p_map.rs)
+        // "p_map.c",
+        // Map utility functions — ported to Rust (room/src/doom/p_maputl.rs)
+        // "p_maputl.c",
+        // Map objects (things) — ported to Rust (room/src/doom/p_mobj.rs)
+        // "p_mobj.c",
         // Moving platforms — ported to Rust (room/src/doom/p_plats.rs)
         // "p_plats.c",
         // Player sprite logic — ported to Rust (room/src/doom/p_pspr.rs)
@@ -131,8 +129,8 @@ fn main() {
         // "p_setup.c",
         // Line-of-sight checks — ported to Rust (room/src/doom/p_sight.rs)
         // "p_sight.c",
-        // Special actions
-        "p_spec.c",
+        // Special actions — ported to Rust (room/src/doom/p_spec.rs)
+        // "p_spec.c",
         // Switch actions — ported to Rust (room/src/doom/p_switch.rs)
         // "p_switch.c",
         // Teleporter — ported to Rust (room/src/doom/p_telept.rs)
@@ -155,8 +153,8 @@ fn main() {
         // "r_segs.c",
         // Sky rendering — ported to Rust (room/src/doom/r_sky.rs)
         // "r_sky.c",
-        // Sprite rendering
-        "r_things.c",
+        // Sprite rendering — ported to Rust (room/src/doom/r_things.rs)
+        // "r_things.c",
         // SHA-1 hash (for WAD checksums)
         // sha1 — ported to Rust (room/src/doom/sha1.rs)
         // Sound data tables
@@ -165,8 +163,8 @@ fn main() {
         // statdump  — ported to Rust (room/src/doom/statdump.rs)
         // Status bar library — ported to Rust (room/src/doom/st_lib.rs)
         // "st_lib.c",
-        // Status bar
-        "st_stuff.c",
+        // Status bar — ported to Rust (room/src/doom/st_stuff.rs)
+        // "st_stuff.c",
         // Sound subsystem (no-op when FEATURE_SOUND is not defined)
         // s_sound   — ported to Rust (room/src/doom/s_sound.rs)
         // Trigonometry tables

@@ -165,105 +165,11 @@ pub struct mobj_t {
 // p_maputl.c
 // ---------------------------------------------------------------------------
 
-pub const MAXINTERCEPTS_ORIGINAL: usize = 128;
-pub const MAXINTERCEPTS: usize = MAXINTERCEPTS_ORIGINAL + 61;
-
-extern "C" {
-    pub static mut opentop: c_int;
-    pub static mut openbottom: c_int;
-    pub static mut openrange: c_int;
-    pub static mut lowfloor: c_int;
-
-    pub static mut intercepts: [intercept_t; MAXINTERCEPTS];
-    pub static mut intercept_p: *mut intercept_t;
-
-    pub static mut trace: divline_t;
-
-    pub fn P_AproxDistance(dx: c_int, dy: c_int) -> c_int;
-    pub fn P_PointOnLineSide(x: c_int, y: c_int, line: *mut line_t) -> c_int;
-    pub fn P_PointOnDivlineSide(x: c_int, y: c_int, line: *mut divline_t) -> c_int;
-    pub fn P_MakeDivline(li: *mut line_t, dl: *mut divline_t);
-    pub fn P_InterceptVector(v2: *mut divline_t, v1: *mut divline_t) -> c_int;
-    pub fn P_BoxOnLineSide(tmbox: *mut c_int, ld: *mut line_t) -> c_int;
-    pub fn P_LineOpening(linedef: *mut line_t);
-    pub fn P_UnsetThingPosition(thing: *mut mobj_t);
-    pub fn P_SetThingPosition(thing: *mut mobj_t);
-    pub fn P_PathTraverse(
-        x1: c_int,
-        y1: c_int,
-        x2: c_int,
-        y2: c_int,
-        flags: c_int,
-        trav: Option<unsafe extern "C" fn(*mut intercept_t) -> c_uint>,
-    ) -> c_uint;
-    pub fn P_TraverseIntercepts(
-        func: Option<unsafe extern "C" fn(*mut intercept_t) -> c_uint>,
-        maxfrac: c_int,
-    ) -> c_uint;
-    pub fn PIT_AddLineIntercepts(ld: *mut line_t) -> c_uint;
-    pub fn PIT_AddThingIntercepts(thing: *mut mobj_t) -> c_uint;
-}
-
 // ---------------------------------------------------------------------------
-// p_spec.c
+// r_draw.c — remaining C functions
 // ---------------------------------------------------------------------------
 
 extern "C" {
-    pub static mut leveltime: c_int;
-}
-
-// ---------------------------------------------------------------------------
-// p_mobj.c
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    pub static mut itemrespawnque: [u8; 128 * 10]; // mapthing_t[ITEMQUESIZE]
-    pub static mut itemrespawntime: [c_int; 128];
-    pub static mut iquehead: c_int;
-    pub static mut iquetail: c_int;
-
-    pub fn P_SetMobjState(mobj: *mut mobj_t, state: c_int) -> c_uint;
-    pub fn P_ExplodeMissile(mo: *mut mobj_t);
-    pub fn P_XYMovement(mo: *mut mobj_t);
-    pub fn P_ZMovement(mo: *mut mobj_t);
-    pub fn P_NightmareRespawn(mobj: *mut mobj_t);
-    pub fn P_MobjThinker(mobj: *mut mobj_t);
-    pub fn P_SpawnMobj(x: c_int, y: c_int, z: c_int, type_: c_int) -> *mut mobj_t;
-    pub fn P_RemoveMobj(mobj: *mut mobj_t);
-    pub fn P_RespawnSpecials();
-    pub fn P_SpawnPuff(x: c_int, y: c_int, z: c_int);
-    pub fn P_SpawnBlood(x: c_int, y: c_int, z: c_int, damage: c_int);
-    pub fn P_CheckMissileSpawn(th: *mut mobj_t);
-    pub fn P_SubstNullMobj(mobj: *mut mobj_t) -> *mut mobj_t;
-    pub fn P_SpawnMissile(source: *mut mobj_t, dest: *mut mobj_t, type_: c_int) -> *mut mobj_t;
-    pub fn P_SpawnPlayerMissile(source: *mut mobj_t, type_: c_int);
-}
-
-// ---------------------------------------------------------------------------
-// r_draw.c
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    pub static mut viewwidth: c_int;
-    pub static mut viewheight: c_int;
-    pub static mut viewwindowx: c_int;
-    pub static mut viewwindowy: c_int;
-    pub static mut dc_colormap: *mut u8;
-    pub static mut dc_x: c_int;
-    pub static mut dc_yl: c_int;
-    pub static mut dc_yh: c_int;
-    pub static mut dc_iscale: c_int;
-    pub static mut dc_texturemid: c_int;
-    pub static mut dc_source: *mut u8;
-    pub static mut fuzzpos: c_int;
-    pub static mut ds_y: c_int;
-    pub static mut ds_x1: c_int;
-    pub static mut ds_x2: c_int;
-    pub static mut ds_xfrac: c_int;
-    pub static mut ds_yfrac: c_int;
-    pub static mut ds_xstep: c_int;
-    pub static mut ds_ystep: c_int;
-
     pub fn R_InitBuffer(width: c_int, height: c_int);
     pub fn R_InitTranslationTables();
     pub fn R_FillBackScreen();
@@ -291,12 +197,9 @@ pub const ANGLETOFINESHIFT: c_int = 19;
 pub const ANG45: c_uint = 1 << 29;
 pub const ANG90: c_uint = 1 << 30;
 pub const ANG180: c_uint = 1 << 31;
+pub const ANG270: c_uint = 0xC000_0000;
 
 pub const ITEMQUESIZE: usize = 128;
-
-pub const PT_ADDLINES: c_int = 1;
-pub const PT_ADDTHINGS: c_int = 2;
-pub const PT_EARLYOUT: c_int = 4;
 
 pub const BOXTOP: usize = 0;
 pub const BOXBOTTOM: usize = 1;
@@ -443,99 +346,6 @@ pub struct vissprite_t {
     _pad2: [u8; 4],
 }
 
-// ---------------------------------------------------------------------------
-// r_draw.c additional externs
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    /// The fuzz column-offset lookup table; length == FUZZTABLE.
-    pub static mut fuzzoffset: [c_int; FUZZTABLE];
-    /// Scaled (actual) view width; set alongside viewwidth in R_ExecuteSetViewSize.
-    pub static mut scaledviewwidth: c_int;
-}
-
-// ---------------------------------------------------------------------------
-// r_segs.c
-// Segment rendering state – set each frame by R_StoreWallRange before any
-// draw calls; all zero before the first frame is rendered.
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    /// True if any texture on the current seg might be visible.
-    pub static mut segtextured: c_int;
-    /// False when the back sector shares the same floor plane.
-    pub static mut markfloor: c_int;
-    /// False when the back sector shares the same ceiling plane.
-    pub static mut markceiling: c_int;
-    /// True when there is a masked (transparent) mid-texture on the seg.
-    pub static mut maskedtexture: c_int;
-    /// Texture number for the upper (top) wall texture.
-    pub static mut toptexture: c_int;
-    /// Texture number for the lower (bottom) wall texture.
-    pub static mut bottomtexture: c_int;
-    /// Texture number for the middle (solid) wall texture.
-    pub static mut midtexture: c_int;
-    /// Normal angle of the current segment (BAM units).
-    pub static mut rw_normalangle: c_uint;
-    /// Angle from player to line origin; used for texture offsetting.
-    pub static mut rw_angle1: c_int;
-    /// Left column (inclusive) of the wall strip being drawn.
-    pub static mut rw_x: c_int;
-    /// Right column (exclusive) of the wall strip.
-    pub static mut rw_stopx: c_int;
-    /// Angle used to compute per-column scale (BAM units).
-    pub static mut rw_centerangle: c_uint;
-    /// Horizontal texture offset along the seg.
-    pub static mut rw_offset: c_int;
-    /// Perpendicular distance from the player to the seg.
-    pub static mut rw_distance: c_int;
-    /// Scale factor at the left edge of the strip.
-    pub static mut rw_scale: c_int;
-    /// Per-column scale delta.
-    pub static mut rw_scalestep: c_int;
-    /// Texture-coordinate midpoint for the mid texture.
-    pub static mut rw_midtexturemid: c_int;
-    /// Texture-coordinate midpoint for the top texture.
-    pub static mut rw_toptexturemid: c_int;
-    /// Texture-coordinate midpoint for the bottom texture.
-    pub static mut rw_bottomtexturemid: c_int;
-    /// World-space top of the visible wall opening (ceiling).
-    pub static mut worldtop: c_int;
-    /// World-space bottom of the visible wall opening (floor).
-    pub static mut worldbottom: c_int;
-    /// World-space top of the back-sector ceiling (two-sided walls).
-    pub static mut worldhigh: c_int;
-    /// World-space bottom of the back-sector floor (two-sided walls).
-    pub static mut worldlow: c_int;
-    /// Current high-wall pixel position (fixed-point screen coords).
-    pub static mut pixhigh: c_int;
-    /// Current low-wall pixel position (fixed-point screen coords).
-    pub static mut pixlow: c_int;
-    /// Per-column step for pixhigh.
-    pub static mut pixhighstep: c_int;
-    /// Per-column step for pixlow.
-    pub static mut pixlowstep: c_int;
-    /// Current top texture fractional row (fixed-point).
-    pub static mut topfrac: c_int;
-    /// Per-column step for topfrac.
-    pub static mut topstep: c_int;
-    /// Current bottom texture fractional row (fixed-point).
-    pub static mut bottomfrac: c_int;
-    /// Per-column step for bottomfrac.
-    pub static mut bottomstep: c_int;
-    /// Pointer to the active light table array for this seg's light level.
-    pub static mut walllights: *mut *mut u8; // lighttable_t**
-    /// Column offset array for masked (transparent) mid-textures.
-    pub static mut maskedtexturecol: *mut c_short;
-}
-
-// ---------------------------------------------------------------------------
-// r_things.c
-// Sprite rendering state – set during R_DrawMasked / R_ProjectSprite.
-// pspritescale and pspriteiscale are set per frame; all others zero before
-// R_InitSprites is called.
-// ---------------------------------------------------------------------------
-
 /// One animation-frame of a sprite, matching r_defs.h `spriteframe_t`.
 ///
 /// Layout (28 bytes):
@@ -553,32 +363,8 @@ pub struct spriteframe_t {
     pub flip: [u8; 8],
 }
 
-extern "C" {
-    /// Scale applied to player weapon (psprite) columns this frame.
-    pub static mut pspritescale: c_int;
-    /// Inverse of pspritescale (= FRACUNIT / pspritescale).
-    pub static mut pspriteiscale: c_int;
-    /// Pointer to the active light-table array for sprites this frame.
-    pub static mut spritelights: *mut *mut u8; // lighttable_t**
-    /// Clipping array initialised to -1 for psprite bottom clipping.
-    pub static mut negonearray: [c_short; 320]; // [SCREENWIDTH]
-    /// Clipping array initialised to SCREENHEIGHT for psprite top clipping.
-    pub static mut screenheightarray: [c_short; 320]; // [SCREENWIDTH]
-    /// Pointer to the sprite definition table (set by R_InitSprites).
-    pub static mut sprites: *mut c_void; // spritedef_t*
-    /// Total number of sprite names found in the WAD (set by R_InitSprites).
-    pub static mut numsprites: c_int;
-    /// Temporary frame-building array used during R_InitSprites; length 29.
-    pub static mut sprtemp: [spriteframe_t; 29];
-    /// Highest frame index seen for the current sprite during R_InitSprites.
-    pub static mut maxframe: c_int;
-    /// Name of the sprite currently being processed by R_InitSprites.
-    pub static mut spritename: *mut c_char;
-}
-
 // ---------------------------------------------------------------------------
-// g_game.c
-// Movement tables and game-state globals.
+// g_game.c — movement tables and game-state globals.
 // forwardmove / sidemove / angleturn are static initialisers (non-zero).
 // ---------------------------------------------------------------------------
 
@@ -614,28 +400,6 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// p_pspr.c
-// Weapon-sprite (psprite) state globals.
-// swingx/swingy are computed each tic by P_CalcSwing; zero before first tic.
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    /// Horizontal weapon-bob offset (fixed_t); updated each tic by P_CalcSwing.
-    pub static mut swingx: c_int;
-    /// Vertical weapon-bob offset (fixed_t); updated each tic by P_CalcSwing.
-    pub static mut swingy: c_int;
-}
-
-// ---------------------------------------------------------------------------
-// am_map.c
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    /// True while the automap is open.
-    pub static mut automapactive: c_int;
-}
-
-// ---------------------------------------------------------------------------
 // i_scale.c
 // Screen-scaling mode descriptors.
 // ---------------------------------------------------------------------------
@@ -663,28 +427,12 @@ pub struct screen_mode_t {
     pub poor_quality: c_int,
 }
 
-extern "C" {
-    // Direct pixel-double scale modes (320×200 → N×(320×200))
-    pub static mut mode_scale_1x: screen_mode_t; // 320×200
-    pub static mut mode_scale_2x: screen_mode_t; // 640×400
-    pub static mut mode_scale_3x: screen_mode_t; // 960×600
-    pub static mut mode_scale_4x: screen_mode_t; // 1280×800
-    pub static mut mode_scale_5x: screen_mode_t; // 1600×1000
-
-    // Vertically-stretched modes (320×200 → N×(320×240))
-    pub static mut mode_stretch_1x: screen_mode_t; // 320×240  (poor)
-    pub static mut mode_stretch_2x: screen_mode_t; // 640×480
-    pub static mut mode_stretch_3x: screen_mode_t; // 960×720
-    pub static mut mode_stretch_4x: screen_mode_t; // 1280×960
-    pub static mut mode_stretch_5x: screen_mode_t; // 1600×1200
-
-    // Horizontally-squashed modes (320×200 → N×(256×200))
-    pub static mut mode_squash_1x: screen_mode_t; // 256×200  (poor)
-    pub static mut mode_squash_2x: screen_mode_t; // 512×400
-    pub static mut mode_squash_3x: screen_mode_t; // 800×600  (quirk: not 768×600)
-    pub static mut mode_squash_4x: screen_mode_t; // 1024×800
-    pub static mut mode_squash_5x: screen_mode_t; // 1280×1000
-}
+// Re-exported from the Rust port of i_scale.c.
+pub use crate::doom::i_scale::{
+    mode_scale_1x, mode_scale_2x, mode_scale_3x, mode_scale_4x, mode_scale_5x, mode_squash_1x,
+    mode_squash_2x, mode_squash_3x, mode_squash_4x, mode_squash_5x, mode_stretch_1x,
+    mode_stretch_2x, mode_stretch_3x, mode_stretch_4x, mode_stretch_5x,
+};
 
 // ---------------------------------------------------------------------------
 // Additional constants from C headers
@@ -786,15 +534,6 @@ pub const PLATWAIT: c_int = 3;
 /// Floor movement speed (FLOORSPEED = FRACUNIT).
 pub const FLOORSPEED: c_int = FRACUNIT;
 
-extern "C" {
-    /// True when a level timer is active (set by map 96 line special).
-    pub static mut levelTimer: c_int; // boolean
-    /// Remaining tic count for the level timer.
-    pub static mut levelTimeCount: c_int;
-    /// Number of active line specials in the current level.
-    pub static mut numlinespecials: c_short;
-}
-
 // ---------------------------------------------------------------------------
 // p_map.c — collision detection globals and constants
 // ---------------------------------------------------------------------------
@@ -803,40 +542,7 @@ extern "C" {
 /// (DEFAULT_SPECHIT_MAGIC in p_map.c = 0x01C09C98).
 pub const DEFAULT_SPECHIT_MAGIC: c_uint = 0x01C09C98;
 
-extern "C" {
-    /// Bounding box of the thing being tested for movement.
-    pub static mut tmbbox: [c_int; 4];
-    /// MF_* flags of the thing being tested.
-    pub static mut tmflags: c_int;
-    /// X coordinate of the thing being tested.
-    pub static mut tmx: c_int;
-    /// Y coordinate of the thing being tested.
-    pub static mut tmy: c_int;
-    /// True when the move would be valid if within tmfloorz..tmceilingz.
-    pub static mut floatok: c_int; // boolean
-    /// Floor Z at the test position.
-    pub static mut tmfloorz: c_int;
-    /// Ceiling Z at the test position.
-    pub static mut tmceilingz: c_int;
-    /// Floor Z for drop-off testing.
-    pub static mut tmdropoffz: c_int;
-    /// Number of lines hit during the current P_CheckPosition call.
-    pub static mut numspechit: c_int;
-    /// Z height of the shoot ray origin.
-    pub static mut shootz: c_int;
-    /// Damage of the current ranged attack (0 = aim only).
-    pub static mut la_damage: c_int;
-    /// Range of the current attack in fixed-point map units.
-    pub static mut attackrange: c_int;
-    /// Vertical slope of the aiming trace.
-    pub static mut aimslope: c_int;
-    /// Fraction along the slide path to the nearest wall.
-    pub static mut bestslidefrac: c_int;
-    /// Fraction to the second-closest slide wall.
-    pub static mut secondslidefrac: c_int;
-    /// Damage radius for the current P_RadiusAttack call.
-    pub static mut bombdamage: c_int;
-}
+// All p_map globals are now exported from `room/src/doom/p_map.rs`.
 
 // ---------------------------------------------------------------------------
 // d_loop.rs — main game-loop state globals and constants
@@ -995,18 +701,29 @@ pub const ST_X: c_int = 0;
 pub const ST_X2: c_int = 104;
 
 // ---------------------------------------------------------------------------
-// am_map.c — automap constants
+// Re-exports of ported globals so C tests and remaining FFI consumers can
+// continue to access everything through one module.
 // ---------------------------------------------------------------------------
 
-/// Number of mark points the player can drop on the automap
-/// (AM_NUMMARKPOINTS = 10).
-pub const AM_NUMMARKPOINTS: usize = 10;
-/// Initial scale factor (map-to-frame) expressed as a fraction of FRACUNIT
-/// (INITSCALEMTOF = 0.2 × FRACUNIT).
-pub const INITSCALEMTOF: c_int = (0.2 * FRACUNIT as f64) as c_int;
-/// Zoom-in factor per tic (M_ZOOMIN = 1.02 × FRACUNIT, truncated).
-pub const M_ZOOMIN: c_int = (1.02 * FRACUNIT as f64) as c_int;
-/// Zoom-out factor per tic (M_ZOOMOUT = FRACUNIT / 1.02, truncated).
-pub const M_ZOOMOUT: c_int = (FRACUNIT as f64 / 1.02) as c_int;
-/// Pan speed in map units per tic (F_PANINC = 4).
-pub const F_PANINC: c_int = 4;
+pub use crate::doom::p_tick::leveltime;
+
+pub use crate::doom::p_pspr::{swingx, swingy};
+
+pub use crate::doom::r_draw::{
+    dc_colormap, dc_iscale, dc_source, dc_texturemid, dc_x, dc_yh, dc_yl, ds_x1, ds_x2, ds_xfrac,
+    ds_xstep, ds_y, ds_yfrac, ds_ystep, fuzzoffset, fuzzpos, scaledviewwidth, viewheight,
+    viewwidth, viewwindowx, viewwindowy,
+};
+
+pub use crate::doom::r_segs::{
+    bottomfrac, bottomstep, bottomtexture, markceiling, markfloor, maskedtexture, maskedtexturecol,
+    midtexture, pixhigh, pixhighstep, pixlow, pixlowstep, rw_angle1, rw_bottomtexturemid,
+    rw_centerangle, rw_distance, rw_midtexturemid, rw_normalangle, rw_offset, rw_scale,
+    rw_scalestep, rw_stopx, rw_toptexturemid, rw_x, segtextured, topfrac, topstep, toptexture,
+    walllights, worldbottom, worldhigh, worldlow, worldtop,
+};
+
+pub use crate::doom::r_things::{
+    maxframe, negonearray, numsprites, pspriteiscale, pspritescale, screenheightarray,
+    spritelights, spritename, sprites, sprtemp,
+};

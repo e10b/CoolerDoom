@@ -12,7 +12,7 @@ use crate::doom::d_mode;
 use crate::doom::d_player::PlayerT;
 use crate::doom::doomstat::{gamemission, gameversion};
 use crate::doom::hu_stuff::{hu_font, HU_FONTSIZE, HU_FONTSTART};
-use crate::doom::info::{MobjInfo, State, NUMMOBJTYPES, NUMSTATES};
+use crate::doom::info::*;
 use crate::doom::v_video::patch_t;
 
 // ---------------------------------------------------------------------------
@@ -56,54 +56,6 @@ const sfx_sgtatk: c_int = 52;
 const sfx_sklatk: c_int = 51;
 const sfx_plasma: c_int = 8;
 const sfx_rlaunc: c_int = 14;
-
-// State indices (from info.h / info.c)
-const S_NULL: c_int = 0;
-const S_PLAY_ATK1: c_int = 154;
-const S_POSS_ATK2: c_int = 185;
-const S_SPOS_ATK2: c_int = 218;
-const S_VILE_ATK2: c_int = 256;
-const S_SKEL_FIST2: c_int = 336;
-const S_SKEL_FIST4: c_int = 338;
-const S_SKEL_MISS2: c_int = 340;
-const S_FATT_ATK2: c_int = 377;
-const S_FATT_ATK5: c_int = 380;
-const S_FATT_ATK8: c_int = 383;
-const S_CPOS_ATK2: c_int = 417;
-const S_CPOS_ATK3: c_int = 418;
-const S_CPOS_ATK4: c_int = 419;
-const S_TROO_ATK3: c_int = 454;
-const S_SARG_ATK2: c_int = 486;
-const S_BOSS_ATK2: c_int = 538;
-const S_BOS2_ATK2: c_int = 567;
-const S_HEAD_ATK2: c_int = 505;
-const S_SKULL_ATK2: c_int = 590;
-const S_SPID_ATK2: c_int = 616;
-const S_SPID_ATK3: c_int = 617;
-const S_BSPI_ATK2: c_int = 648;
-const S_CYBER_ATK2: c_int = 685;
-const S_CYBER_ATK4: c_int = 687;
-const S_CYBER_ATK6: c_int = 689;
-const S_PAIN_ATK3: c_int = 710;
-
-// Mobj type indices (from info.h)
-const MT_POSSESSED: c_int = 1;
-const MT_SHOTGUY: c_int = 2;
-const MT_CHAINGUY: c_int = 10;
-const MT_TROOP: c_int = 11;
-const MT_SERGEANT: c_int = 12;
-const MT_SKULL: c_int = 18;
-const MT_HEAD: c_int = 14;
-const MT_KNIGHT: c_int = 17;
-const MT_BRUISER: c_int = 15;
-const MT_BABY: c_int = 20;
-const MT_PAIN: c_int = 22;
-const MT_UNDEAD: c_int = 5;
-const MT_FATSO: c_int = 8;
-const MT_VILE: c_int = 3;
-const MT_SPIDER: c_int = 19;
-const MT_CYBORG: c_int = 21;
-const MT_PLAYER: c_int = 0;
 
 // ---------------------------------------------------------------------------
 // Finale text strings (from d_englsh.h)

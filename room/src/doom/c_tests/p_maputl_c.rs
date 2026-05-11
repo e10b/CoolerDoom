@@ -11,6 +11,7 @@ use std::sync::Mutex;
 use crate::doom::c_ffi;
 use crate::doom::c_ffi::{divline_t, line_t, vertex_t};
 use crate::doom::c_tests::harness::C_GLOBAL_LOCK;
+use crate::doom::p_maputl;
 
 // ---------------------------------------------------------------------------
 // P_AproxDistance
@@ -19,7 +20,7 @@ use crate::doom::c_tests::harness::C_GLOBAL_LOCK;
 #[test]
 fn aproxdist_zero() {
     unsafe {
-        assert_eq!(c_ffi::P_AproxDistance(0, 0), 0);
+        assert_eq!(p_maputl::P_AproxDistance(0, 0), 0);
     }
 }
 
@@ -27,7 +28,7 @@ fn aproxdist_zero() {
 fn aproxdist_along_x() {
     unsafe {
         assert_eq!(
-            c_ffi::P_AproxDistance(100 * c_ffi::FRACUNIT, 0),
+            p_maputl::P_AproxDistance(100 * c_ffi::FRACUNIT, 0),
             100 * c_ffi::FRACUNIT
         );
     }
@@ -37,7 +38,7 @@ fn aproxdist_along_x() {
 fn aproxdist_along_y() {
     unsafe {
         assert_eq!(
-            c_ffi::P_AproxDistance(0, 100 * c_ffi::FRACUNIT),
+            p_maputl::P_AproxDistance(0, 100 * c_ffi::FRACUNIT),
             100 * c_ffi::FRACUNIT
         );
     }
@@ -49,7 +50,7 @@ fn aproxdist_diagonal() {
     // 100 + 100 - 50 = 150
     unsafe {
         assert_eq!(
-            c_ffi::P_AproxDistance(100 * c_ffi::FRACUNIT, 100 * c_ffi::FRACUNIT),
+            p_maputl::P_AproxDistance(100 * c_ffi::FRACUNIT, 100 * c_ffi::FRACUNIT),
             150 * c_ffi::FRACUNIT
         );
     }
@@ -59,7 +60,7 @@ fn aproxdist_diagonal() {
 fn aproxdist_negative_dx() {
     unsafe {
         assert_eq!(
-            c_ffi::P_AproxDistance(-100 * c_ffi::FRACUNIT, 0),
+            p_maputl::P_AproxDistance(-100 * c_ffi::FRACUNIT, 0),
             100 * c_ffi::FRACUNIT
         );
     }
@@ -69,7 +70,7 @@ fn aproxdist_negative_dx() {
 fn aproxdist_negative_dy() {
     unsafe {
         assert_eq!(
-            c_ffi::P_AproxDistance(0, -100 * c_ffi::FRACUNIT),
+            p_maputl::P_AproxDistance(0, -100 * c_ffi::FRACUNIT),
             100 * c_ffi::FRACUNIT
         );
     }
@@ -80,7 +81,7 @@ fn aproxdist_both_negative() {
     // dx=100, dy=50 → 100 + 50 - 25 = 125
     unsafe {
         assert_eq!(
-            c_ffi::P_AproxDistance(-100 * c_ffi::FRACUNIT, -50 * c_ffi::FRACUNIT),
+            p_maputl::P_AproxDistance(-100 * c_ffi::FRACUNIT, -50 * c_ffi::FRACUNIT),
             125 * c_ffi::FRACUNIT
         );
     }
@@ -92,7 +93,7 @@ fn aproxdist_dx_lt_dy() {
     // 50 + 100 - 25 = 125
     unsafe {
         assert_eq!(
-            c_ffi::P_AproxDistance(50 * c_ffi::FRACUNIT, 100 * c_ffi::FRACUNIT),
+            p_maputl::P_AproxDistance(50 * c_ffi::FRACUNIT, 100 * c_ffi::FRACUNIT),
             125 * c_ffi::FRACUNIT
         );
     }
@@ -104,7 +105,7 @@ fn aproxdist_dx_gt_dy() {
     // 100 + 50 - 25 = 125
     unsafe {
         assert_eq!(
-            c_ffi::P_AproxDistance(100 * c_ffi::FRACUNIT, 50 * c_ffi::FRACUNIT),
+            p_maputl::P_AproxDistance(100 * c_ffi::FRACUNIT, 50 * c_ffi::FRACUNIT),
             125 * c_ffi::FRACUNIT
         );
     }
@@ -113,8 +114,8 @@ fn aproxdist_dx_gt_dy() {
 #[test]
 fn aproxdist_max_values_no_panic() {
     unsafe {
-        let _ = c_ffi::P_AproxDistance(i32::MAX, i32::MAX);
-        let _ = c_ffi::P_AproxDistance(i32::MIN, i32::MIN);
+        let _ = p_maputl::P_AproxDistance(i32::MAX, i32::MAX);
+        let _ = p_maputl::P_AproxDistance(i32::MIN, i32::MIN);
     }
 }
 
@@ -123,7 +124,7 @@ fn aproxdist_mixed_sign() {
     // abs(-64) = 64, abs(128) = 128 → 64 + 128 - 32 = 160
     unsafe {
         assert_eq!(
-            c_ffi::P_AproxDistance(-64 * c_ffi::FRACUNIT, 128 * c_ffi::FRACUNIT),
+            p_maputl::P_AproxDistance(-64 * c_ffi::FRACUNIT, 128 * c_ffi::FRACUNIT),
             160 * c_ffi::FRACUNIT
         );
     }
@@ -149,7 +150,7 @@ fn divline_side_horizontal_above() {
     unsafe {
         // Above the line → side 1 (back)
         assert_eq!(
-            c_ffi::P_PointOnDivlineSide(
+            p_maputl::P_PointOnDivlineSide(
                 c_ffi::FRACUNIT,
                 c_ffi::FRACUNIT,
                 &line as *const _ as *mut _
@@ -165,7 +166,7 @@ fn divline_side_horizontal_below() {
     unsafe {
         // Below the line → side 0 (front)
         assert_eq!(
-            c_ffi::P_PointOnDivlineSide(
+            p_maputl::P_PointOnDivlineSide(
                 c_ffi::FRACUNIT,
                 -c_ffi::FRACUNIT,
                 &line as *const _ as *mut _
@@ -181,7 +182,7 @@ fn divline_side_horizontal_on_line() {
     unsafe {
         // y <= line.y → side 0
         assert_eq!(
-            c_ffi::P_PointOnDivlineSide(c_ffi::FRACUNIT, 0, &line as *const _ as *mut _),
+            p_maputl::P_PointOnDivlineSide(c_ffi::FRACUNIT, 0, &line as *const _ as *mut _),
             0
         );
     }
@@ -193,7 +194,7 @@ fn divline_side_vertical_left() {
     unsafe {
         // Left of the line (x <= 0) → side 1 (back)
         assert_eq!(
-            c_ffi::P_PointOnDivlineSide(
+            p_maputl::P_PointOnDivlineSide(
                 -c_ffi::FRACUNIT,
                 c_ffi::FRACUNIT,
                 &line as *const _ as *mut _
@@ -209,7 +210,7 @@ fn divline_side_vertical_right() {
     unsafe {
         // Right of the line (x > 0) → side 0 (front)
         assert_eq!(
-            c_ffi::P_PointOnDivlineSide(
+            p_maputl::P_PointOnDivlineSide(
                 c_ffi::FRACUNIT,
                 c_ffi::FRACUNIT,
                 &line as *const _ as *mut _
@@ -225,7 +226,7 @@ fn divline_side_vertical_on_line() {
     unsafe {
         // x <= line.x → side 1
         assert_eq!(
-            c_ffi::P_PointOnDivlineSide(0, c_ffi::FRACUNIT, &line as *const _ as *mut _),
+            p_maputl::P_PointOnDivlineSide(0, c_ffi::FRACUNIT, &line as *const _ as *mut _),
             1
         );
     }
@@ -238,12 +239,12 @@ fn divline_side_diagonal() {
     unsafe {
         // point (0, FRACUNIT) is above the line → side 1
         assert_eq!(
-            c_ffi::P_PointOnDivlineSide(0, c_ffi::FRACUNIT, &line as *const _ as *mut _),
+            p_maputl::P_PointOnDivlineSide(0, c_ffi::FRACUNIT, &line as *const _ as *mut _),
             1
         );
         // point (FRACUNIT, 0) is below the line → side 0
         assert_eq!(
-            c_ffi::P_PointOnDivlineSide(c_ffi::FRACUNIT, 0, &line as *const _ as *mut _),
+            p_maputl::P_PointOnDivlineSide(c_ffi::FRACUNIT, 0, &line as *const _ as *mut _),
             0
         );
     }
@@ -262,7 +263,7 @@ fn intercept_parallel_returns_zero() {
     unsafe {
         // Parallel horizontal lines → 0
         assert_eq!(
-            c_ffi::P_InterceptVector(&v2 as *const _ as *mut _, &v1 as *const _ as *mut _),
+            p_maputl::P_InterceptVector(&v2 as *const _ as *mut _, &v1 as *const _ as *mut _),
             0
         );
     }
@@ -275,7 +276,7 @@ fn intercept_perpendicular_crossing_at_origin() {
     unsafe {
         // They cross at origin → frac = 0 along v2
         assert_eq!(
-            c_ffi::P_InterceptVector(&v2 as *const _ as *mut _, &v1 as *const _ as *mut _),
+            p_maputl::P_InterceptVector(&v2 as *const _ as *mut _, &v1 as *const _ as *mut _),
             0
         );
     }
@@ -291,7 +292,7 @@ fn intercept_crossing_at_half_along_v2() {
         // Intersection is at (1,0), which is halfway along v2
         // → frac = 0.5 = FRACUNIT/2
         assert_eq!(
-            c_ffi::P_InterceptVector(&v2 as *const _ as *mut _, &v1 as *const _ as *mut _),
+            p_maputl::P_InterceptVector(&v2 as *const _ as *mut _, &v1 as *const _ as *mut _),
             c_ffi::FRACUNIT / 2
         );
     }
@@ -306,7 +307,7 @@ fn intercept_crossing_at_one_along_v2() {
     unsafe {
         // Intersection at (1,0) is halfway along v2 → 0.5
         assert_eq!(
-            c_ffi::P_InterceptVector(&v2 as *const _ as *mut _, &v1 as *const _ as *mut _),
+            p_maputl::P_InterceptVector(&v2 as *const _ as *mut _, &v1 as *const _ as *mut _),
             c_ffi::FRACUNIT / 2
         );
     }
@@ -345,7 +346,7 @@ fn make_divline_copies_fields() {
         dy: 0,
     };
     unsafe {
-        c_ffi::P_MakeDivline(&mut line, &mut dl);
+        p_maputl::P_MakeDivline(&mut line, &mut dl);
     }
     assert_eq!(dl.x, 10 * c_ffi::FRACUNIT);
     assert_eq!(dl.y, 20 * c_ffi::FRACUNIT);
@@ -381,7 +382,7 @@ fn box_on_line_horizontal_above() {
     tmbox[c_ffi::BOXTOP] = c_ffi::FRACUNIT;
     tmbox[c_ffi::BOXBOTTOM] = c_ffi::FRACUNIT / 2;
     unsafe {
-        assert_eq!(c_ffi::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), 1);
+        assert_eq!(p_maputl::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), 1);
     }
 }
 
@@ -409,7 +410,7 @@ fn box_on_line_horizontal_below() {
     tmbox[c_ffi::BOXTOP] = -c_ffi::FRACUNIT / 2;
     tmbox[c_ffi::BOXBOTTOM] = -c_ffi::FRACUNIT;
     unsafe {
-        assert_eq!(c_ffi::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), 0);
+        assert_eq!(p_maputl::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), 0);
     }
 }
 
@@ -437,7 +438,7 @@ fn box_on_line_vertical_right() {
     tmbox[c_ffi::BOXRIGHT] = c_ffi::FRACUNIT;
     tmbox[c_ffi::BOXLEFT] = c_ffi::FRACUNIT / 2;
     unsafe {
-        assert_eq!(c_ffi::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), 0);
+        assert_eq!(p_maputl::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), 0);
     }
 }
 
@@ -465,7 +466,7 @@ fn box_on_line_vertical_left() {
     tmbox[c_ffi::BOXRIGHT] = -c_ffi::FRACUNIT / 2;
     tmbox[c_ffi::BOXLEFT] = -c_ffi::FRACUNIT;
     unsafe {
-        assert_eq!(c_ffi::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), 1);
+        assert_eq!(p_maputl::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), 1);
     }
 }
 
@@ -493,7 +494,7 @@ fn box_crosses_line_returns_negative_one() {
     tmbox[c_ffi::BOXTOP] = c_ffi::FRACUNIT;
     tmbox[c_ffi::BOXBOTTOM] = -c_ffi::FRACUNIT;
     unsafe {
-        assert_eq!(c_ffi::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), -1);
+        assert_eq!(p_maputl::P_BoxOnLineSide(tmbox.as_mut_ptr(), &mut line), -1);
     }
 }
 
@@ -542,8 +543,8 @@ fn line_opening_single_sided() {
     let mut v1 = vertex_t { x: 0, y: 0 };
     let mut line = make_line(&mut v1, [0, -1], std::ptr::null_mut(), std::ptr::null_mut());
     unsafe {
-        c_ffi::P_LineOpening(&mut line);
-        assert_eq!(c_ffi::openrange, 0);
+        p_maputl::P_LineOpening(&mut line);
+        assert_eq!(p_maputl::openrange, 0);
     }
 }
 
@@ -555,15 +556,15 @@ fn line_opening_two_sided_front_higher() {
     let mut v1 = vertex_t { x: 0, y: 0 };
     let mut line = make_line(&mut v1, [0, 1], &mut front, &mut back);
     unsafe {
-        c_ffi::P_LineOpening(&mut line);
+        p_maputl::P_LineOpening(&mut line);
         // opentop    = min(128, 64)  = 64
         // openbottom = max(0, -16)   = 0
         // lowfloor   = min(0, -16)   = -16
         // openrange  = 64 - 0        = 64
-        assert_eq!(c_ffi::opentop, 64 * c_ffi::FRACUNIT);
-        assert_eq!(c_ffi::openbottom, 0);
-        assert_eq!(c_ffi::lowfloor, -16 * c_ffi::FRACUNIT);
-        assert_eq!(c_ffi::openrange, 64 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::opentop, 64 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::openbottom, 0);
+        assert_eq!(p_maputl::lowfloor, -16 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::openrange, 64 * c_ffi::FRACUNIT);
     }
 }
 
@@ -575,15 +576,15 @@ fn line_opening_two_sided_back_higher() {
     let mut v1 = vertex_t { x: 0, y: 0 };
     let mut line = make_line(&mut v1, [0, 1], &mut front, &mut back);
     unsafe {
-        c_ffi::P_LineOpening(&mut line);
+        p_maputl::P_LineOpening(&mut line);
         // opentop    = min(64, 128)  = 64
         // openbottom = max(0, 16)    = 16
         // lowfloor   = min(0, 16)    = 0
         // openrange  = 64 - 16       = 48
-        assert_eq!(c_ffi::opentop, 64 * c_ffi::FRACUNIT);
-        assert_eq!(c_ffi::openbottom, 16 * c_ffi::FRACUNIT);
-        assert_eq!(c_ffi::lowfloor, 0);
-        assert_eq!(c_ffi::openrange, 48 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::opentop, 64 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::openbottom, 16 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::lowfloor, 0);
+        assert_eq!(p_maputl::openrange, 48 * c_ffi::FRACUNIT);
     }
 }
 
@@ -595,11 +596,11 @@ fn line_opening_two_sided_equal() {
     let mut v1 = vertex_t { x: 0, y: 0 };
     let mut line = make_line(&mut v1, [0, 1], &mut front, &mut back);
     unsafe {
-        c_ffi::P_LineOpening(&mut line);
-        assert_eq!(c_ffi::opentop, 128 * c_ffi::FRACUNIT);
-        assert_eq!(c_ffi::openbottom, 32 * c_ffi::FRACUNIT);
-        assert_eq!(c_ffi::lowfloor, 32 * c_ffi::FRACUNIT);
-        assert_eq!(c_ffi::openrange, 96 * c_ffi::FRACUNIT);
+        p_maputl::P_LineOpening(&mut line);
+        assert_eq!(p_maputl::opentop, 128 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::openbottom, 32 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::lowfloor, 32 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::openrange, 96 * c_ffi::FRACUNIT);
     }
 }
 
@@ -612,15 +613,15 @@ fn line_opening_negative_range() {
     let mut v1 = vertex_t { x: 0, y: 0 };
     let mut line = make_line(&mut v1, [0, 1], &mut front, &mut back);
     unsafe {
-        c_ffi::P_LineOpening(&mut line);
+        p_maputl::P_LineOpening(&mut line);
         // opentop    = min(128, 64)   = 64
         // openbottom = max(100, 0)    = 100
         // lowfloor   = min(100, 0)    = 0
         // openrange  = 64 - 100       = -36
-        assert_eq!(c_ffi::opentop, 64 * c_ffi::FRACUNIT);
-        assert_eq!(c_ffi::openbottom, 100 * c_ffi::FRACUNIT);
-        assert_eq!(c_ffi::lowfloor, 0);
-        assert_eq!(c_ffi::openrange, -36 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::opentop, 64 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::openbottom, 100 * c_ffi::FRACUNIT);
+        assert_eq!(p_maputl::lowfloor, 0);
+        assert_eq!(p_maputl::openrange, -36 * c_ffi::FRACUNIT);
     }
 }
 
@@ -645,8 +646,8 @@ fn traverse_intercepts_empty() {
     let _guard = C_GLOBAL_LOCK.lock().unwrap();
     unsafe {
         TRAVERSED_FRACS.lock().unwrap().clear();
-        c_ffi::intercept_p = c_ffi::intercepts.as_mut_ptr();
-        let result = c_ffi::P_TraverseIntercepts(Some(record_and_continue), c_ffi::FRACUNIT);
+        p_maputl::intercept_p = p_maputl::intercepts.as_mut_ptr();
+        let result = p_maputl::P_TraverseIntercepts(Some(record_and_continue), c_ffi::FRACUNIT);
         assert_eq!(result, 1); // true = all traversed
         assert!(TRAVERSED_FRACS.lock().unwrap().is_empty());
     }
@@ -657,14 +658,14 @@ fn traverse_intercepts_single() {
     let _guard = C_GLOBAL_LOCK.lock().unwrap();
     unsafe {
         TRAVERSED_FRACS.lock().unwrap().clear();
-        c_ffi::intercepts[0] = c_ffi::intercept_t {
+        p_maputl::intercepts[0] = c_ffi::intercept_t {
             frac: c_ffi::FRACUNIT / 2,
             isaline: 0,
             d: std::mem::MaybeUninit::zeroed().assume_init(),
         };
-        c_ffi::intercept_p = c_ffi::intercepts.as_mut_ptr().add(1);
+        p_maputl::intercept_p = p_maputl::intercepts.as_mut_ptr().add(1);
 
-        let result = c_ffi::P_TraverseIntercepts(Some(record_and_continue), c_ffi::FRACUNIT);
+        let result = p_maputl::P_TraverseIntercepts(Some(record_and_continue), c_ffi::FRACUNIT);
         assert_eq!(result, 1);
         let fracs = TRAVERSED_FRACS.lock().unwrap();
         assert_eq!(fracs.len(), 1);
@@ -679,24 +680,24 @@ fn traverse_intercepts_sorted_order() {
         TRAVERSED_FRACS.lock().unwrap().clear();
 
         // Fill 3 intercepts with fracs out of order (all <= FRACUNIT).
-        c_ffi::intercepts[0] = c_ffi::intercept_t {
+        p_maputl::intercepts[0] = c_ffi::intercept_t {
             frac: c_ffi::FRACUNIT / 2,
             isaline: 0,
             d: std::mem::MaybeUninit::zeroed().assume_init(),
         };
-        c_ffi::intercepts[1] = c_ffi::intercept_t {
+        p_maputl::intercepts[1] = c_ffi::intercept_t {
             frac: c_ffi::FRACUNIT / 4,
             isaline: 0,
             d: std::mem::MaybeUninit::zeroed().assume_init(),
         };
-        c_ffi::intercepts[2] = c_ffi::intercept_t {
+        p_maputl::intercepts[2] = c_ffi::intercept_t {
             frac: 3 * c_ffi::FRACUNIT / 4,
             isaline: 0,
             d: std::mem::MaybeUninit::zeroed().assume_init(),
         };
-        c_ffi::intercept_p = c_ffi::intercepts.as_mut_ptr().add(3);
+        p_maputl::intercept_p = p_maputl::intercepts.as_mut_ptr().add(3);
 
-        let result = c_ffi::P_TraverseIntercepts(Some(record_and_continue), c_ffi::FRACUNIT);
+        let result = p_maputl::P_TraverseIntercepts(Some(record_and_continue), c_ffi::FRACUNIT);
         assert_eq!(result, 1);
         let fracs = TRAVERSED_FRACS.lock().unwrap();
         assert_eq!(fracs.len(), 3);
@@ -712,20 +713,20 @@ fn traverse_intercepts_respects_maxfrac() {
     unsafe {
         TRAVERSED_FRACS.lock().unwrap().clear();
 
-        c_ffi::intercepts[0] = c_ffi::intercept_t {
+        p_maputl::intercepts[0] = c_ffi::intercept_t {
             frac: c_ffi::FRACUNIT / 4,
             isaline: 0,
             d: std::mem::MaybeUninit::zeroed().assume_init(),
         };
-        c_ffi::intercepts[1] = c_ffi::intercept_t {
+        p_maputl::intercepts[1] = c_ffi::intercept_t {
             frac: c_ffi::FRACUNIT,
             isaline: 0,
             d: std::mem::MaybeUninit::zeroed().assume_init(),
         };
-        c_ffi::intercept_p = c_ffi::intercepts.as_mut_ptr().add(2);
+        p_maputl::intercept_p = p_maputl::intercepts.as_mut_ptr().add(2);
 
         // maxfrac = FRACUNIT/2 → only the first intercept (FRACUNIT/4) is in range.
-        let result = c_ffi::P_TraverseIntercepts(Some(record_and_continue), c_ffi::FRACUNIT / 2);
+        let result = p_maputl::P_TraverseIntercepts(Some(record_and_continue), c_ffi::FRACUNIT / 2);
         assert_eq!(result, 1);
         let fracs = TRAVERSED_FRACS.lock().unwrap();
         assert_eq!(fracs.len(), 1);
@@ -739,19 +740,19 @@ fn traverse_intercepts_stop_early() {
     unsafe {
         TRAVERSED_FRACS.lock().unwrap().clear();
 
-        c_ffi::intercepts[0] = c_ffi::intercept_t {
+        p_maputl::intercepts[0] = c_ffi::intercept_t {
             frac: c_ffi::FRACUNIT / 4,
             isaline: 0,
             d: std::mem::MaybeUninit::zeroed().assume_init(),
         };
-        c_ffi::intercepts[1] = c_ffi::intercept_t {
+        p_maputl::intercepts[1] = c_ffi::intercept_t {
             frac: c_ffi::FRACUNIT / 2,
             isaline: 0,
             d: std::mem::MaybeUninit::zeroed().assume_init(),
         };
-        c_ffi::intercept_p = c_ffi::intercepts.as_mut_ptr().add(2);
+        p_maputl::intercept_p = p_maputl::intercepts.as_mut_ptr().add(2);
 
-        let result = c_ffi::P_TraverseIntercepts(Some(record_and_stop), c_ffi::FRACUNIT);
+        let result = p_maputl::P_TraverseIntercepts(Some(record_and_stop), c_ffi::FRACUNIT);
         assert_eq!(result, 0); // false = stopped early
         let fracs = TRAVERSED_FRACS.lock().unwrap();
         assert_eq!(fracs.len(), 1);

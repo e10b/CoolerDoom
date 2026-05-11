@@ -4,6 +4,7 @@
 //! Functions are exported with `#[no_mangle] extern "C"` so the
 //! remaining C code resolves them at final link time.
 
+pub mod am_map;
 pub mod c_ffi;
 
 pub mod d_event;
@@ -26,6 +27,7 @@ pub mod i_cdmus;
 pub mod i_endoom;
 pub mod i_input;
 pub mod i_joystick;
+pub mod i_scale;
 pub mod i_sound;
 pub mod i_system;
 pub mod i_timer;
@@ -46,10 +48,14 @@ pub mod p_doors;
 pub mod p_floor;
 pub mod p_inter;
 pub mod p_lights;
+pub mod p_map;
+pub mod p_maputl;
+pub mod p_mobj;
 pub mod p_plats;
 pub mod p_pspr;
 pub mod p_setup;
 pub mod p_sight;
+pub mod p_spec;
 pub mod p_switch;
 pub mod p_telept;
 pub mod p_tick;
@@ -61,10 +67,12 @@ pub mod r_main;
 pub mod r_plane;
 pub mod r_segs;
 pub mod r_sky;
+pub mod r_things;
 pub mod s_sound;
 pub mod sha1;
 pub mod sounds;
 pub mod st_lib;
+pub mod st_stuff;
 pub mod statdump;
 pub mod tables;
 pub mod v_video;
