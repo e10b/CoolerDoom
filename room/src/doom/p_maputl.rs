@@ -10,25 +10,11 @@ use std::ptr;
 
 use crate::doom::c_ffi::{
     divline_t, intercept_t, intercept_t_d, line_t, mobj_t, sector_t, subsector_t, vertex_t,
+    FRACBITS, FRACUNIT, MAPBLOCKSHIFT, MAPBLOCKSIZE, MAPBMASK, MAPBTOFRAC, ST_HORIZONTAL,
+    ST_NEGATIVE, ST_POSITIVE, ST_VERTICAL,
 };
 use crate::doom::info::*;
 use crate::doom::m_fixed::{fixed_t, FixedDiv, FixedMul};
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const FRACBITS: u32 = 16;
-const FRACUNIT: c_int = 1 << FRACBITS;
-const MAPBLOCKSHIFT: c_int = FRACBITS as c_int + 7;
-const MAPBLOCKSIZE: c_int = 128 * FRACUNIT;
-const MAPBMASK: c_int = MAPBLOCKSIZE - 1;
-const MAPBTOFRAC: c_int = MAPBLOCKSHIFT - FRACBITS as c_int;
-
-const ST_HORIZONTAL: c_int = 0;
-const ST_VERTICAL: c_int = 1;
-const ST_POSITIVE: c_int = 2;
-const ST_NEGATIVE: c_int = 3;
 
 pub const MAXINTERCEPTS_ORIGINAL: usize = 128;
 pub const MAXINTERCEPTS: usize = MAXINTERCEPTS_ORIGINAL + 61;

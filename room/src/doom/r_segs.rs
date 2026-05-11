@@ -9,8 +9,8 @@
 use std::ffi::{c_int, c_short, c_uchar, c_void};
 use std::ptr;
 
-use super::m_fixed::FixedMul;
-use super::r_bsp::{angle_t, drawseg_t, fixed_t, line_t, sector_t, seg_t, side_t};
+use super::m_fixed::{angle_t, fixed_t, FixedMul};
+use super::r_bsp::{drawseg_t, line_t, sector_t, seg_t, side_t};
 use super::r_plane::visplane_t;
 use super::tables;
 

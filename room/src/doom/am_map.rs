@@ -9,7 +9,10 @@ use std::ffi::{c_char, c_int, c_void};
 use std::os::raw::c_uint;
 use std::ptr;
 
-use crate::doom::c_ffi::{mobj_t, sector_t};
+use crate::doom::c_ffi::{
+    mobj_t, sector_t, ANGLETOFINESHIFT, FRACBITS, FRACUNIT, MAPBLOCKSHIFT, MAPBLOCKSIZE,
+    MAPBLOCKUNITS, SCREENHEIGHT, SCREENWIDTH,
+};
 use crate::doom::d_event::event_t;
 use crate::doom::d_player::{PlayerT, MAXPLAYERS};
 use crate::doom::i_video::I_VideoBuffer;
@@ -29,14 +32,6 @@ use crate::doom::v_video::patch_t;
 // Constants
 // ---------------------------------------------------------------------------
 
-const FRACUNIT: c_int = 65536;
-const FRACBITS: u32 = 16;
-const SCREENWIDTH: c_int = 320;
-const SCREENHEIGHT: c_int = 200;
-const MAPBLOCKUNITS: c_int = 128;
-const MAPBLOCKSIZE: c_int = MAPBLOCKUNITS * FRACUNIT;
-const MAPBLOCKSHIFT: c_int = FRACBITS as c_int + 7;
-const ANGLETOFINESHIFT: u32 = 19;
 const PU_STATIC: c_int = 1;
 
 pub const AM_NUMMARKPOINTS: usize = 10;

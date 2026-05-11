@@ -7,11 +7,9 @@
 use std::ffi::{c_int, c_short, c_void};
 use std::ptr;
 
+use super::c_ffi::{ANG90, ANGLETOFINESHIFT};
+use super::m_fixed::{angle_t, fixed_t};
 use super::tables;
-
-const ANGLETOFINESHIFT: u32 = 19;
-const ANG90: u32 = 0x4000_0000;
-const FINEMASK: usize = 0x1FFF;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -38,13 +36,6 @@ unsafe fn seg_index(line: *const seg_t) -> isize {
         (line as isize - segs as isize) / std::mem::size_of::<seg_t>() as isize
     }
 }
-
-// ---------------------------------------------------------------------------
-// Type aliases
-// ---------------------------------------------------------------------------
-
-pub type fixed_t = c_int;
-pub type angle_t = u32;
 
 // ---------------------------------------------------------------------------
 // Mirrored C structs (from r_defs.h) — only fields read by r_bsp.c

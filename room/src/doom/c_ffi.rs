@@ -166,38 +166,10 @@ pub struct mobj_t {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// p_spec.c
+// r_draw.c — remaining C functions
 // ---------------------------------------------------------------------------
 
 extern "C" {
-    pub static mut leveltime: c_int;
-}
-
-// ---------------------------------------------------------------------------
-// r_draw.c
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    pub static mut viewwidth: c_int;
-    pub static mut viewheight: c_int;
-    pub static mut viewwindowx: c_int;
-    pub static mut viewwindowy: c_int;
-    pub static mut dc_colormap: *mut u8;
-    pub static mut dc_x: c_int;
-    pub static mut dc_yl: c_int;
-    pub static mut dc_yh: c_int;
-    pub static mut dc_iscale: c_int;
-    pub static mut dc_texturemid: c_int;
-    pub static mut dc_source: *mut u8;
-    pub static mut fuzzpos: c_int;
-    pub static mut ds_y: c_int;
-    pub static mut ds_x1: c_int;
-    pub static mut ds_x2: c_int;
-    pub static mut ds_xfrac: c_int;
-    pub static mut ds_yfrac: c_int;
-    pub static mut ds_xstep: c_int;
-    pub static mut ds_ystep: c_int;
-
     pub fn R_InitBuffer(width: c_int, height: c_int);
     pub fn R_InitTranslationTables();
     pub fn R_FillBackScreen();
@@ -225,6 +197,7 @@ pub const ANGLETOFINESHIFT: c_int = 19;
 pub const ANG45: c_uint = 1 << 29;
 pub const ANG90: c_uint = 1 << 30;
 pub const ANG180: c_uint = 1 << 31;
+pub const ANG270: c_uint = 0xC000_0000;
 
 pub const ITEMQUESIZE: usize = 128;
 
@@ -373,99 +346,6 @@ pub struct vissprite_t {
     _pad2: [u8; 4],
 }
 
-// ---------------------------------------------------------------------------
-// r_draw.c additional externs
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    /// The fuzz column-offset lookup table; length == FUZZTABLE.
-    pub static mut fuzzoffset: [c_int; FUZZTABLE];
-    /// Scaled (actual) view width; set alongside viewwidth in R_ExecuteSetViewSize.
-    pub static mut scaledviewwidth: c_int;
-}
-
-// ---------------------------------------------------------------------------
-// r_segs.c
-// Segment rendering state – set each frame by R_StoreWallRange before any
-// draw calls; all zero before the first frame is rendered.
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    /// True if any texture on the current seg might be visible.
-    pub static mut segtextured: c_int;
-    /// False when the back sector shares the same floor plane.
-    pub static mut markfloor: c_int;
-    /// False when the back sector shares the same ceiling plane.
-    pub static mut markceiling: c_int;
-    /// True when there is a masked (transparent) mid-texture on the seg.
-    pub static mut maskedtexture: c_int;
-    /// Texture number for the upper (top) wall texture.
-    pub static mut toptexture: c_int;
-    /// Texture number for the lower (bottom) wall texture.
-    pub static mut bottomtexture: c_int;
-    /// Texture number for the middle (solid) wall texture.
-    pub static mut midtexture: c_int;
-    /// Normal angle of the current segment (BAM units).
-    pub static mut rw_normalangle: c_uint;
-    /// Angle from player to line origin; used for texture offsetting.
-    pub static mut rw_angle1: c_int;
-    /// Left column (inclusive) of the wall strip being drawn.
-    pub static mut rw_x: c_int;
-    /// Right column (exclusive) of the wall strip.
-    pub static mut rw_stopx: c_int;
-    /// Angle used to compute per-column scale (BAM units).
-    pub static mut rw_centerangle: c_uint;
-    /// Horizontal texture offset along the seg.
-    pub static mut rw_offset: c_int;
-    /// Perpendicular distance from the player to the seg.
-    pub static mut rw_distance: c_int;
-    /// Scale factor at the left edge of the strip.
-    pub static mut rw_scale: c_int;
-    /// Per-column scale delta.
-    pub static mut rw_scalestep: c_int;
-    /// Texture-coordinate midpoint for the mid texture.
-    pub static mut rw_midtexturemid: c_int;
-    /// Texture-coordinate midpoint for the top texture.
-    pub static mut rw_toptexturemid: c_int;
-    /// Texture-coordinate midpoint for the bottom texture.
-    pub static mut rw_bottomtexturemid: c_int;
-    /// World-space top of the visible wall opening (ceiling).
-    pub static mut worldtop: c_int;
-    /// World-space bottom of the visible wall opening (floor).
-    pub static mut worldbottom: c_int;
-    /// World-space top of the back-sector ceiling (two-sided walls).
-    pub static mut worldhigh: c_int;
-    /// World-space bottom of the back-sector floor (two-sided walls).
-    pub static mut worldlow: c_int;
-    /// Current high-wall pixel position (fixed-point screen coords).
-    pub static mut pixhigh: c_int;
-    /// Current low-wall pixel position (fixed-point screen coords).
-    pub static mut pixlow: c_int;
-    /// Per-column step for pixhigh.
-    pub static mut pixhighstep: c_int;
-    /// Per-column step for pixlow.
-    pub static mut pixlowstep: c_int;
-    /// Current top texture fractional row (fixed-point).
-    pub static mut topfrac: c_int;
-    /// Per-column step for topfrac.
-    pub static mut topstep: c_int;
-    /// Current bottom texture fractional row (fixed-point).
-    pub static mut bottomfrac: c_int;
-    /// Per-column step for bottomfrac.
-    pub static mut bottomstep: c_int;
-    /// Pointer to the active light table array for this seg's light level.
-    pub static mut walllights: *mut *mut u8; // lighttable_t**
-    /// Column offset array for masked (transparent) mid-textures.
-    pub static mut maskedtexturecol: *mut c_short;
-}
-
-// ---------------------------------------------------------------------------
-// r_things.c
-// Sprite rendering state – set during R_DrawMasked / R_ProjectSprite.
-// pspritescale and pspriteiscale are set per frame; all others zero before
-// R_InitSprites is called.
-// ---------------------------------------------------------------------------
-
 /// One animation-frame of a sprite, matching r_defs.h `spriteframe_t`.
 ///
 /// Layout (28 bytes):
@@ -483,32 +363,8 @@ pub struct spriteframe_t {
     pub flip: [u8; 8],
 }
 
-extern "C" {
-    /// Scale applied to player weapon (psprite) columns this frame.
-    pub static mut pspritescale: c_int;
-    /// Inverse of pspritescale (= FRACUNIT / pspritescale).
-    pub static mut pspriteiscale: c_int;
-    /// Pointer to the active light-table array for sprites this frame.
-    pub static mut spritelights: *mut *mut u8; // lighttable_t**
-    /// Clipping array initialised to -1 for psprite bottom clipping.
-    pub static mut negonearray: [c_short; 320]; // [SCREENWIDTH]
-    /// Clipping array initialised to SCREENHEIGHT for psprite top clipping.
-    pub static mut screenheightarray: [c_short; 320]; // [SCREENWIDTH]
-    /// Pointer to the sprite definition table (set by R_InitSprites).
-    pub static mut sprites: *mut c_void; // spritedef_t*
-    /// Total number of sprite names found in the WAD (set by R_InitSprites).
-    pub static mut numsprites: c_int;
-    /// Temporary frame-building array used during R_InitSprites; length 29.
-    pub static mut sprtemp: [spriteframe_t; 29];
-    /// Highest frame index seen for the current sprite during R_InitSprites.
-    pub static mut maxframe: c_int;
-    /// Name of the sprite currently being processed by R_InitSprites.
-    pub static mut spritename: *mut c_char;
-}
-
 // ---------------------------------------------------------------------------
-// g_game.c
-// Movement tables and game-state globals.
+// g_game.c — movement tables and game-state globals.
 // forwardmove / sidemove / angleturn are static initialisers (non-zero).
 // ---------------------------------------------------------------------------
 
@@ -541,19 +397,6 @@ extern "C" {
     pub static mut totalitems: c_int;
     /// Total secret count on the current level (for intermission).
     pub static mut totalsecret: c_int;
-}
-
-// ---------------------------------------------------------------------------
-// p_pspr.c
-// Weapon-sprite (psprite) state globals.
-// swingx/swingy are computed each tic by P_CalcSwing; zero before first tic.
-// ---------------------------------------------------------------------------
-
-extern "C" {
-    /// Horizontal weapon-bob offset (fixed_t); updated each tic by P_CalcSwing.
-    pub static mut swingx: c_int;
-    /// Vertical weapon-bob offset (fixed_t); updated each tic by P_CalcSwing.
-    pub static mut swingy: c_int;
 }
 
 // ---------------------------------------------------------------------------
@@ -856,3 +699,31 @@ pub const ST_MUCHPAIN: c_int = 20;
 pub const ST_X: c_int = 0;
 /// X pixel offset of the arms display (ST_X2 = 104).
 pub const ST_X2: c_int = 104;
+
+// ---------------------------------------------------------------------------
+// Re-exports of ported globals so C tests and remaining FFI consumers can
+// continue to access everything through one module.
+// ---------------------------------------------------------------------------
+
+pub use crate::doom::p_tick::leveltime;
+
+pub use crate::doom::p_pspr::{swingx, swingy};
+
+pub use crate::doom::r_draw::{
+    dc_colormap, dc_iscale, dc_source, dc_texturemid, dc_x, dc_yh, dc_yl, ds_x1, ds_x2, ds_xfrac,
+    ds_xstep, ds_y, ds_yfrac, ds_ystep, fuzzoffset, fuzzpos, scaledviewwidth, viewheight,
+    viewwidth, viewwindowx, viewwindowy,
+};
+
+pub use crate::doom::r_segs::{
+    bottomfrac, bottomstep, bottomtexture, markceiling, markfloor, maskedtexture, maskedtexturecol,
+    midtexture, pixhigh, pixhighstep, pixlow, pixlowstep, rw_angle1, rw_bottomtexturemid,
+    rw_centerangle, rw_distance, rw_midtexturemid, rw_normalangle, rw_offset, rw_scale,
+    rw_scalestep, rw_stopx, rw_toptexturemid, rw_x, segtextured, topfrac, topstep, toptexture,
+    walllights, worldbottom, worldhigh, worldlow, worldtop,
+};
+
+pub use crate::doom::r_things::{
+    maxframe, negonearray, numsprites, pspriteiscale, pspritescale, screenheightarray,
+    spritelights, spritename, sprites, sprtemp,
+};

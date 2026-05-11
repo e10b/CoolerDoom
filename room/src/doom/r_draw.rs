@@ -9,6 +9,7 @@
 use std::ffi::{c_char, c_int, c_void};
 use std::ptr;
 
+use crate::doom::c_ffi::{FRACBITS, FUZZOFF, FUZZTABLE, SBARHEIGHT, SCREENHEIGHT, SCREENWIDTH};
 use crate::doom::d_mode::commercial;
 use crate::doom::doomstat::gamemode;
 use crate::doom::v_video::{patch_t, V_DrawPatch, V_MarkRect, V_RestoreBuffer, V_UseBuffer};
@@ -19,13 +20,6 @@ use crate::doom::v_video::{patch_t, V_DrawPatch, V_MarkRect, V_RestoreBuffer, V_
 
 const MAXWIDTH: usize = 1120;
 const MAXHEIGHT: usize = 832;
-const SCREENWIDTH: c_int = 320;
-const SCREENHEIGHT: c_int = 200;
-const SBARHEIGHT: c_int = 32;
-const FRACBITS: u32 = 16;
-
-pub const FUZZTABLE: usize = 50;
-pub const FUZZOFF: c_int = SCREENWIDTH;
 
 // ---------------------------------------------------------------------------
 // External symbols

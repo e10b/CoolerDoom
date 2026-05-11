@@ -8,7 +8,8 @@
 use std::ffi::{c_int, c_short, c_uchar, c_void};
 use std::ptr;
 
-use super::m_fixed::{FixedDiv, FixedMul};
+use super::c_ffi::{ANG90, ANGLETOFINESHIFT, FINEMASK};
+use super::m_fixed::{angle_t, fixed_t, FixedDiv, FixedMul};
 use super::r_sky;
 use super::tables;
 
@@ -27,24 +28,18 @@ const LIGHTSEGSHIFT: u32 = 4;
 const MAXLIGHTZ: usize = 128;
 const LIGHTZSHIFT: u32 = 20;
 
-const ANGLETOFINESHIFT: u32 = 19;
 const ANGLETOSKYSHIFT: u32 = 22;
-const FINEMASK: usize = 0x1FFF;
-
-const ANG90: u32 = 0x4000_0000;
 
 /// Safe accessor for finecosine table (it's a pointer into finesine).
 #[inline]
 fn finecosine(idx: usize) -> c_int {
-    unsafe { *tables::finecosine.0.add(idx & FINEMASK) }
+    unsafe { *tables::finecosine.0.add(idx & FINEMASK as usize) }
 }
 
 // ---------------------------------------------------------------------------
 // Type aliases
 // ---------------------------------------------------------------------------
 
-pub type fixed_t = c_int;
-pub type angle_t = u32;
 type lighttable_t = c_uchar;
 
 pub type planefunction_t = unsafe extern "C" fn(c_int, c_int);
@@ -307,7 +302,7 @@ pub extern "C" fn R_MapPlane(y: c_int, x1: c_int, x2: c_int) {
         let angle = viewangle.wrapping_add(xtoviewangle[x1 as usize]) >> ANGLETOFINESHIFT;
         ds_xfrac = viewx.wrapping_add(FixedMul(finecosine(angle as usize), length));
         ds_yfrac = (-viewy).wrapping_sub(FixedMul(
-            tables::finesine[angle as usize & FINEMASK],
+            tables::finesine[angle as usize & FINEMASK as usize],
             length,
         ));
 
@@ -358,7 +353,7 @@ pub extern "C" fn R_ClearPlanes() {
         let angle = (viewangle.wrapping_sub(ANG90)) >> ANGLETOFINESHIFT;
         basexscale = FixedDiv(finecosine(angle as usize), centerxfrac);
         baseyscale = 0i32.wrapping_sub(FixedDiv(
-            tables::finesine[angle as usize & FINEMASK],
+            tables::finesine[angle as usize & FINEMASK as usize],
             centerxfrac,
         ));
     }

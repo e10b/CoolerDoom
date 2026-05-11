@@ -8,8 +8,9 @@
 use std::ffi::{c_char, c_int, c_short, c_uint};
 use std::ptr;
 
+use crate::doom::c_ffi::{ANG180, ANG270, ANG90, ANGLETOFINESHIFT, FRACBITS, FRACUNIT};
 use crate::doom::d_player::PlayerT;
-use crate::doom::m_fixed::{fixed_t, FixedDiv, FixedMul};
+use crate::doom::m_fixed::{angle_t, fixed_t, FixedDiv, FixedMul};
 use crate::doom::p_telept::mobj_t;
 use crate::doom::r_bsp::{node_t, seg_t, subsector_t};
 use crate::doom::tables::{self, SlopeDiv};
@@ -19,12 +20,6 @@ use crate::doom::tables::{self, SlopeDiv};
 // ---------------------------------------------------------------------------
 
 const FIELDOFVIEW: c_int = 2048;
-const ANGLETOFINESHIFT: u32 = 19;
-const ANG90: u32 = 0x4000_0000;
-const ANG180: u32 = 0x8000_0000;
-const ANG270: u32 = 0xC000_0000;
-const FRACBITS: u32 = 16;
-const FRACUNIT: fixed_t = 1 << 16;
 const SCREENWIDTH: usize = 320;
 const SCREENHEIGHT: usize = 200;
 const LIGHTLEVELS: usize = 16;
@@ -39,7 +34,6 @@ const DISTMAP: usize = 2;
 // DBITS = FRACBITS - SLOPEBITS = 16 - 11 = 5 (matches vendor/doomgeneric/tables.h).
 const DBITS: u32 = 5;
 
-pub type angle_t = u32;
 type lighttable_t = u8;
 type boolean = c_int;
 

@@ -8,7 +8,9 @@
 use std::ffi::{c_char, c_int, c_short, c_void};
 use std::ptr;
 
-use crate::doom::c_ffi::{spriteframe_t, vissprite_t};
+use crate::doom::c_ffi::{
+    spriteframe_t, vissprite_t, ANG45, ANGLETOFINESHIFT, BASEYCENTER, FRACBITS, FRACUNIT, MINZ,
+};
 use crate::doom::d_player::{PlayerT, PspdefT, NUMPSPRITES};
 use crate::doom::info::*;
 use crate::doom::m_fixed::{fixed_t, FixedDiv, FixedMul};
@@ -19,10 +21,6 @@ use crate::doom::w_wad::lumpinfo_t;
 // Constants
 // ---------------------------------------------------------------------------
 
-const MINZ: fixed_t = FRACUNIT * 4;
-const BASEYCENTER: c_int = 100;
-const FRACBITS: u32 = 16;
-const FRACUNIT: fixed_t = 1 << FRACBITS;
 const SCREENWIDTH: usize = 320;
 const MAXVISSPRITES: usize = 128;
 
@@ -30,9 +28,6 @@ const LIGHTLEVELS: usize = 16;
 const LIGHTSEGSHIFT: u32 = 4;
 const MAXLIGHTSCALE: usize = 48;
 const LIGHTSCALESHIFT: u32 = 12;
-
-const ANG45: u32 = 0x2000_0000;
-const ANGLETOFINESHIFT: u32 = 19;
 
 const FF_FRAMEMASK: c_int = 0x7fff;
 const FF_FULLBRIGHT: c_int = 0x8000;

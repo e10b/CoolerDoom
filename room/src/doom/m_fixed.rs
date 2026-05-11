@@ -10,6 +10,9 @@ use std::ffi::c_int;
 /// `fixed_t` — matches `typedef int fixed_t;` in m_fixed.h.
 pub type fixed_t = c_int;
 
+/// `angle_t` — BAM angle, matches `typedef unsigned int angle_t;` in tables.h.
+pub type angle_t = u32;
+
 const FRACBITS: u32 = 16;
 
 /// Exported to C as `FixedMul`. Consumed by ~20 vendored .c files.

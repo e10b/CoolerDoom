@@ -7,6 +7,7 @@
 use std::ffi::c_void;
 use std::os::raw::c_int;
 
+use crate::doom::c_ffi::{FRACBITS, FRACUNIT, LOWERSPEED, RAISESPEED, WEAPONBOTTOM, WEAPONTOP};
 use crate::doom::d_items::weaponinfo;
 use crate::doom::d_mode::{commercial, shareware};
 use crate::doom::d_player::{PlayerT, PspdefT, NUMAMMO, NUMPSPRITES, NUMWEAPONS};
@@ -20,14 +21,6 @@ use crate::doom::s_sound::S_StartSound;
 use crate::doom::tables::{finecosine, finesine, FINEANGLES};
 
 const FINEMASK: c_int = FINEANGLES as c_int - 1;
-
-const FRACBITS: u32 = 16;
-const FRACUNIT: c_int = 1 << FRACBITS;
-
-const LOWERSPEED: c_int = FRACUNIT * 6;
-const RAISESPEED: c_int = FRACUNIT * 6;
-const WEAPONBOTTOM: c_int = 128 * FRACUNIT;
-const WEAPONTOP: c_int = 32 * FRACUNIT;
 
 // Weapon type constants (from doomdef.h)
 const wp_fist: c_int = 0;
