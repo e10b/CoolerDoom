@@ -165,8 +165,8 @@ fn main() {
         // statdump  — ported to Rust (room/src/doom/statdump.rs)
         // Status bar library — ported to Rust (room/src/doom/st_lib.rs)
         // "st_lib.c",
-        // Status bar
-        "st_stuff.c",
+        // Status bar — ported to Rust (room/src/doom/st_stuff.rs)
+        // "st_stuff.c",
         // Sound subsystem (no-op when FEATURE_SOUND is not defined)
         // s_sound   — ported to Rust (room/src/doom/s_sound.rs)
         // Trigonometry tables

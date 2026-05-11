@@ -176,7 +176,7 @@ recommended porting order.
 - [x] `hu_lib.c`
 - [x] `hu_stuff.c`
 - [x] `st_lib.c`
-- [ ] `st_stuff.c`
+- [x] `st_stuff.c`
 - [x] `f_finale.c`
 - [x] `f_wipe.c`
 - [ ] `wi_stuff.c`

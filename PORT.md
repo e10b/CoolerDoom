@@ -16,10 +16,10 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 9 |
-| Total remaining LoC | ~15,679 |
-| Already ported LoC | ~40,025 (est.) |
-| Port completeness | ~71.9% (by line count) |
+| Remaining C modules | 8 |
+| Total remaining LoC | ~14,263 |
+| Already ported LoC | ~41,441 (est.) |
+| Port completeness | ~74.4% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -43,11 +43,10 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Large — 1,000–1,500 LoC (4 files, 5,805 LoC)
+### Large — 1,000–1,500 LoC (3 files, 4,389 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `st_stuff.c` | 1,416 | Status bar | Full status bar logic |
 | `p_map.c` | 1,448 | Game logic | Map collision detection; dense geometry code |
 | `i_scale.c` | 1,452 | Platform | Screen scaling algorithms |
 | `p_spec.c` | 1,489 | Game logic | Special sector/line action dispatcher |
@@ -64,7 +63,7 @@ _All modules in this bucket have been ported._
 
 ## Recommended Porting Order
 
-With only 12 modules left, the strategy shifts from "quick wins" to
+With only 8 modules left, the strategy shifts from "quick wins" to
 **dependency-driven sequencing**: unblock the modules that the largest
 orchestrators (`d_main.c`, `g_game.c`) depend on first, then tackle the
 orchestrators themselves.
@@ -87,10 +86,9 @@ orchestrators themselves.
 6. **Enemy AI** — `p_enemy.c`. Complex state machines, but all dependencies
    (`p_mobj`, `p_map`, `p_maputl`, `p_spec`) should be in place by this
    point.
-7. **UI / display modules** — `st_stuff.c`, `wi_stuff.c`,
-    `i_scale.c`. Large but relatively self-contained; they can be worked on
-    in parallel with (or slightly after) the gameplay modules. `st_stuff.c`
-    depends on `st_lib.c` (ported) and `p_mobj.c` types.
+7. ~~**UI / display modules** — `st_stuff.c` is now ported. `wi_stuff.c`
+     and `i_scale.c` remain; they are large but relatively self-contained
+     and can be worked on in parallel with the gameplay modules.~~
 8. **Save/load** — `p_saveg.c`. Heavy struct-layout and serialization work.
    Best done after `p_map.c` is stable so the serialized types do not drift.
 9. **Main orchestrators last** — `d_main.c`, `g_game.c`. These have the
