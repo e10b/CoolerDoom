@@ -16,10 +16,10 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 8 |
-| Total remaining LoC | ~14,263 |
-| Already ported LoC | ~41,441 (est.) |
-| Port completeness | ~74.4% (by line count) |
+| Remaining C modules | 7 |
+| Total remaining LoC | ~12,815 |
+| Already ported LoC | ~42,889 (est.) |
+| Port completeness | ~77.0% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -43,11 +43,10 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Large — 1,000–1,500 LoC (3 files, 4,389 LoC)
+### Large — 1,000–1,500 LoC (2 files, 2,941 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `p_map.c` | 1,448 | Game logic | Map collision detection; dense geometry code |
 | `i_scale.c` | 1,452 | Platform | Screen scaling algorithms |
 | `p_spec.c` | 1,489 | Game logic | Special sector/line action dispatcher |
 
@@ -73,12 +72,12 @@ orchestrators themselves.
    `r_things`) is fully Rust-native.~~
 2. ~~**Map objects** — `p_mobj.c`. Needed by `p_enemy.c`, `g_game.c`, and
    `p_map.c`. Once ported, the thinker list becomes fully Rust-native.~~
-3. **Map utilities** — `p_maputl.c`. Building block for `p_map.c`; many of
+3. ~~**Map utilities** — `p_maputl.c`. Building block for `p_map.c`; many of
    its types (`divline_t`, `intercept_t`, `mobj_t`) are already mirrored in
-   `c_ffi.rs`.
-4. **Collision detection** — `p_map.c`. Required by `p_enemy.c` and
+   `c_ffi.rs`.~~
+4. ~~**Collision detection** — `p_map.c`. Required by `p_enemy.c` and
    `g_game.c`. Heavy geometry code, but its utility layer (`p_maputl.c`)
-   should be done first.
+   should be done first.~~
 5. **Special actions** — `p_spec.c`. Dispatcher for sector/line specials.
    Many of the individual action handlers it calls (`p_floor`, `p_ceilng`,
    `p_plats`, `p_doors`, `p_lights`, `p_switch`, `p_telept`) are already

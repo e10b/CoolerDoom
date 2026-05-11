@@ -145,8 +145,8 @@ recommended porting order.
 - [x] `p_floor.c`
 - [x] `p_inter.c`
 - [x] `p_lights.c`
-- [ ] `p_map.c`
-- [ ] `p_maputl.c`
+- [x] `p_map.c`
+- [x] `p_maputl.c`
 - [x] `p_mobj.c`
 - [x] `p_plats.c`
 - [x] `p_pspr.c`

@@ -115,8 +115,8 @@ fn main() {
         // "p_inter.c",
         // Lighting effects — ported to Rust (room/src/doom/p_lights.rs)
         // "p_lights.c",
-        // Map collisions
-        "p_map.c",
+        // Map collisions — ported to Rust (room/src/doom/p_map.rs)
+        // "p_map.c",
         // Map utility functions — ported to Rust (room/src/doom/p_maputl.rs)
         // "p_maputl.c",
         // Map objects (things) — ported to Rust (room/src/doom/p_mobj.rs)

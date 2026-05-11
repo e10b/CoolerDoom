@@ -724,40 +724,7 @@ extern "C" {
 /// (DEFAULT_SPECHIT_MAGIC in p_map.c = 0x01C09C98).
 pub const DEFAULT_SPECHIT_MAGIC: c_uint = 0x01C09C98;
 
-extern "C" {
-    /// Bounding box of the thing being tested for movement.
-    pub static mut tmbbox: [c_int; 4];
-    /// MF_* flags of the thing being tested.
-    pub static mut tmflags: c_int;
-    /// X coordinate of the thing being tested.
-    pub static mut tmx: c_int;
-    /// Y coordinate of the thing being tested.
-    pub static mut tmy: c_int;
-    /// True when the move would be valid if within tmfloorz..tmceilingz.
-    pub static mut floatok: c_int; // boolean
-    /// Floor Z at the test position.
-    pub static mut tmfloorz: c_int;
-    /// Ceiling Z at the test position.
-    pub static mut tmceilingz: c_int;
-    /// Floor Z for drop-off testing.
-    pub static mut tmdropoffz: c_int;
-    /// Number of lines hit during the current P_CheckPosition call.
-    pub static mut numspechit: c_int;
-    /// Z height of the shoot ray origin.
-    pub static mut shootz: c_int;
-    /// Damage of the current ranged attack (0 = aim only).
-    pub static mut la_damage: c_int;
-    /// Range of the current attack in fixed-point map units.
-    pub static mut attackrange: c_int;
-    /// Vertical slope of the aiming trace.
-    pub static mut aimslope: c_int;
-    /// Fraction along the slide path to the nearest wall.
-    pub static mut bestslidefrac: c_int;
-    /// Fraction to the second-closest slide wall.
-    pub static mut secondslidefrac: c_int;
-    /// Damage radius for the current P_RadiusAttack call.
-    pub static mut bombdamage: c_int;
-}
+// All p_map globals are now exported from `room/src/doom/p_map.rs`.
 
 // ---------------------------------------------------------------------------
 // d_loop.rs — main game-loop state globals and constants
