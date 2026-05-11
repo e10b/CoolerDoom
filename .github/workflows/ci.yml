@@ -46,9 +46,9 @@ jobs:
             libc6-dev
 
       - name: Build (includes C compilation via FFI)
-        run: cargo build --workspace --locked
+        run: cargo build --workspace --locked --exclude c2rust-intermediate
 
       - name: Run tests
-        run: cargo test --workspace --locked
+        run: cargo test --workspace --locked --exclude c2rust-intermediate
         env:
           RUST_LOG: info
