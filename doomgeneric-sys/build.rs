@@ -172,7 +172,8 @@ fn main() {
         // Video / screen buffer management — ported to Rust (room/src/doom/v_video.rs)
         // "v_video.c",
         // Intermission / victory screens
-        "wi_stuff.c",
+        // wi_stuff — ported to Rust (room/src/doom/wi_stuff.rs)
+        // "wi_stuff.c",
         // WAD checksum
         // w_checksum — ported to Rust (room/src/doom/w_checksum.rs)
         // WAD file abstraction — ported to Rust (room/src/doom/w_file.rs)

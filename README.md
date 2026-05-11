@@ -179,7 +179,7 @@ recommended porting order.
 - [x] `st_stuff.c`
 - [x] `f_finale.c`
 - [x] `f_wipe.c`
-- [ ] `wi_stuff.c`
+- [x] `wi_stuff.c`
 - [x] `statdump.c`
 
 ### Menu / misc / math

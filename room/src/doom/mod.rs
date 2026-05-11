@@ -80,6 +80,7 @@ pub mod w_checksum;
 pub mod w_file;
 pub mod w_main;
 pub mod w_wad;
+pub mod wi_stuff;
 pub mod z_zone;
 
 #[cfg(test)]
