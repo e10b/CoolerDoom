@@ -129,8 +129,8 @@ fn main() {
         // "p_setup.c",
         // Line-of-sight checks — ported to Rust (room/src/doom/p_sight.rs)
         // "p_sight.c",
-        // Special actions
-        "p_spec.c",
+        // Special actions — ported to Rust (room/src/doom/p_spec.rs)
+        // "p_spec.c",
         // Switch actions — ported to Rust (room/src/doom/p_switch.rs)
         // "p_switch.c",
         // Teleporter — ported to Rust (room/src/doom/p_telept.rs)

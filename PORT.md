@@ -16,10 +16,10 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 6 |
-| Total remaining LoC | ~11,363 |
-| Already ported LoC | ~44,341 (est.) |
-| Port completeness | ~79.6% (by line count) |
+| Remaining C modules | 5 |
+| Total remaining LoC | ~9,874 |
+| Already ported LoC | ~45,830 (est.) |
+| Port completeness | ~82.3% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -43,11 +43,9 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Large — 1,000–1,500 LoC (1 file, 1,489 LoC)
+### Large — 1,000–1,500 LoC (0 files, 0 LoC)
 
-| File | Lines | Category | Porting notes |
-|------|------:|----------|---------------|
-| `p_spec.c` | 1,489 | Game logic | Special sector/line action dispatcher |
+_All modules in this bucket have been ported._
 
 ### Very Large — > 1,500 LoC (5 files, 9,874 LoC)
 
@@ -61,7 +59,7 @@ _All modules in this bucket have been ported._
 
 ## Recommended Porting Order
 
-With only 8 modules left, the strategy shifts from "quick wins" to
+With only 5 modules left, the strategy shifts from "quick wins" to
 **dependency-driven sequencing**: unblock the modules that the largest
 orchestrators (`d_main.c`, `g_game.c`) depend on first, then tackle the
 orchestrators themselves.
@@ -77,10 +75,8 @@ orchestrators themselves.
 4. ~~**Collision detection** — `p_map.c`. Required by `p_enemy.c` and
    `g_game.c`. Heavy geometry code, but its utility layer (`p_maputl.c`)
    should be done first.~~
-5. **Special actions** — `p_spec.c`. Dispatcher for sector/line specials.
-   Many of the individual action handlers it calls (`p_floor`, `p_ceilng`,
-   `p_plats`, `p_doors`, `p_lights`, `p_switch`, `p_telept`) are already
-   ported, so this becomes mainly wiring and state management.
+5. ~~**Special actions** — `p_spec.c` is now ported. The sector/line
+   special dispatcher (`p_spec.rs`) is fully Rust-native.~~
 6. **Enemy AI** — `p_enemy.c`. Complex state machines, but all dependencies
    (`p_mobj`, `p_map`, `p_maputl`, `p_spec`) should be in place by this
    point.

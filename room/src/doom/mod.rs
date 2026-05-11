@@ -55,6 +55,7 @@ pub mod p_plats;
 pub mod p_pspr;
 pub mod p_setup;
 pub mod p_sight;
+pub mod p_spec;
 pub mod p_switch;
 pub mod p_telept;
 pub mod p_tick;

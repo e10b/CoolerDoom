@@ -691,15 +691,6 @@ pub const PLATWAIT: c_int = 3;
 /// Floor movement speed (FLOORSPEED = FRACUNIT).
 pub const FLOORSPEED: c_int = FRACUNIT;
 
-extern "C" {
-    /// True when a level timer is active (set by map 96 line special).
-    pub static mut levelTimer: c_int; // boolean
-    /// Remaining tic count for the level timer.
-    pub static mut levelTimeCount: c_int;
-    /// Number of active line specials in the current level.
-    pub static mut numlinespecials: c_short;
-}
-
 // ---------------------------------------------------------------------------
 // p_map.c — collision detection globals and constants
 // ---------------------------------------------------------------------------
