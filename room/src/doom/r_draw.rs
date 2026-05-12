@@ -299,7 +299,7 @@ pub extern "C" fn R_DrawFuzzColumn() {
             // column left or right of the current one.  Add index from
             // colormap to index.
             let offset = fuzzoffset[fuzzpos as usize];
-            let src_pix = *dest.add(offset as usize);
+            let src_pix = *dest.offset(offset as isize);
             *dest = *colormaps.add(6 * 256 + src_pix as usize);
 
             // Clamp table lookup index.
@@ -362,7 +362,7 @@ pub extern "C" fn R_DrawFuzzColumnLow() {
         let mut count = count;
         loop {
             let offset = fuzzoffset[fuzzpos as usize];
-            let src_pix = *dest.add(offset as usize);
+            let src_pix = *dest.offset(offset as isize);
             let pix = *colormaps.add(6 * 256 + src_pix as usize);
             *dest = pix;
             *dest2 = pix;
@@ -373,8 +373,8 @@ pub extern "C" fn R_DrawFuzzColumnLow() {
                 fuzzpos = 0;
             }
 
-            dest = dest.add(SCREENWIDTH as usize);
-            dest2 = dest2.add(SCREENWIDTH as usize);
+            dest = dest.offset(SCREENWIDTH as isize);
+            dest2 = dest2.offset(SCREENWIDTH as isize);
             frac += fracstep;
             if count == 0 {
                 break;

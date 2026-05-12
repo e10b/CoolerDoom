@@ -16,53 +16,23 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 5 |
-| Total remaining LoC | ~9,874 |
-| Already ported LoC | ~45,830 (est.) |
-| Port completeness | ~82.3% (by line count) |
+| Remaining C modules | 1 |
+| Total remaining LoC | ~2,303 |
+| Already ported LoC | ~53,355 (est.) |
+| Port completeness | ~95.9% (by line count) |
 
 ## Unported Modules by Complexity
 
-### Trivial — < 100 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Small — 100–350 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Medium-Small — 350–550 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Medium — 550–900 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Medium-Large — 900–1,100 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Large — 1,000–1,500 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Very Large — > 1,500 LoC (5 files, 9,874 LoC)
+### Very Large — > 1,500 LoC (1 file, 2,303 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `wi_stuff.c` | 1,829 | Intermission | Victory/intermission screens and stats |
-| `d_main.c` | 1,845 | Engine | Main initialization; orchestrates all subsystems |
-| `p_saveg.c` | 1,891 | Game logic | Save/load game serialization; heavy struct layout |
-| `p_enemy.c` | 2,006 | Game logic | Enemy AI; complex state machines and behavior |
-| `g_game.c` | 2,303 | Game logic | Core game logic; largest single module |
+| `g_game.c` | 2,303 | Game logic | Core game loop, input, demo recording, save/load, game-state globals (movement tables, ticcmd). Last remaining C module. |
 
 ## Recommended Porting Order
 
-With only 5 modules left, the strategy shifts from "quick wins" to
-**dependency-driven sequencing**: unblock the modules that the largest
-orchestrators (`d_main.c`, `g_game.c`) depend on first, then tackle the
-orchestrators themselves.
+With only 1 module left, every dependency is already Rust-native.
+`g_game.c` is self-contained and can be ported directly:
 
 1. ~~**Finish the renderer** — `r_things.c` is now ported. The renderer pipeline
    (`r_data`, `r_draw`, `r_segs`, `r_main`, `r_plane`, `r_bsp`, `r_sky`,
@@ -77,25 +47,30 @@ orchestrators themselves.
    should be done first.~~
 5. ~~**Special actions** — `p_spec.c` is now ported. The sector/line
    special dispatcher (`p_spec.rs`) is fully Rust-native.~~
-6. **Enemy AI** — `p_enemy.c`. Complex state machines, but all dependencies
+6. ~~**EnemyAI** — `p_enemy.c`. Complex state machines, but all dependencies
    (`p_mobj`, `p_map`, `p_maputl`, `p_spec`) should be in place by this
-   point.
-7. ~~**UI / display modules** — `st_stuff.c` and `i_scale.c` are now ported.
-      `wi_stuff.c` remains; it is large but relatively self-contained
-      and can be worked on in parallel with the gameplay modules.~~
-8. **Save/load** — `p_saveg.c`. Heavy struct-layout and serialization work.
-   Best done after `p_map.c` is stable so the serialized types do not drift.
-9. **Main orchestrators last** — `d_main.c`, `g_game.c`. These have the
-   most cross-cutting dependencies and should be ported only when everything
-   they call is already Rust.
+   point.~~
+7. ~~**UI / display modules** — `st_stuff.c`, `i_scale.c`, and `wi_stuff.c`
+        are now ported.~~
+8. ~~**Save/load** — `p_saveg.c`. Save/load game serialization with heavy struct
+   layout work. Now fully ported to Rust (`room/src/doom/p_saveg.rs`).~~
+9. ~~**Main orchestrator** — `d_main.c`. The main initialization and game loop
+   entry point. Now fully ported to Rust (`room/src/doom/d_main.rs`).~~
+10. **Game logic last** — `g_game.c`. The last remaining C module. All of its
+    dependencies (`doomstat`, `d_net`, `d_loop`, `d_player`, `p_setup`,
+    `p_tick`, `p_saveg`, `p_mobj`, `m_argv`, `m_random`, `m_misc`, `m_menu`,
+    `m_controls`, `i_system`, `i_timer`, `i_sound`, `i_video`, `z_zone`,
+    `w_wad`, `s_sound`, `am_map`, `hu_stuff`, `st_stuff`, `wi_stuff`,
+    `f_finale`, `f_wipe`, `r_main`, `v_video`, `statdump`) are now
+    Rust-native.
 
 ## Porting Strategy Notes
 
-- **C shims**: `m_menu_shim.c` and `m_misc_varargs.c` redirect variadic C
-  calls to non-variadic Rust helpers (`M_StringJoinA`, `M_snprintf_clamp` in
-  `m_misc.rs`). These shims will remain necessary until `d_main.c` and
-  `g_game.c` (the last callers of variadic `I_Error` / `M_StringJoinA`) are
-  ported, because Stable Rust does not support variadic function definitions.
+- **Variadic functions**: Stable Rust cannot define C variadic functions. The
+  only remaining C caller (`g_game.c`) uses `M_snprintf` which is redirected
+  via a macro in `m_misc.h` to the non-variadic Rust helper
+  `M_snprintf_clamp`. Once `g_game.c` is ported, this macro becomes
+  unnecessary and can be removed from `m_misc.h`.
 - **`d_net.c` is already ported**: Since `FEATURE_MULTIPLAYER` is not
   defined, the original module contained only stubs; the Rust replacement
   (`room/src/doom/d_net.rs`) is already active.

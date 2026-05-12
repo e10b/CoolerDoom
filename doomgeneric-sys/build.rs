@@ -56,7 +56,8 @@ fn main() {
         // "d_iwad.c",
         // Main game loop — ported to Rust (room/src/doom/d_loop.rs)
         // "d_loop.c",
-        "d_main.c",
+        // Main entry point and game loop — ported to Rust (room/src/doom/d_main.rs)
+        // "d_main.c",
         // Game mode detection
         // d_mode   — ported to Rust (room/src/doom/d_mode.rs)
         // Networking stub — ported to Rust (room/src/doom/d_net.rs)
@@ -105,8 +106,8 @@ fn main() {
         // "p_ceilng.c",
         // Door actions — ported to Rust (room/src/doom/p_doors.rs)
         // "p_doors.c",
-        // AI / enemy logic
-        "p_enemy.c",
+        // AI / enemy logic — ported to Rust (room/src/doom/p_enemy.rs)
+        // "p_enemy.c",
         // Floor actions — ported to Rust (room/src/doom/p_floor.rs)
         // "p_floor.c",
         // Player interactions — ported to Rust (room/src/doom/p_inter.rs)
@@ -123,8 +124,8 @@ fn main() {
         // "p_plats.c",
         // Player sprite logic — ported to Rust (room/src/doom/p_pspr.rs)
         // "p_pspr.c",
-        // Save games
-        "p_saveg.c",
+        // Save games — ported to Rust (room/src/doom/p_saveg.rs)
+        // "p_saveg.c",
         // Map loading — ported to Rust (room/src/doom/p_setup.rs)
         // "p_setup.c",
         // Line-of-sight checks — ported to Rust (room/src/doom/p_sight.rs)
@@ -172,7 +173,8 @@ fn main() {
         // Video / screen buffer management — ported to Rust (room/src/doom/v_video.rs)
         // "v_video.c",
         // Intermission / victory screens
-        "wi_stuff.c",
+        // wi_stuff — ported to Rust (room/src/doom/wi_stuff.rs)
+        // "wi_stuff.c",
         // WAD checksum
         // w_checksum — ported to Rust (room/src/doom/w_checksum.rs)
         // WAD file abstraction — ported to Rust (room/src/doom/w_file.rs)

@@ -97,8 +97,6 @@ cargo +nightly check -p c2rust-intermediate
 |------|--------|
 | `layout_probe.c` | Explicitly excluded from upstream Makefile |
 | `gusconf.c` | Requires `FEATURE_SOUND` |
-| `m_menu_shim.c` | Variadic shim — not transpilable |
-| `m_misc_varargs.c` | Variadic shim — not transpilable |
 | `m_misc.c` | Contains variadic macros (`M_StringJoin`, `M_vsnprintf`) that crash c2rust |
 | `dummy.c` | Empty stub |
 | `doomdef.c` | Header-only in practice, no symbols |
@@ -142,7 +140,7 @@ A `dhat-heap.json` file is produced; view it with the [dhat viewer](https://valg
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **room** (71159 symbols, 86538 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **room** (72310 symbols, 88727 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

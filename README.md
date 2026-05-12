@@ -26,7 +26,7 @@ strategy:
 
 This means the executable is a **mixed C/Rust binary**: some subsystems (e.g.
 `r_draw`, `p_setup`, `z_zone`) are now native Rust, while others (e.g.
-`g_game`, `p_enemy`, `d_main`) still run the original C code.  As each module
+`g_game`, `d_main`) still run the original C code.  As each module
 is ported it is removed from `build.rs` and the C file is no longer linked.
 
 A regression-test harness (`room/src/doom/c_tests/`) runs the original C
@@ -141,7 +141,7 @@ recommended porting order.
 - [ ] `g_game.c`
 - [x] `p_ceilng.c`
 - [x] `p_doors.c`
-- [ ] `p_enemy.c`
+- [x] `p_enemy.c`
 - [x] `p_floor.c`
 - [x] `p_inter.c`
 - [x] `p_lights.c`
@@ -179,7 +179,7 @@ recommended porting order.
 - [x] `st_stuff.c`
 - [x] `f_finale.c`
 - [x] `f_wipe.c`
-- [ ] `wi_stuff.c`
+- [x] `wi_stuff.c`
 - [x] `statdump.c`
 
 ### Menu / misc / math

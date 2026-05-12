@@ -598,35 +598,15 @@ extern "C" {
 }
 
 // ---------------------------------------------------------------------------
-// d_main.c — startup flag defaults and global state
+// d_main.rs — startup flag defaults and global state.
+// Re-exported from the Rust port so C tests and remaining FFI consumers can
+// continue to access everything through one module.
 // ---------------------------------------------------------------------------
 
-extern "C" {
-    /// True when the game was started with -devparm (developer mode).
-    pub static mut devparm: c_int; // boolean
-    /// True when -nomonsters was passed; all monsters are skipped.
-    pub static mut nomonsters: c_int; // boolean
-    /// True when -respawn was passed; item respawning is forced on.
-    pub static mut respawnparm: c_int; // boolean
-    /// True when -fast was passed; monster attack speed is doubled.
-    pub static mut fastparm: c_int; // boolean
-    /// Episode to start at (set by -episode).
-    pub static mut startepisode: c_int;
-    /// Map to start at (set by -warp / -episode).
-    pub static mut startmap: c_int;
-    /// True when -warp / -episode has provided an explicit start.
-    pub static mut autostart: c_int; // boolean
-    /// True while playing back a built-in demo sequence.
-    pub static mut advancedemo: c_int; // boolean
-    /// True when -record is combined with playing a demo (store-demo mode).
-    pub static mut storedemo: c_int; // boolean
-    /// True when the BFG edition of the IWAD is detected.
-    pub static mut bfgedition: c_int; // boolean
-    /// True once the main event loop has started.
-    pub static mut main_loop_started: c_int; // boolean
-    /// When non-zero, display the ENDOOM text on exit.
-    pub static mut show_endoom: c_int;
-}
+pub use crate::doom::d_main::{
+    advancedemo, autostart, bfgedition, devparm, fastparm, iwadfile, main_loop_started, nomonsters,
+    respawnparm, savegamedir, show_endoom, startepisode, startmap, storedemo,
+};
 
 // ---------------------------------------------------------------------------
 // wi_stuff.c — intermission screen constants
