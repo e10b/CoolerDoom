@@ -123,8 +123,8 @@ fn main() {
         // "p_plats.c",
         // Player sprite logic — ported to Rust (room/src/doom/p_pspr.rs)
         // "p_pspr.c",
-        // Save games
-        "p_saveg.c",
+        // Save games — ported to Rust (room/src/doom/p_saveg.rs)
+        // "p_saveg.c",
         // Map loading — ported to Rust (room/src/doom/p_setup.rs)
         // "p_setup.c",
         // Line-of-sight checks — ported to Rust (room/src/doom/p_sight.rs)
