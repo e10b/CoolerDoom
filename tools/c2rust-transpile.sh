@@ -21,8 +21,6 @@ CC_JSON="${ROOT_DIR}/compile_commands.json"
 EXCLUDES=(
     "layout_probe.c"
     "gusconf.c"
-    "m_menu_shim.c"
-    "m_misc_varargs.c"
     "m_misc.c"          # contains variadic macros (M_StringJoin, M_vsnprintf) that crash c2rust
     "dummy.c"
     "doomdef.c"

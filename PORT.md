@@ -87,11 +87,10 @@ orchestrators themselves.
 
 ## Porting Strategy Notes
 
-- **C shims**: `m_menu_shim.c` and `m_misc_varargs.c` redirect variadic C
-  calls to non-variadic Rust helpers (`M_StringJoinA`, `M_snprintf_clamp` in
-  `m_misc.rs`). These shims will remain necessary until `d_main.c` and
-  `g_game.c` (the last callers of variadic `I_Error` / `M_StringJoinA`) are
-  ported, because Stable Rust does not support variadic function definitions.
+- **Variadic functions**: Stable Rust cannot define C variadic functions. Remaining C callers
+  (in `d_main.c` and `g_game.c`) use `M_StringJoin`/`M_snprintf` which are redirected via
+  macros in `m_misc.h` to non-variadic Rust helpers (`M_StringJoinA`, `M_snprintf_clamp`).
+  Once `d_main.c` and `g_game.c` are ported, the macros become unnecessary.
 - **`d_net.c` is already ported**: Since `FEATURE_MULTIPLAYER` is not
   defined, the original module contained only stubs; the Rust replacement
   (`room/src/doom/d_net.rs`) is already active.
