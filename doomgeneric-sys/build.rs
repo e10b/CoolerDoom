@@ -105,8 +105,8 @@ fn main() {
         // "p_ceilng.c",
         // Door actions — ported to Rust (room/src/doom/p_doors.rs)
         // "p_doors.c",
-        // AI / enemy logic
-        "p_enemy.c",
+        // AI / enemy logic — ported to Rust (room/src/doom/p_enemy.rs)
+        // "p_enemy.c",
         // Floor actions — ported to Rust (room/src/doom/p_floor.rs)
         // "p_floor.c",
         // Player interactions — ported to Rust (room/src/doom/p_inter.rs)

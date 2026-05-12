@@ -45,6 +45,7 @@ pub mod m_random;
 pub mod memio;
 pub mod p_ceilng;
 pub mod p_doors;
+pub mod p_enemy;
 pub mod p_floor;
 pub mod p_inter;
 pub mod p_lights;

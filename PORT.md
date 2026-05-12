@@ -16,10 +16,10 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 4 |
-| Total remaining LoC | ~8,045 |
-| Already ported LoC | ~47,659 (est.) |
-| Port completeness | ~85.5% (by line count) |
+| Remaining C modules | 3 |
+| Total remaining LoC | ~6,039 |
+| Already ported LoC | ~49,665 (est.) |
+| Port completeness | ~89.2% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -47,18 +47,17 @@ _All modules in this bucket have been ported._
 
 _All modules in this bucket have been ported._
 
-### Very Large — > 1,500 LoC (5 files, 9,874 LoC)
+### Very Large — > 1,500 LoC (4 files, 7,868 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
 | `d_main.c` | 1,845 | Engine | Main initialization; orchestrates all subsystems |
 | `p_saveg.c` | 1,891 | Game logic | Save/load game serialization; heavy struct layout |
-| `p_enemy.c` | 2,006 | Game logic | Enemy AI; complex state machines and behavior |
 | `g_game.c` | 2,303 | Game logic | Core game logic; largest single module |
 
 ## Recommended Porting Order
 
-With only 5 modules left, the strategy shifts from "quick wins" to
+With only 3 modules left, the strategy shifts from "quick wins" to
 **dependency-driven sequencing**: unblock the modules that the largest
 orchestrators (`d_main.c`, `g_game.c`) depend on first, then tackle the
 orchestrators themselves.
@@ -76,14 +75,14 @@ orchestrators themselves.
    should be done first.~~
 5. ~~**Special actions** — `p_spec.c` is now ported. The sector/line
    special dispatcher (`p_spec.rs`) is fully Rust-native.~~
-6. **Enemy AI** — `p_enemy.c`. Complex state machines, but all dependencies
-   (`p_mobj`, `p_map`, `p_maputl`, `p_spec`) should be in place by this
-   point.
+6. ~~**Enemy AI** — `p_enemy.c`. Complex state machines, but all dependencies
+    (`p_mobj`, `p_map`, `p_maputl`, `p_spec`) should be in place by this
+    point.~~
 7. ~~**UI / display modules** — `st_stuff.c`, `i_scale.c`, and `wi_stuff.c`
        are now ported.~~
-8. **Save/load** — `p_saveg.c`. Heavy struct-layout and serialization work.
+6. **Save/load** — `p_saveg.c`. Heavy struct-layout and serialization work.
    Best done after `p_map.c` is stable so the serialized types do not drift.
-9. **Main orchestrators last** — `d_main.c`, `g_game.c`. These have the
+7. **Main orchestrators last** — `d_main.c`, `g_game.c`. These have the
    most cross-cutting dependencies and should be ported only when everything
    they call is already Rust.
 
