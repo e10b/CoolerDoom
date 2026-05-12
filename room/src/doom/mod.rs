@@ -11,6 +11,7 @@ pub mod d_event;
 pub mod d_items;
 pub mod d_iwad;
 pub mod d_loop;
+pub mod d_main;
 pub mod d_mode;
 pub mod d_net;
 pub mod d_player;

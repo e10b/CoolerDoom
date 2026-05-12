@@ -16,47 +16,22 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 
 | Metric | Value |
 |--------|------:|
-| Remaining C modules | 2 |
-| Total remaining LoC | ~4,148 |
-| Already ported LoC | ~49,665 (est.) |
-| Port completeness | ~89.2% (by line count) |
+| Remaining C modules | 1 |
+| Total remaining LoC | ~2,303 |
+| Already ported LoC | ~51,510 (est.) |
+| Port completeness | ~90.8% (by line count) |
 
 ## Unported Modules by Complexity
 
-### Trivial — < 100 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Small — 100–350 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Medium-Small — 350–550 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Medium — 550–900 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Medium-Large — 900–1,100 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Large — 1,000–1,500 LoC (0 files, 0 LoC)
-
-_All modules in this bucket have been ported._
-
-### Very Large — > 1,500 LoC (2 files, 4,148 LoC)
+### Very Large — > 1,500 LoC (1 file, 2,303 LoC)
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `d_main.c` | 1,845 | Engine | Main initialization; orchestrates all subsystems |
 | `g_game.c` | 2,303 | Game logic | Core game logic; largest single module |
 
 ## Recommended Porting Order
 
-With only 3 modules left, the strategy shifts from "quick wins" to
+With only 2 modules left, the strategy shifts from "quick wins" to
 **dependency-driven sequencing**: unblock the modules that the largest
 orchestrators (`d_main.c`, `g_game.c`) depend on first, then tackle the
 orchestrators themselves.
@@ -72,18 +47,19 @@ orchestrators themselves.
 4. ~~**Collision detection** — `p_map.c`. Required by `p_enemy.c` and
    `g_game.c`. Heavy geometry code, but its utility layer (`p_maputl.c`)
    should be done first.~~
- 5. ~~**Special actions** — `p_spec.c` is now ported. The sector/line
-    special dispatcher (`p_spec.rs`) is fully Rust-native.~~
- 6. ~~**EnemyAI** — `p_enemy.c`. Complex state machines, but all dependencies
-    (`p_mobj`, `p_map`, `p_maputl`, `p_spec`) should be in place by this
-    point.~~
- 7. ~~**UI / display modules** — `st_stuff.c`, `i_scale.c`, and `wi_stuff.c`
+5. ~~**Special actions** — `p_spec.c` is now ported. The sector/line
+   special dispatcher (`p_spec.rs`) is fully Rust-native.~~
+6. ~~**EnemyAI** — `p_enemy.c`. Complex state machines, but all dependencies
+   (`p_mobj`, `p_map`, `p_maputl`, `p_spec`) should be in place by this
+   point.~~
+7. ~~**UI / display modules** — `st_stuff.c`, `i_scale.c`, and `wi_stuff.c`
         are now ported.~~
- 8. ~~**Save/load** — `p_saveg.c`. Save/load game serialization with heavy struct
-    layout work. Now fully ported to Rust (`room/src/doom/p_saveg.rs`).~~
- 9. **Main orchestrators last** — `d_main.c`, `g_game.c`. These have the
-    most cross-cutting dependencies and should be ported only when everything
-    they call is already Rust.
+8. ~~**Save/load** — `p_saveg.c`. Save/load game serialization with heavy struct
+   layout work. Now fully ported to Rust (`room/src/doom/p_saveg.rs`).~~
+9. ~~**Main orchestrator** — `d_main.c`. The main initialization and game loop
+   entry point. Now fully ported to Rust (`room/src/doom/d_main.rs`).~~
+10. **Game logic last** — `g_game.c`. The last remaining C module. Core game
+    logic with the most cross-cutting dependencies.
 
 ## Porting Strategy Notes
 

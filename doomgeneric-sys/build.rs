@@ -56,7 +56,8 @@ fn main() {
         // "d_iwad.c",
         // Main game loop — ported to Rust (room/src/doom/d_loop.rs)
         // "d_loop.c",
-        "d_main.c",
+        // Main entry point and game loop — ported to Rust (room/src/doom/d_main.rs)
+        // "d_main.c",
         // Game mode detection
         // d_mode   — ported to Rust (room/src/doom/d_mode.rs)
         // Networking stub — ported to Rust (room/src/doom/d_net.rs)
