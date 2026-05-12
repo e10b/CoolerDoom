@@ -18,8 +18,8 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 |--------|------:|
 | Remaining C modules | 1 |
 | Total remaining LoC | ~2,303 |
-| Already ported LoC | ~51,510 (est.) |
-| Port completeness | ~90.8% (by line count) |
+| Already ported LoC | ~53,355 (est.) |
+| Port completeness | ~95.9% (by line count) |
 
 ## Unported Modules by Complexity
 
@@ -27,14 +27,12 @@ The ported code must be validated against the unit tests, as well as the `demo_p
 
 | File | Lines | Category | Porting notes |
 |------|------:|----------|---------------|
-| `g_game.c` | 2,303 | Game logic | Core game logic; largest single module |
+| `g_game.c` | 2,303 | Game logic | Core game loop, input, demo recording, save/load, game-state globals (movement tables, ticcmd). Last remaining C module. |
 
 ## Recommended Porting Order
 
-With only 2 modules left, the strategy shifts from "quick wins" to
-**dependency-driven sequencing**: unblock the modules that the largest
-orchestrators (`d_main.c`, `g_game.c`) depend on first, then tackle the
-orchestrators themselves.
+With only 1 module left, every dependency is already Rust-native.
+`g_game.c` is self-contained and can be ported directly:
 
 1. ~~**Finish the renderer** — `r_things.c` is now ported. The renderer pipeline
    (`r_data`, `r_draw`, `r_segs`, `r_main`, `r_plane`, `r_bsp`, `r_sky`,
@@ -58,15 +56,21 @@ orchestrators themselves.
    layout work. Now fully ported to Rust (`room/src/doom/p_saveg.rs`).~~
 9. ~~**Main orchestrator** — `d_main.c`. The main initialization and game loop
    entry point. Now fully ported to Rust (`room/src/doom/d_main.rs`).~~
-10. **Game logic last** — `g_game.c`. The last remaining C module. Core game
-    logic with the most cross-cutting dependencies.
+10. **Game logic last** — `g_game.c`. The last remaining C module. All of its
+    dependencies (`doomstat`, `d_net`, `d_loop`, `d_player`, `p_setup`,
+    `p_tick`, `p_saveg`, `p_mobj`, `m_argv`, `m_random`, `m_misc`, `m_menu`,
+    `m_controls`, `i_system`, `i_timer`, `i_sound`, `i_video`, `z_zone`,
+    `w_wad`, `s_sound`, `am_map`, `hu_stuff`, `st_stuff`, `wi_stuff`,
+    `f_finale`, `f_wipe`, `r_main`, `v_video`, `statdump`) are now
+    Rust-native.
 
 ## Porting Strategy Notes
 
-- **Variadic functions**: Stable Rust cannot define C variadic functions. Remaining C callers
-  (in `d_main.c` and `g_game.c`) use `M_StringJoin`/`M_snprintf` which are redirected via
-  macros in `m_misc.h` to non-variadic Rust helpers (`M_StringJoinA`, `M_snprintf_clamp`).
-  Once `d_main.c` and `g_game.c` are ported, the macros become unnecessary.
+- **Variadic functions**: Stable Rust cannot define C variadic functions. The
+  only remaining C caller (`g_game.c`) uses `M_snprintf` which is redirected
+  via a macro in `m_misc.h` to the non-variadic Rust helper
+  `M_snprintf_clamp`. Once `g_game.c` is ported, this macro becomes
+  unnecessary and can be removed from `m_misc.h`.
 - **`d_net.c` is already ported**: Since `FEATURE_MULTIPLAYER` is not
   defined, the original module contained only stubs; the Rust replacement
   (`room/src/doom/d_net.rs`) is already active.
