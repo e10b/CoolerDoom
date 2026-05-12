@@ -4,14 +4,14 @@
 
 #![allow(non_upper_case_globals, non_snake_case)]
 
-use std::ffi::c_int;
+use std::ffi::c_uint;
 
-// `boolean` in doomtype.h is `typedef unsigned int boolean;` — use c_int.
+// `boolean` in doomtype.h is `typedef unsigned int boolean;` — use c_uint.
 #[no_mangle]
-pub static mut net_client_connected: c_int = 0; // false
+pub static mut net_client_connected: c_uint = 0; // false
 
 #[no_mangle]
-pub static mut drone: c_int = 0; // false
+pub static mut drone: c_uint = 0; // false
 
 #[no_mangle]
 pub extern "C" fn I_InitTimidityConfig() {}
@@ -29,6 +29,19 @@ mod tests {
         unsafe {
             assert_eq!(net_client_connected, 0);
             assert_eq!(drone, 0);
+        }
+    }
+
+    #[test]
+    fn globals_store_unsigned_values() {
+        let _g = LOCK.lock().unwrap();
+        unsafe {
+            net_client_connected = c_uint::MAX;
+            drone = c_uint::MAX;
+            assert_eq!(net_client_connected, c_uint::MAX);
+            assert_eq!(drone, c_uint::MAX);
+            net_client_connected = 0;
+            drone = 0;
         }
     }
 
