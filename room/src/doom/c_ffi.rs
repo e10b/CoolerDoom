@@ -399,6 +399,9 @@ extern "C" {
     pub static mut totalsecret: c_int;
 }
 
+/// Version code for cph's longtics hack ("v1.91") from `doomdef.h`.
+pub const DOOM_191_VERSION: c_int = 111;
+
 // ---------------------------------------------------------------------------
 // i_scale.c
 // Screen-scaling mode descriptors.

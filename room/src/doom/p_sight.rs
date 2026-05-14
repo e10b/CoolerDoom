@@ -359,7 +359,8 @@ fn P_CrossBSPNode(bspnum: c_int) -> bool {
 
         // The partition plane is crossed here.
         let bsp_div2 = node_as_divline(bsp);
-        if side == P_DivlineSide(t2x, t2y, &bsp_div2) {
+        let t2_side = P_DivlineSide(t2x, t2y, &bsp_div2);
+        if side == t2_side {
             return true;
         }
 

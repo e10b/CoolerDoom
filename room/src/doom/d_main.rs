@@ -1471,7 +1471,7 @@ pub extern "C" fn D_DoomMain() {
         I_AtExit(D_Endoom, 0);
 
         // Print banner
-        I_PrintBanner(b"Chocolate Doom\0".as_ptr() as *mut c_char);
+        I_PrintBanner(b"Room\0".as_ptr() as *mut c_char);
 
         // Init zone memory
         println!("Z_Init: Init zone memory allocation daemon.");

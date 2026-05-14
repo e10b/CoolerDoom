@@ -50,14 +50,14 @@ use crate::doom::p_map::{
     P_RadiusAttack, P_TeleportMove, P_TryMove,
 };
 use crate::doom::p_maputl::{
-    openrange, P_AproxDistance, P_BlockThingsIterator, P_LineOpening, P_SetThingPosition,
-    P_UnsetThingPosition,
+    openbottom, openrange, opentop, P_AproxDistance, P_BlockThingsIterator, P_LineOpening,
+    P_SetThingPosition, P_UnsetThingPosition,
 };
 use crate::doom::p_mobj::{
     P_MobjThinker, P_RemoveMobj, P_SetMobjState, P_SpawnMissile, P_SpawnMobj, P_SpawnPuff,
     P_SubstNullMobj,
 };
-use crate::doom::p_setup::{bmaporgx, bmaporgy, sides};
+use crate::doom::p_setup::{bmaporgx, bmaporgy, numsectors, sectors, sides};
 use crate::doom::p_sight::P_CheckSight;
 use crate::doom::p_switch::P_UseSpecialLine;
 use crate::doom::p_telept::{mobj_t, subsector_t};
@@ -496,7 +496,8 @@ pub unsafe extern "C" fn P_LookForPlayers(
                 player = (&raw mut players as *mut PlayerT).offset((*actor).lastlook as isize)
                     as *mut PlayerT;
                 if !((*player).health <= 0 as c_int) {
-                    if !(P_CheckSight(actor, (*player).mo as *mut mobj_t) == 0) {
+                    let sight = P_CheckSight(actor, (*player).mo as *mut mobj_t);
+                    if !(sight == 0) {
                         if allaround == 0 {
                             an = R_PointToAngle2(
                                 (*actor).x,
