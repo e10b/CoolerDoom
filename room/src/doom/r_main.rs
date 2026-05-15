@@ -17,6 +17,7 @@ use crate::doom::p_telept::mobj_t;
 use crate::doom::r_bsp::{node_t, seg_t, subsector_t};
 use crate::doom::tables::{self, SlopeDiv};
 use crate::doom::tables::{ANG180, ANG270, ANG90, ANGLETOFINESHIFT};
+use crate::types::Boolean;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -38,7 +39,6 @@ const DISTMAP: usize = 2;
 const DBITS: u32 = 5;
 
 type lighttable_t = u8;
-type boolean = c_int;
 
 // ---------------------------------------------------------------------------
 // Globals defined by this module
@@ -147,7 +147,7 @@ pub static mut transcolfunc: Option<unsafe extern "C" fn()> = None;
 pub static mut spanfunc: Option<unsafe extern "C" fn()> = None;
 
 #[no_mangle]
-pub static mut setsizeneeded: boolean = 0;
+pub static mut setsizeneeded: Boolean = Boolean::FALSE;
 
 #[no_mangle]
 pub static mut setblocks: c_int = 0;
@@ -554,7 +554,7 @@ pub unsafe extern "C" fn R_InitLightTables() {
 
 #[no_mangle]
 pub unsafe extern "C" fn R_SetViewSize(blocks: c_int, detail: c_int) {
-    setsizeneeded = 1;
+    setsizeneeded = Boolean::TRUE;
     setblocks = blocks;
     setdetail = detail;
 }
@@ -565,7 +565,7 @@ pub unsafe extern "C" fn R_SetViewSize(blocks: c_int, detail: c_int) {
 
 #[no_mangle]
 pub unsafe extern "C" fn R_ExecuteSetViewSize() {
-    setsizeneeded = 0;
+    setsizeneeded = Boolean::FALSE;
 
     if setblocks == 11 {
         scaledviewwidth = SCREENWIDTH as c_int;

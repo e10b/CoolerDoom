@@ -24,6 +24,7 @@ use crate::doom::st_lib::{
 use crate::doom::tables::{ANG180, ANG45};
 use crate::doom::v_video::patch_t;
 use crate::doom::v_video::{V_CopyRect, V_DrawPatch, V_RestoreBuffer, V_UseBuffer};
+use crate::types::Boolean;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -842,13 +843,13 @@ pub unsafe extern "C" fn ST_diffDraw() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn ST_Drawer(fullscreen: c_int, refresh: c_int) {
-    st_statusbaron = if fullscreen == 0 || automapactive != 0 {
+pub unsafe extern "C" fn ST_Drawer(fullscreen: Boolean, refresh: Boolean) {
+    st_statusbaron = if fullscreen.is_false() || automapactive != 0 {
         1
     } else {
         0
     };
-    st_firsttime = if st_firsttime != 0 || refresh != 0 {
+    st_firsttime = if st_firsttime != 0 || refresh.is_truthy() {
         1
     } else {
         0
