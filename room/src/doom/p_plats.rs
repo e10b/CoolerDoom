@@ -4,9 +4,10 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
-use std::ffi::{c_char, c_void};
+use std::ffi::c_void;
 use std::os::raw::c_int;
 
+use crate::i_error;
 use crate::doom::i_timer::TICRATE;
 use crate::doom::m_fixed::{fixed_t, FRACUNIT};
 use crate::doom::p_floor::side_t;
@@ -95,7 +96,6 @@ extern "C" {
         direction: c_int,
     ) -> c_int;
     fn P_Random() -> c_int;
-    fn I_Error(error: *const c_char, ...);
     static mut sectors: *mut sector_t;
     static mut sides: *mut side_t;
     static mut leveltime: c_int;
@@ -343,7 +343,7 @@ pub extern "C" fn P_AddActivePlat(plat: *mut plat_t) {
                 return;
             }
         }
-        I_Error(b"P_AddActivePlat: no more plats!\0".as_ptr() as *const c_char);
+        i_error!("P_AddActivePlat: no more plats!");
     }
 }
 
@@ -358,7 +358,7 @@ pub extern "C" fn P_RemoveActivePlat(plat: *mut plat_t) {
                 return;
             }
         }
-        I_Error(b"P_RemoveActivePlat: can't find plat!\0".as_ptr() as *const c_char);
+        i_error!("P_RemoveActivePlat: can't find plat!");
     }
 }
 

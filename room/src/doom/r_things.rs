@@ -5,7 +5,8 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
-use std::ffi::{c_char, c_int, c_short, c_void};
+use crate::i_error;
+use std::ffi::{c_char, c_int, c_short, c_void, CStr};
 use std::ptr;
 
 use crate::doom::c_ffi::{spriteframe_t, vissprite_t, BASEYCENTER, MINZ};
@@ -70,7 +71,6 @@ struct column_t {
 // ---------------------------------------------------------------------------
 
 extern "C" {
-    fn I_Error(format: *const c_char, ...);
     fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
 
     fn W_CacheLumpNum(lumpnum: c_int, tag: c_int) -> *mut c_void;
@@ -217,10 +217,7 @@ static mut vsprsortedhead: vissprite_t = unsafe { std::mem::zeroed() };
 
 unsafe fn R_InstallSpriteLump(lump: c_int, frame: u32, rotation: u32, flipped: c_int) {
     if frame >= 29 || rotation > 8 {
-        I_Error(
-            b"R_InstallSpriteLump: Bad frame characters in lump %i\0".as_ptr() as *const c_char,
-            lump,
-        );
+        i_error!("R_InstallSpriteLump: Bad frame characters in lump {}", lump);
     }
 
     if frame as c_int > maxframe {
@@ -230,19 +227,17 @@ unsafe fn R_InstallSpriteLump(lump: c_int, frame: u32, rotation: u32, flipped: c
     if rotation == 0 {
         // The lump should be used for all rotations.
         if sprtemp[frame as usize].rotate == 0 {
-            I_Error(
-                b"R_InitSprites: Sprite %s frame %c has multip rot=0 lump\0".as_ptr()
-                    as *const c_char,
-                spritename,
-                b'A' as c_int + frame as c_int,
+            i_error!(
+                "R_InitSprites: Sprite {} frame {} has multip rot=0 lump",
+                CStr::from_ptr(spritename).to_string_lossy(),
+                char::from(b'A' + frame as u8)
             );
         }
         if sprtemp[frame as usize].rotate == 1 {
-            I_Error(
-                b"R_InitSprites: Sprite %s frame %c has rotations and a rot=0 lump\0".as_ptr()
-                    as *const c_char,
-                spritename,
-                b'A' as c_int + frame as c_int,
+            i_error!(
+                "R_InitSprites: Sprite {} frame {} has rotations and a rot=0 lump",
+                CStr::from_ptr(spritename).to_string_lossy(),
+                char::from(b'A' + frame as u8)
             );
         }
         sprtemp[frame as usize].rotate = 0;
@@ -255,11 +250,10 @@ unsafe fn R_InstallSpriteLump(lump: c_int, frame: u32, rotation: u32, flipped: c
 
     // The lump is only used for one rotation.
     if sprtemp[frame as usize].rotate == 0 {
-        I_Error(
-            b"R_InitSprites: Sprite %s frame %c has rotations and a rot=0 lump\0".as_ptr()
-                as *const c_char,
-            spritename,
-            b'A' as c_int + frame as c_int,
+        i_error!(
+            "R_InitSprites: Sprite {} frame {} has rotations and a rot=0 lump",
+            CStr::from_ptr(spritename).to_string_lossy(),
+            char::from(b'A' + frame as u8)
         );
     }
 
@@ -268,12 +262,11 @@ unsafe fn R_InstallSpriteLump(lump: c_int, frame: u32, rotation: u32, flipped: c
     // Make 0 based.
     let rot = (rotation - 1) as usize;
     if sprtemp[frame as usize].lump[rot] != -1 {
-        I_Error(
-            b"R_InitSprites: Sprite %s : %c : %c has two lumps mapped to it\0".as_ptr()
-                as *const c_char,
-            spritename,
-            b'A' as c_int + frame as c_int,
-            b'1' as c_int + rot as c_int,
+        i_error!(
+            "R_InitSprites: Sprite {} : {} : {} has two lumps mapped to it",
+            CStr::from_ptr(spritename).to_string_lossy(),
+            char::from(b'A' + frame as u8),
+            char::from(b'1' + rot as u8)
         );
     }
 
@@ -351,11 +344,10 @@ unsafe fn R_InitSpriteDefs(namelist: *mut *mut c_char) {
             match sprtemp[frame as usize].rotate {
                 -1 => {
                     // No rotations were found for that frame at all.
-                    I_Error(
-                        b"R_InitSprites: No patches found for %s frame %c\0".as_ptr()
-                            as *const c_char,
-                        spritename,
-                        b'A' as c_int + frame,
+                    i_error!(
+                        "R_InitSprites: No patches found for {} frame {}",
+                        CStr::from_ptr(spritename).to_string_lossy(),
+                        char::from(b'A' + frame as u8)
                     );
                 }
                 0 => {
@@ -365,11 +357,10 @@ unsafe fn R_InitSpriteDefs(namelist: *mut *mut c_char) {
                     // Must have all 8 frames.
                     for rotation in 0..8 {
                         if sprtemp[frame as usize].lump[rotation] == -1 {
-                            I_Error(
-                                b"R_InitSprites: Sprite %s frame %c is missing rotations\0".as_ptr()
-                                    as *const c_char,
-                                spritename,
-                                b'A' as c_int + frame,
+                            i_error!(
+                                "R_InitSprites: Sprite {} frame {} is missing rotations",
+                                CStr::from_ptr(spritename).to_string_lossy(),
+                                char::from(b'A' + frame as u8)
                             );
                         }
                     }
@@ -496,7 +487,7 @@ pub unsafe extern "C" fn R_DrawVisSprite(vis: *mut vissprite_t, x1: c_int, x2: c
         {
             let patch_width = (*patch).width as c_int;
             if texturecolumn < 0 || texturecolumn >= patch_width {
-                I_Error(b"R_DrawSpriteRange: bad texturecolumn\0".as_ptr() as *const c_char);
+                i_error!("R_DrawSpriteRange: bad texturecolumn");
             }
         }
 
@@ -548,9 +539,9 @@ pub unsafe extern "C" fn R_ProjectSprite(thing: *mut c_void) {
     #[cfg(feature = "rangecheck")]
     {
         if (*thing).sprite as u32 >= numsprites as u32 {
-            I_Error(
-                b"R_ProjectSprite: invalid sprite number %i \0".as_ptr() as *const c_char,
-                (*thing).sprite,
+            i_error!(
+                "R_ProjectSprite: invalid sprite number {}",
+                (*thing).sprite
             );
         }
     }
@@ -562,11 +553,10 @@ pub unsafe extern "C" fn R_ProjectSprite(thing: *mut c_void) {
             if sprdef.numframes == 0 {
                 return; // sprite lump not present in this WAD — skip silently
             }
-            I_Error(
-                b"R_ProjectSprite [THING]: invalid sprite frame %i : %i \0".as_ptr()
-                    as *const c_char,
+            i_error!(
+                "R_ProjectSprite [THING]: invalid sprite frame {} : {}",
                 (*thing).sprite,
-                (*thing).frame,
+                (*thing).frame
             );
         }
     }
@@ -708,10 +698,7 @@ pub unsafe extern "C" fn R_DrawPSprite(psp: *mut PspdefT) {
     {
         let sprite = (*state).sprite;
         if sprite as u32 >= numsprites as u32 {
-            I_Error(
-                b"R_ProjectSprite: invalid sprite number %i \0".as_ptr() as *const c_char,
-                sprite,
-            );
+            i_error!("R_ProjectSprite: invalid sprite number {}", sprite);
         }
     }
 
@@ -719,11 +706,10 @@ pub unsafe extern "C" fn R_DrawPSprite(psp: *mut PspdefT) {
     #[cfg(feature = "rangecheck")]
     {
         if ((*state).frame & FF_FRAMEMASK) >= sprdef.numframes {
-            I_Error(
-                b"R_ProjectSprite [PSPRITE]: invalid sprite frame %i : %i \0".as_ptr()
-                    as *const c_char,
+            i_error!(
+                "R_ProjectSprite [PSPRITE]: invalid sprite frame {} : {}",
                 (*state).sprite,
-                (*state).frame,
+                (*state).frame
             );
         }
     }

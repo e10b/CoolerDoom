@@ -8,6 +8,7 @@
 use std::ffi::{c_char, c_void};
 use std::os::raw::c_int;
 
+use crate::i_error;
 use crate::doom::d_items::weaponinfo;
 use crate::doom::d_player::{consoleplayer, players, PlayerT, CF_GODMODE};
 use crate::doom::doomstat::{gamemode, gameversion};
@@ -154,7 +155,6 @@ extern "C" {
     static mut deathmatch: c_int;
     static mut automapactive: c_int;
 
-    fn I_Error(msg: *const c_char);
     fn I_Tactile(on: c_int, off: c_int, total: c_int);
     fn S_StartSound(origin: *mut c_void, sfx_id: c_int);
     fn P_SetMobjState(mobj: *mut mobj_t, state: c_int) -> c_int;
@@ -184,7 +184,7 @@ pub unsafe extern "C" fn P_GiveAmmo(player: *mut PlayerT, ammo: c_int, mut num: 
         return 0;
     }
     if ammo > NUMAMMO as c_int {
-        I_Error(b"P_GiveAmmo: bad type\0".as_ptr() as *const c_char);
+        i_error!("P_GiveAmmo: bad type");
     }
     if (*player).ammo[ammo as usize] == (*player).maxammo[ammo as usize] {
         return 0;
@@ -705,7 +705,7 @@ pub unsafe extern "C" fn P_TouchSpecialThing(special: *mut mobj_t, toucher: *mut
             sound = sfx_wpnup;
         }
         _ => {
-            I_Error(b"P_SpecialThing: Unknown gettable thing\0".as_ptr() as *const c_char);
+            i_error!("P_SpecialThing: Unknown gettable thing");
         }
     }
 

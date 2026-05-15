@@ -137,7 +137,6 @@ extern "C" {
     fn I_PlaySong(handle: *mut c_void, looping: c_int);
     fn I_StopSong();
     fn I_MusicIsPlaying() -> c_int;
-    fn I_Error(fmt: *const c_char, ...);
     fn I_AtExit(func: extern "C" fn(), run_on_error: Boolean);
     fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
     fn R_PointToAngle2(x1: c_int, y1: c_int, x2: c_int, y2: c_int) -> u32;
@@ -146,10 +145,9 @@ extern "C" {
     fn W_CacheLumpNum(num: c_int, tag: c_int) -> *mut c_void;
     fn W_ReleaseLumpNum(num: c_int);
     fn W_LumpLength(num: c_int) -> c_int;
-    fn snprintf(s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
 }
 
-use super::m_misc::m_snprintf_clamp;
+use crate::c_write;
 
 static mut channels: *mut channel_t = std::ptr::null_mut();
 
@@ -539,14 +537,8 @@ pub extern "C" fn S_ChangeMusic(musicnum: c_int, looping: c_int) {
 
         if music.lumpnum == 0 {
             let mut namebuf: [c_char; 9] = [0; 9];
-            let name_ptr = music.name;
-            let result = snprintf(
-                namebuf.as_mut_ptr(),
-                namebuf.len(),
-                b"d_%s\0".as_ptr() as *const c_char,
-                name_ptr,
-            );
-            m_snprintf_clamp(namebuf.as_mut_ptr(), namebuf.len(), result);
+            let name_str = std::ffi::CStr::from_ptr(music.name).to_string_lossy();
+            c_write!(namebuf, "d_{}", name_str);
             music.lumpnum = W_GetNumForName(namebuf.as_ptr());
         }
 

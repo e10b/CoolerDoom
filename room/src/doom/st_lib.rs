@@ -8,6 +8,7 @@ use std::ffi::c_char;
 use std::ffi::c_void;
 use std::os::raw::c_int;
 
+use crate::i_error;
 use crate::doom::v_video::patch_t;
 use crate::doom::z_zone::PU_STATIC;
 const ST_HEIGHT: c_int = 32;
@@ -79,7 +80,6 @@ extern "C" {
         desty: c_int,
     );
     fn V_DrawPatch(x: c_int, y: c_int, patch: *mut patch_t);
-    fn I_Error(error: *const c_char, ...);
     static mut st_backing_screen: *mut u8;
     static mut automapactive: c_int;
 }
@@ -142,7 +142,7 @@ pub extern "C" fn STlib_drawNum(n: *mut st_number_t, _refresh: c_int) {
         x = (*n).x - numdigits * w;
 
         if (*n).y - ST_Y < 0 {
-            I_Error(b"drawNum: n->y - ST_Y < 0\0".as_ptr() as *const c_char);
+            i_error!("drawNum: n->y - ST_Y < 0");
         }
 
         V_CopyRect(
@@ -250,7 +250,7 @@ pub extern "C" fn STlib_updateMultIcon(mi: *mut st_multicon_t, refresh: c_int) {
                 let h = short_swap((*old_patch).height) as c_int;
 
                 if y - ST_Y < 0 {
-                    I_Error(b"updateMultIcon: y - ST_Y < 0\0".as_ptr() as *const c_char);
+                    i_error!("updateMultIcon: y - ST_Y < 0");
                 }
 
                 V_CopyRect(x, y - ST_Y, st_backing_screen, w, h, x, y);
@@ -291,7 +291,7 @@ pub extern "C" fn STlib_updateBinIcon(bi: *mut st_binicon_t, refresh: c_int) {
             let h = short_swap((*p).height) as c_int;
 
             if y - ST_Y < 0 {
-                I_Error(b"updateBinIcon: y - ST_Y < 0\0".as_ptr() as *const c_char);
+                i_error!("updateBinIcon: y - ST_Y < 0");
             }
 
             if *(*bi).val != 0 {

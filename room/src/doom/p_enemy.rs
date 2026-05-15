@@ -4,7 +4,7 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
-use std::ffi::{c_char, c_void};
+use std::ffi::c_void;
 use std::os::raw::{c_int, c_uint};
 
 use crate::doom::p_tick::actionf_t;
@@ -25,11 +25,11 @@ fn abs(x: c_int) -> c_int {
     }
 }
 
+use crate::i_error;
 use crate::doom::c_ffi::{line_t, sector_t, side_t, vertex_t, MAPBLOCKSHIFT};
 use crate::doom::d_loop::gametic;
 use crate::doom::d_player::{players, PlayerT, PspdefT, MAXPLAYERS};
 use crate::doom::doomstat::{gamemode, gameversion};
-use crate::doom::i_system::I_Error;
 use crate::doom::info::{
     mobjinfo, MobjInfo, State, MF_AMBUSH, MF_CORPSE, MF_FLOAT, MF_INFLOAT, MF_JUSTATTACKED,
     MF_JUSTHIT, MF_SHADOW, MF_SHOOTABLE, MF_SKULLFLY, MF_SOLID, MT_ARACHPLAZ, MT_BABY, MT_BARREL,
@@ -319,7 +319,7 @@ pub unsafe extern "C" fn P_Move(mut actor: *mut mobj_t) -> Boolean {
         return Boolean::FALSE;
     }
     if (*actor).movedir as c_uint >= 8 as c_uint {
-        I_Error(b"Weird actor->movedir!\0".as_ptr() as *const c_char);
+        i_error!("Weird actor->movedir!");
     }
     tryx = (*actor).x
         + (*((*actor).info as *mut MobjInfo)).speed as fixed_t * xspeed[(*actor).movedir as usize];
@@ -383,7 +383,7 @@ pub unsafe extern "C" fn P_NewChaseDir(mut actor: *mut mobj_t) {
     let mut olddir: dirtype_t = DI_EAST;
     let mut turnaround: dirtype_t = DI_EAST;
     if (*actor).target.is_null() {
-        I_Error(b"P_NewChaseDir: called with no target\0".as_ptr() as *const c_char);
+        i_error!("P_NewChaseDir: called with no target");
     }
     olddir = (*actor).movedir as dirtype_t;
     turnaround = opposite[olddir as usize];
