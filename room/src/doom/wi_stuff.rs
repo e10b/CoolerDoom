@@ -17,7 +17,7 @@
 )]
 
 use std::ffi::{c_char, c_int, c_void};
-use std::ptr;
+use std::ptr::{self, addr_of_mut};
 
 use crate::types::Boolean;
 
@@ -138,7 +138,6 @@ struct anim_t {
     ctr: c_int,
     state: c_int,
 }
-unsafe impl Sync for anim_t {}
 
 // ---------------------------------------------------------------------------
 // Static data tables
@@ -185,7 +184,15 @@ static LNODESEPSD3: [point_t; NUMMAPS] = [point_t { x: 0, y: 0 }; NUMMAPS];
 static LNODES: [[point_t; NUMMAPS]; NUMEPISODES] =
     [LNODESEPSD0, LNODESEPSD1, LNODESEPSD2, LNODESEPSD3];
 
-static EPSD0ANIMINFO: [anim_t; 10] = [
+pub(crate) const EPSD0_NANIM: usize = 10;
+pub(crate) const EPSD1_NANIM: usize = 9;
+pub(crate) const EPSD2_NANIM: usize = 6;
+
+// TODO: Consider splitting into immutable config fields (type_, period, nanims,
+// loc, data1, data2) and mutable runtime state (ctr, nexttic, lastdrawn, state,
+// p) using two separate arrays, or wrapping in UnsafeCell for explicit interior
+// mutability without static mut.
+static mut EPSD0ANIMINFO: [anim_t; EPSD0_NANIM] = [
     anim_t {
         type_: animenum_t::ANIM_ALWAYS,
         period: TICRATE / 3,
@@ -318,7 +325,8 @@ static EPSD0ANIMINFO: [anim_t; 10] = [
     },
 ];
 
-static EPSD1ANIMINFO: [anim_t; 9] = [
+// TODO: Same as EPSD0ANIMINFO — candidate for config/state split or UnsafeCell.
+static mut EPSD1ANIMINFO: [anim_t; EPSD1_NANIM] = [
     anim_t {
         type_: animenum_t::ANIM_LEVEL,
         period: TICRATE / 3,
@@ -438,7 +446,8 @@ static EPSD1ANIMINFO: [anim_t; 9] = [
     },
 ];
 
-static EPSD2ANIMINFO: [anim_t; 6] = [
+// TODO: Same as EPSD0ANIMINFO — candidate for config/state split or UnsafeCell.
+static mut EPSD2ANIMINFO: [anim_t; EPSD2_NANIM] = [
     anim_t {
         type_: animenum_t::ANIM_ALWAYS,
         period: TICRATE / 3,
@@ -519,18 +528,13 @@ static EPSD2ANIMINFO: [anim_t; 6] = [
     },
 ];
 
-static NUMANIMS: [c_int; NUMEPISODES] = [
-    EPSD0ANIMINFO.len() as c_int,
-    EPSD1ANIMINFO.len() as c_int,
-    EPSD2ANIMINFO.len() as c_int,
-    0,
-];
+static NUMANIMS: [c_int; NUMEPISODES] = [EPSD0_NANIM as c_int, EPSD1_NANIM as c_int, EPSD2_NANIM as c_int, 0];
 
-static mut ANIMS: [*const anim_t; NUMEPISODES] = [
-    EPSD0ANIMINFO.as_ptr(),
-    EPSD1ANIMINFO.as_ptr(),
-    EPSD2ANIMINFO.as_ptr(),
-    ptr::null(),
+static mut ANIMS: [*mut anim_t; NUMEPISODES] = [
+    addr_of_mut!(EPSD0ANIMINFO) as *mut anim_t,
+    addr_of_mut!(EPSD1ANIMINFO) as *mut anim_t,
+    addr_of_mut!(EPSD2ANIMINFO) as *mut anim_t,
+    ptr::null_mut(),
 ];
 
 // ---------------------------------------------------------------------------
@@ -758,7 +762,7 @@ unsafe fn WI_initAnimatedBack() {
 
     let epsd = (*wbs).epsd as usize;
     let count = NUMANIMS[epsd] as usize;
-    let base = ANIMS[epsd] as *mut anim_t;
+    let base = ANIMS[epsd];
 
     for i in 0..count {
         let a = base.add(i);
@@ -783,7 +787,7 @@ unsafe fn WI_updateAnimatedBack() {
 
     let epsd = (*wbs).epsd as usize;
     let count = NUMANIMS[epsd] as usize;
-    let base = ANIMS[epsd] as *mut anim_t;
+    let base = ANIMS[epsd];
 
     for i in 0..count {
         let a = base.add(i);
@@ -830,7 +834,7 @@ unsafe fn WI_drawAnimatedBack() {
 
     let epsd = (*wbs).epsd as usize;
     let count = NUMANIMS[epsd] as usize;
-    let base = ANIMS[epsd] as *mut anim_t;
+    let base = ANIMS[epsd] as *const anim_t;
 
     for i in 0..count {
         let a = base.add(i);
@@ -1596,13 +1600,13 @@ unsafe fn WI_loadUnloadData(callback: LoadCallback) {
 
         if (*wbs).epsd < 3 {
             for j in 0..NUMANIMS[(*wbs).epsd as usize] {
-                let a = (ANIMS[(*wbs).epsd as usize] as *mut anim_t).add(j as usize);
+                let a = ANIMS[(*wbs).epsd as usize].add(j as usize);
                 for i in 0..(*a).nanims {
                     if (*wbs).epsd != 1 || j != 8 {
                         c_write!(name, "WIA{}{:02}{:02}", (*wbs).epsd, j, i);
                         callback(name.as_mut_ptr(), &mut (*a).p[i as usize]);
                     } else {
-                        (*a).p[i as usize] = (*((ANIMS[1] as *mut anim_t).add(4))).p[i as usize];
+                        (*a).p[i as usize] = (*ANIMS[1].add(4)).p[i as usize];
                     }
                 }
             }
