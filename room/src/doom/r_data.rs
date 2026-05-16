@@ -28,7 +28,7 @@ fn LONG(x: c_int) -> c_int {
     x
 }
 
-unsafe fn DEH_String(s: *mut c_char) -> *mut c_char {
+unsafe fn DEH_String(s: *const c_char) -> *const c_char {
     s
 }
 
@@ -114,39 +114,22 @@ struct spritedef_t {
 // ---------------------------------------------------------------------------
 
 extern "C" {
-    fn I_ConsoleStdout() -> c_int;
-
-    fn M_StringCopy(dest: *mut c_char, src: *const c_char, dest_size: usize) -> Boolean;
-
-    fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
-    fn Z_Free(ptr: *mut c_void);
-    fn Z_ChangeTag2(ptr: *mut c_void, tag: c_int, file: *const c_char, line: c_int);
-
-    fn W_CacheLumpName(name: *mut c_char, tag: c_int) -> *mut c_void;
-    fn W_CacheLumpNum(lumpnum: c_int, tag: c_int) -> *mut c_void;
-    fn W_CheckNumForName(name: *mut c_char) -> c_int;
-    fn W_GetNumForName(name: *mut c_char) -> c_int;
-    fn W_LumpLength(lump: c_int) -> c_int;
-    fn W_ReleaseLumpName(name: *mut c_char);
-    fn W_LumpNameHash(s: *const c_char) -> c_uint;
-
     fn strncasecmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
-
-    fn P_MobjThinker(mobj: *mut c_void);
-
-    static mut lumpinfo: *mut crate::doom::w_wad::lumpinfo_t;
-
-    static mut numsectors: c_int;
-    static mut sectors: *mut sector_t;
-    static mut numsides: c_int;
-    static mut sides: *mut side_t;
-    static mut skytexture: c_int;
-    static mut thinkercap: thinker_t;
-    static mut numsprites: c_int;
-    static mut sprites: *mut spritedef_t;
-
-    static mut demoplayback: c_int;
 }
+
+use crate::doom::g_game::demoplayback;
+use crate::doom::i_system::I_ConsoleStdout;
+use crate::doom::m_misc::M_StringCopy;
+use crate::doom::p_mobj::P_MobjThinker;
+use crate::doom::p_setup::{numsectors, numsides, sectors, sides};
+use crate::doom::p_tick::thinkercap;
+use crate::doom::r_sky::skytexture;
+use crate::doom::r_things::{numsprites, sprites};
+use crate::doom::w_wad::{
+    lumpinfo, W_CacheLumpName, W_CacheLumpNum, W_CheckNumForName, W_GetNumForName, W_LumpLength,
+    W_LumpNameHash, W_ReleaseLumpName,
+};
+use crate::doom::z_zone::{Z_ChangeTag2, Z_Free, Z_Malloc};
 
 // ---------------------------------------------------------------------------
 // Globals defined by this module
@@ -423,7 +406,7 @@ pub unsafe extern "C" fn R_InitTextures() {
     let mut name: [c_char; 9] = [0; 9];
 
     let names =
-        W_CacheLumpName(DEH_String(b"PNAMES\0".as_ptr() as *mut c_char), PU_STATIC) as *mut c_int;
+        W_CacheLumpName(DEH_String(b"PNAMES\0".as_ptr() as *const c_char),PU_STATIC) as *mut c_int;
     let nummappatches = LONG(*names);
     let name_p = names.add(1) as *mut c_char;
 
@@ -437,27 +420,27 @@ pub unsafe extern "C" fn R_InitTextures() {
         M_StringCopy(name.as_mut_ptr(), name_p.add(i * 8), name.len());
         *patchlookup.add(i) = W_CheckNumForName(name.as_mut_ptr());
     }
-    W_ReleaseLumpName(DEH_String(b"PNAMES\0".as_ptr() as *mut c_char));
+    W_ReleaseLumpName(DEH_String(b"PNAMES\0".as_ptr() as *const c_char));
 
     let maptex1 =
-        W_CacheLumpName(DEH_String(b"TEXTURE1\0".as_ptr() as *mut c_char), PU_STATIC) as *mut c_int;
+        W_CacheLumpName(DEH_String(b"TEXTURE1\0".as_ptr() as *const c_char),PU_STATIC) as *mut c_int;
     let numtextures1 = LONG(*maptex1);
     let maxoff = W_LumpLength(W_GetNumForName(DEH_String(
-        b"TEXTURE1\0".as_ptr() as *mut c_char
-    )));
+        b"TEXTURE1\0".as_ptr() as *const c_char
+    )) as c_uint);
     let mut directory = maptex1.add(1);
 
     let mut maptex2: *mut c_int = ptr::null_mut();
     let mut numtextures2: c_int = 0;
     let mut maxoff2: c_int = 0;
 
-    if W_CheckNumForName(DEH_String(b"TEXTURE2\0".as_ptr() as *mut c_char)) != -1 {
-        maptex2 = W_CacheLumpName(DEH_String(b"TEXTURE2\0".as_ptr() as *mut c_char), PU_STATIC)
+    if W_CheckNumForName(DEH_String(b"TEXTURE2\0".as_ptr() as *const c_char)) != -1 {
+        maptex2 = W_CacheLumpName(DEH_String(b"TEXTURE2\0".as_ptr() as *const c_char),PU_STATIC)
             as *mut c_int;
         numtextures2 = LONG(*maptex2);
         maxoff2 = W_LumpLength(W_GetNumForName(DEH_String(
-            b"TEXTURE2\0".as_ptr() as *mut c_char
-        )));
+            b"TEXTURE2\0".as_ptr() as *const c_char
+        )) as c_uint);
     }
 
     numtextures = numtextures1 + numtextures2;
@@ -498,8 +481,8 @@ pub unsafe extern "C" fn R_InitTextures() {
         ptr::null_mut(),
     ) as *mut c_int;
 
-    let temp1 = W_GetNumForName(DEH_String(b"S_START\0".as_ptr() as *mut c_char));
-    let temp2 = W_GetNumForName(DEH_String(b"S_END\0".as_ptr() as *mut c_char)) - 1;
+    let temp1 = W_GetNumForName(DEH_String(b"S_START\0".as_ptr() as *const c_char));
+    let temp2 = W_GetNumForName(DEH_String(b"S_END\0".as_ptr() as *const c_char)) - 1;
     let temp3 = ((temp2 - temp1 + 63) / 64) + ((numtextures + 63) / 64);
 
     if I_ConsoleStdout() != 0 {
@@ -586,9 +569,9 @@ pub unsafe extern "C" fn R_InitTextures() {
     }
 
     Z_Free(patchlookup as *mut c_void);
-    W_ReleaseLumpName(DEH_String(b"TEXTURE1\0".as_ptr() as *mut c_char));
+    W_ReleaseLumpName(DEH_String(b"TEXTURE1\0".as_ptr() as *const c_char));
     if !maptex2.is_null() {
-        W_ReleaseLumpName(DEH_String(b"TEXTURE2\0".as_ptr() as *mut c_char));
+        W_ReleaseLumpName(DEH_String(b"TEXTURE2\0".as_ptr() as *const c_char));
     }
 
     for i in 0..numtextures as usize {
@@ -613,8 +596,8 @@ pub unsafe extern "C" fn R_InitTextures() {
 
 #[no_mangle]
 pub unsafe extern "C" fn R_InitFlats() {
-    firstflat = W_GetNumForName(DEH_String(b"F_START\0".as_ptr() as *mut c_char)) + 1;
-    lastflat = W_GetNumForName(DEH_String(b"F_END\0".as_ptr() as *mut c_char)) - 1;
+    firstflat = W_GetNumForName(DEH_String(b"F_START\0".as_ptr() as *const c_char)) + 1;
+    lastflat = W_GetNumForName(DEH_String(b"F_END\0".as_ptr() as *const c_char)) - 1;
     numflats = lastflat - firstflat + 1;
 
     flattranslation = Z_Malloc(
@@ -634,8 +617,8 @@ pub unsafe extern "C" fn R_InitFlats() {
 
 #[no_mangle]
 pub unsafe extern "C" fn R_InitSpriteLumps() {
-    firstspritelump = W_GetNumForName(DEH_String(b"S_START\0".as_ptr() as *mut c_char)) + 1;
-    lastspritelump = W_GetNumForName(DEH_String(b"S_END\0".as_ptr() as *mut c_char)) - 1;
+    firstspritelump = W_GetNumForName(DEH_String(b"S_START\0".as_ptr() as *const c_char)) + 1;
+    lastspritelump = W_GetNumForName(DEH_String(b"S_END\0".as_ptr() as *const c_char)) - 1;
     numspritelumps = lastspritelump - firstspritelump + 1;
 
     spritewidth = Z_Malloc(
@@ -672,7 +655,7 @@ pub unsafe extern "C" fn R_InitSpriteLumps() {
 
 #[no_mangle]
 pub unsafe extern "C" fn R_InitColormaps() {
-    let lump = W_GetNumForName(DEH_String(b"COLORMAP\0".as_ptr() as *mut c_char));
+    let lump = W_GetNumForName(DEH_String(b"COLORMAP\0".as_ptr() as *const c_char));
     colormaps = W_CacheLumpNum(lump, PU_STATIC) as *mut u8;
 }
 
@@ -814,7 +797,7 @@ pub unsafe extern "C" fn R_PrecacheLevel() {
 
     let mut th = thinkercap.next;
     while !std::ptr::eq(th, std::ptr::addr_of!(thinkercap)) {
-        if (*th).function.acp1 == Some(P_MobjThinker) {
+        if (*th).function.acp1.map(|f| f as usize) == Some(P_MobjThinker as usize) {
             let mobj = th as *mut mobj_t;
             *spritepresent.add((*mobj).sprite as usize) = 1;
         }
@@ -826,7 +809,7 @@ pub unsafe extern "C" fn R_PrecacheLevel() {
         if *spritepresent.add(i) == 0 {
             continue;
         }
-        let sprdef = sprites.add(i);
+        let sprdef = (sprites as *mut spritedef_t).add(i);
         for j in 0..(*sprdef).numframes as usize {
             let sf = (*sprdef).spriteframes.add(j);
             for k in 0..8usize {

@@ -5,7 +5,7 @@ use std::ffi::{c_char, c_int, c_long, c_void, CStr};
 use crate::i_error;
 use crate::types::Boolean;
 
-enum FILE {}
+pub enum FILE {}
 
 const DIR_SEPARATOR: c_char = b'/' as c_char;
 const DIR_SEPARATOR_S: &[u8] = b"/\0";
@@ -45,9 +45,7 @@ extern "C" {
     fn vsnprintf(s: *mut c_char, n: usize, format: *const c_char, arg: ...) -> c_int;
 }
 
-extern "C" {
-    fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
-}
+use crate::doom::z_zone::Z_Malloc;
 
 unsafe fn errno() -> c_int {
     *__errno_location()

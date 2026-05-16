@@ -10,7 +10,11 @@ use std::ptr;
 
 use crate::doom::w_file::{wad_file_t, W_OpenFile, W_Read};
 
-use crate::doom::z_zone::{PU_CACHE, PU_STATIC};
+use crate::doom::z_zone::{PU_CACHE, PU_STATIC, Z_ChangeTag2, Z_ChangeUser, Z_Free, Z_Malloc};
+use crate::doom::i_video::{I_BeginRead, I_EndRead};
+use crate::doom::m_misc::M_ExtractFileBase;
+use crate::doom::d_iwad::D_SuggestGameName;
+use crate::doom::d_mode::D_GameMissionString;
 
 #[repr(C)]
 pub struct lumpinfo_t {
@@ -45,16 +49,6 @@ pub static mut numlumps: c_uint = 0;
 static mut lumphash: *mut *mut lumpinfo_t = ptr::null_mut();
 
 extern "C" {
-    fn I_BeginRead();
-    fn I_EndRead();
-
-    fn Z_Malloc(size: c_int, tag: c_int, user: *mut c_void) -> *mut c_void;
-    fn Z_Free(ptr: *mut c_void);
-    fn Z_ChangeUser(ptr: *mut c_void, user: *mut *mut c_void);
-    fn Z_ChangeTag2(ptr: *mut c_void, tag: c_int, file: *const c_char, line: c_int);
-
-    fn M_ExtractFileBase(path: *mut c_char, dest: *mut c_char);
-
     fn strncasecmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
     fn strcasecmp(s1: *const c_char, s2: *const c_char) -> c_int;
     fn strncmp(s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
@@ -64,9 +58,6 @@ extern "C" {
 
     fn calloc(nmemb: usize, size: usize) -> *mut c_void;
     fn free(ptr: *mut c_void);
-
-    fn D_SuggestGameName(mission: c_int, mode: c_int) -> *mut c_char;
-    fn D_GameMissionString(mission: c_int) -> *mut c_char;
 }
 
 unsafe fn ExtendLumpInfo(newnumlumps: c_uint) {
@@ -221,7 +212,7 @@ pub extern "C" fn W_NumLumps() -> c_int {
 }
 
 #[no_mangle]
-pub extern "C" fn W_CheckNumForName(name: *mut c_char) -> c_int {
+pub extern "C" fn W_CheckNumForName(name: *const c_char) -> c_int {
     unsafe {
         if !lumphash.is_null() {
             let hash = (W_LumpNameHash(name) % numlumps) as usize;
@@ -248,7 +239,7 @@ pub extern "C" fn W_CheckNumForName(name: *mut c_char) -> c_int {
 }
 
 #[no_mangle]
-pub extern "C" fn W_GetNumForName(name: *mut c_char) -> c_int {
+pub extern "C" fn W_GetNumForName(name: *const c_char) -> c_int {
     unsafe {
         let i = W_CheckNumForName(name);
         if i < 0 {
@@ -336,7 +327,7 @@ pub extern "C" fn W_CacheLumpNum(lumpnum: c_int, tag: c_int) -> *mut c_void {
 }
 
 #[no_mangle]
-pub extern "C" fn W_CacheLumpName(name: *mut c_char, tag: c_int) -> *mut c_void {
+pub extern "C" fn W_CacheLumpName(name: *const c_char, tag: c_int) -> *mut c_void {
     unsafe { W_CacheLumpNum(W_GetNumForName(name), tag) }
 }
 
@@ -356,7 +347,7 @@ pub extern "C" fn W_ReleaseLumpNum(lumpnum: c_int) {
 }
 
 #[no_mangle]
-pub extern "C" fn W_ReleaseLumpName(name: *mut c_char) {
+pub extern "C" fn W_ReleaseLumpName(name: *const c_char) {
     unsafe { W_ReleaseLumpNum(W_GetNumForName(name)) }
 }
 
@@ -434,14 +425,14 @@ pub unsafe extern "C" fn W_Wad_Link_Anchor() {
     W_LumpNameHash(ptr::null());
     W_AddFile(ptr::null_mut());
     W_NumLumps();
-    W_CheckNumForName(ptr::null_mut());
-    W_GetNumForName(ptr::null_mut());
+    W_CheckNumForName(ptr::null());
+    W_GetNumForName(ptr::null());
     W_LumpLength(0);
     W_ReadLump(0, ptr::null_mut());
     W_CacheLumpNum(0, 0);
-    W_CacheLumpName(ptr::null_mut(), 0);
+    W_CacheLumpName(ptr::null(), 0);
     W_ReleaseLumpNum(0);
-    W_ReleaseLumpName(ptr::null_mut());
+    W_ReleaseLumpName(ptr::null());
     W_GenerateHashTable();
     W_CheckCorrectIWAD(0);
 }
