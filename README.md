@@ -12,7 +12,8 @@ for the platform layer.
 
 `room` is a **complete Rust port** of the classic DOOM engine based on
 [doomgeneric](https://github.com/ozkl/doomgeneric). Every engine module has
-been rewritten in native Rust; no C engine code remains linked.
+been rewritten in native Rust; no C engine code remains linked. However, it is not
+idiomatic Rust yet, and contributions are welcome.
 
 The port was done **module-by-module**:
 
