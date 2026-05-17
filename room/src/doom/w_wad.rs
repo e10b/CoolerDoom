@@ -70,14 +70,14 @@ unsafe fn ExtendLumpInfo(newnumlumps: c_uint) {
     for i in 0..numlumps.min(newnumlumps) {
         std::ptr::copy_nonoverlapping(lumpinfo.add(i as usize), newlumpinfo.add(i as usize), 1);
 
-        if (*newlumpinfo.add(i as usize)).cache != ptr::null_mut() {
+        if !(*newlumpinfo.add(i as usize)).cache.is_null() {
             Z_ChangeUser(
                 (*newlumpinfo.add(i as usize)).cache,
                 &mut (*newlumpinfo.add(i as usize)).cache as *mut *mut c_void,
             );
         }
 
-        if (*lumpinfo.add(i as usize)).next != ptr::null_mut() {
+        if !(*lumpinfo.add(i as usize)).next.is_null() {
             let nextlumpnum = ((*lumpinfo.add(i as usize)).next as usize - lumpinfo as usize)
                 / std::mem::size_of::<lumpinfo_t>();
             (*newlumpinfo.add(i as usize)).next = newlumpinfo.add(nextlumpnum);
@@ -109,22 +109,17 @@ pub extern "C" fn W_AddFile(filename: *mut c_char) -> *mut wad_file_t {
     unsafe {
         let wad_file = W_OpenFile(filename);
         if wad_file.is_null() {
-            libc::printf(b" couldn't open %s\n\0".as_ptr() as *const c_char, filename);
+            libc::printf(c" couldn't open %s\n".as_ptr(), filename);
             return ptr::null_mut();
         }
 
         let mut newnumlumps = numlumps;
         let startlump = numlumps;
 
-        let mut fileinfo: *mut filelump_t = ptr::null_mut();
+        let fileinfo: *mut filelump_t;
 
         let fname_len = strlen(filename);
-        if fname_len < 3
-            || strcasecmp(
-                filename.add(fname_len - 3),
-                b"wad\0".as_ptr() as *const c_char,
-            ) != 0
-        {
+        if fname_len < 3 || strcasecmp(filename.add(fname_len - 3), c"wad".as_ptr()) != 0 {
             // Single lump file
             fileinfo = Z_Malloc(
                 std::mem::size_of::<filelump_t>() as c_int,
@@ -145,23 +140,13 @@ pub extern "C" fn W_AddFile(filename: *mut c_char) -> *mut wad_file_t {
                 std::mem::size_of::<wadinfo_t>(),
             );
 
-            if strncmp(
-                header.identification.as_ptr(),
-                b"IWAD\0".as_ptr() as *const c_char,
-                4,
-            ) != 0
+            if strncmp(header.identification.as_ptr(), c"IWAD".as_ptr(), 4) != 0
+                && strncmp(header.identification.as_ptr(), c"PWAD".as_ptr(), 4) != 0
             {
-                if strncmp(
-                    header.identification.as_ptr(),
-                    b"PWAD\0".as_ptr() as *const c_char,
-                    4,
-                ) != 0
-                {
-                    i_error!(
-                        "Wad file {} doesn't have IWAD or PWAD id",
-                        CStr::from_ptr(filename).to_string_lossy()
-                    );
-                }
+                i_error!(
+                    "Wad file {} doesn't have IWAD or PWAD id",
+                    CStr::from_ptr(filename).to_string_lossy()
+                );
             }
 
             let header_numlumps = i32::from_le(header.numlumps);
@@ -328,7 +313,7 @@ pub extern "C" fn W_CacheLumpNum(lumpnum: c_int, tag: c_int) -> *mut c_void {
 
 #[no_mangle]
 pub extern "C" fn W_CacheLumpName(name: *const c_char, tag: c_int) -> *mut c_void {
-    unsafe { W_CacheLumpNum(W_GetNumForName(name), tag) }
+    W_CacheLumpNum(W_GetNumForName(name), tag)
 }
 
 #[no_mangle]
@@ -348,7 +333,7 @@ pub extern "C" fn W_ReleaseLumpNum(lumpnum: c_int) {
 
 #[no_mangle]
 pub extern "C" fn W_ReleaseLumpName(name: *const c_char) {
-    unsafe { W_ReleaseLumpNum(W_GetNumForName(name)) }
+    W_ReleaseLumpNum(W_GetNumForName(name))
 }
 
 #[no_mangle]
@@ -439,6 +424,7 @@ pub unsafe extern "C" fn W_Wad_Link_Anchor() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
 
     #[test]
     fn lumpinfo_size_matches_c() {
@@ -459,5 +445,108 @@ mod tests {
         // C filelump_t = filepos + size + name[8]
         // On x86_64: 4 + 4 + 8 = 16 bytes
         assert_eq!(std::mem::size_of::<filelump_t>(), 16);
+    }
+
+    // Serialize tests that mutate the lumpinfo/numlumps/lumphash globals.
+    static WAD_LOCK: Mutex<()> = Mutex::new(());
+
+    // RAII guard: installs fake globals on construction, restores originals on drop.
+    // Declare before fake_wad/fake_lumps so it drops first (LIFO), restoring the
+    // globals before the local storage they pointed to goes out of scope.
+    struct WadTestScope {
+        saved_lumpinfo: *mut lumpinfo_t,
+        saved_numlumps: c_uint,
+        saved_lumphash: *mut *mut lumpinfo_t,
+    }
+
+    impl WadTestScope {
+        unsafe fn install(info: *mut lumpinfo_t, count: c_uint) -> Self {
+            let scope = WadTestScope {
+                saved_lumpinfo: lumpinfo,
+                saved_numlumps: numlumps,
+                saved_lumphash: lumphash,
+            };
+            lumpinfo = info;
+            numlumps = count;
+            lumphash = ptr::null_mut(); // force linear scan, not hash table
+            scope
+        }
+    }
+
+    impl Drop for WadTestScope {
+        fn drop(&mut self) {
+            unsafe {
+                lumpinfo = self.saved_lumpinfo;
+                numlumps = self.saved_numlumps;
+                lumphash = self.saved_lumphash;
+            }
+        }
+    }
+
+    fn make_lump_name(s: &[u8]) -> [c_char; 8] {
+        let mut name = [0i8; 8];
+        for (i, &b) in s.iter().take(8).enumerate() {
+            name[i] = b as c_char;
+        }
+        name
+    }
+
+    // Returns a wad_file_t with mapped != null so W_ReleaseLumpNum takes the
+    // memory-mapped no-op branch, bypassing Z_ChangeTag2 (needs Z_Init).
+    fn mapped_wad() -> wad_file_t {
+        static SENTINEL: u8 = 0;
+        wad_file_t {
+            file_class: ptr::null_mut(),
+            mapped: std::ptr::addr_of!(SENTINEL).cast_mut(),
+            length: 0,
+        }
+    }
+
+    fn make_lump(name: &[u8], wad: *mut wad_file_t) -> lumpinfo_t {
+        lumpinfo_t {
+            name: make_lump_name(name),
+            wad_file: wad,
+            position: 0,
+            size: 0,
+            cache: ptr::null_mut(),
+            next: ptr::null_mut(),
+        }
+    }
+
+    // W_ReleaseLumpName must delegate correctly: name resolves to lump 0 and
+    // W_ReleaseLumpNum(0) completes without error.
+    #[test]
+    fn release_lump_name_delegates_to_num() {
+        let _lock = WAD_LOCK.lock().unwrap();
+        let mut wad = mapped_wad();
+        let mut lumps = [make_lump(b"TESTLUMP", &mut wad)];
+        let _scope = unsafe { WadTestScope::install(lumps.as_mut_ptr(), 1) };
+
+        unsafe { W_ReleaseLumpName(c"TESTLUMP".as_ptr()) };
+    }
+
+    // The underlying strncasecmp lookup is case-insensitive.
+    #[test]
+    fn release_lump_name_is_case_insensitive() {
+        let _lock = WAD_LOCK.lock().unwrap();
+        let mut wad = mapped_wad();
+        let mut lumps = [make_lump(b"TESTLUMP", &mut wad)];
+        let _scope = unsafe { WadTestScope::install(lumps.as_mut_ptr(), 1) };
+
+        unsafe { W_ReleaseLumpName(c"testlump".as_ptr()) };
+    }
+
+    // With multiple lumps loaded each name must resolve to its own entry.
+    // The linear scan runs backwards so the last-registered match wins for
+    // duplicate names, but here every name is unique.
+    #[test]
+    fn release_lump_name_picks_correct_lump_among_multiple() {
+        let _lock = WAD_LOCK.lock().unwrap();
+        let mut wad = mapped_wad();
+        let mut lumps = [make_lump(b"ALPHA", &mut wad), make_lump(b"BETA", &mut wad)];
+        let _scope = unsafe { WadTestScope::install(lumps.as_mut_ptr(), 2) };
+
+        unsafe { W_ReleaseLumpName(c"ALPHA".as_ptr()) };
+        unsafe { W_ReleaseLumpName(c"BETA".as_ptr()) };
     }
 }
