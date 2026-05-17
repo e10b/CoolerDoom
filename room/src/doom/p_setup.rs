@@ -8,11 +8,13 @@
 use std::ffi::{c_char, c_int, c_short, c_uint, c_ushort, c_void};
 use std::ptr;
 
-use crate::doom::c_ffi::{line_t, node_t, sector_t, seg_t, side_t, subsector_t, vertex_t};
+use crate::doom::c_ffi::{
+    line_t, node_t, sector_t, seg_t, side_t, subsector_t, vertex_t, LinedefFlag, MapLump,
+};
 use crate::doom::d_mode;
 use crate::doom::d_player::{consoleplayer, players, MAXPLAYERS};
 use crate::doom::info::sprnames;
-use crate::doom::m_bbox::{M_AddToBox, M_ClearBox, BOXBOTTOM, BOXLEFT, BOXRIGHT, BOXTOP};
+use crate::doom::m_bbox::{BBox, M_AddToBox, M_ClearBox};
 use crate::doom::m_fixed::{FRACBITS, FRACUNIT};
 use crate::doom::p_tick::{leveltime, P_InitThinkers};
 use crate::doom::z_zone::{PU_LEVEL, PU_STATIC};
@@ -35,27 +37,6 @@ fn SHORT(x: i16) -> i16 {
 const PU_PURGELEVEL: c_int = 7;
 
 // ---------------------------------------------------------------------------
-// WAD lump-order indices (must match doomdata.h)
-// ---------------------------------------------------------------------------
-
-const ML_LABEL: c_int = 0;
-const ML_THINGS: c_int = 1;
-const ML_LINEDEFS: c_int = 2;
-const ML_SIDEDEFS: c_int = 3;
-const ML_VERTEXES: c_int = 4;
-const ML_SEGS: c_int = 5;
-const ML_SSECTORS: c_int = 6;
-const ML_NODES: c_int = 7;
-const ML_SECTORS: c_int = 8;
-const ML_REJECT: c_int = 9;
-const ML_BLOCKMAP: c_int = 10;
-
-// ---------------------------------------------------------------------------
-// LineDef flags
-// ---------------------------------------------------------------------------
-
-const ML_TWOSIDED: i16 = 4;
-
 // ---------------------------------------------------------------------------
 // Slope types
 // ---------------------------------------------------------------------------
@@ -355,7 +336,7 @@ pub extern "C" fn P_LoadSegs(lump: c_int) {
             (*li).sidedef = sides.offset((*ldef).sidenum[side as usize] as isize);
             (*li).frontsector = (*sides.offset((*ldef).sidenum[side as usize] as isize)).sector;
 
-            if (*ldef).flags & ML_TWOSIDED != 0 {
+            if (*ldef).flags & LinedefFlag::TWOSIDED as i16 != 0 {
                 let sidenum = (*ldef).sidenum[side as usize ^ 1];
                 if sidenum < 0 || sidenum as c_int >= numsides {
                     (*li).backsector = GetSectorAtNullAddress();
@@ -565,19 +546,19 @@ pub extern "C" fn P_LoadLineDefs(lump: c_int) {
             }
 
             if (*v1).x < (*v2).x {
-                (*ld).bbox[BOXLEFT] = (*v1).x;
-                (*ld).bbox[BOXRIGHT] = (*v2).x;
+                (*ld).bbox[BBox::LEFT] = (*v1).x;
+                (*ld).bbox[BBox::RIGHT] = (*v2).x;
             } else {
-                (*ld).bbox[BOXLEFT] = (*v2).x;
-                (*ld).bbox[BOXRIGHT] = (*v1).x;
+                (*ld).bbox[BBox::LEFT] = (*v2).x;
+                (*ld).bbox[BBox::RIGHT] = (*v1).x;
             }
 
             if (*v1).y < (*v2).y {
-                (*ld).bbox[BOXBOTTOM] = (*v1).y;
-                (*ld).bbox[BOXTOP] = (*v2).y;
+                (*ld).bbox[BBox::BOTTOM] = (*v1).y;
+                (*ld).bbox[BBox::TOP] = (*v2).y;
             } else {
-                (*ld).bbox[BOXBOTTOM] = (*v2).y;
-                (*ld).bbox[BOXTOP] = (*v1).y;
+                (*ld).bbox[BBox::BOTTOM] = (*v2).y;
+                (*ld).bbox[BBox::TOP] = (*v1).y;
             }
 
             (*ld).sidenum[0] = SHORT((*mld).sidenum[0]);
@@ -762,37 +743,37 @@ pub extern "C" fn P_GroupLines() {
             }
 
             // Set the degenmobj_t to the middle of the bounding box.
-            let soundorg_x = (bbox[BOXRIGHT] + bbox[BOXLEFT]) / 2;
-            let soundorg_y = (bbox[BOXTOP] + bbox[BOXBOTTOM]) / 2;
+            let soundorg_x = (bbox[BBox::RIGHT] + bbox[BBox::LEFT]) / 2;
+            let soundorg_y = (bbox[BBox::TOP] + bbox[BBox::BOTTOM]) / 2;
             // sector->soundorg is a 40-byte degenmobj_t; first two fields are x,y.
             let soundorg_ptr = (*sector).soundorg.as_mut_ptr() as *mut c_int;
             *soundorg_ptr = soundorg_x;
             *soundorg_ptr.add(1) = soundorg_y;
 
             // Adjust bounding box to map blocks.
-            let mut block = (bbox[BOXTOP] - bmaporgy + MAXRADIUS) >> MAPBLOCKSHIFT;
+            let mut block = (bbox[BBox::TOP] - bmaporgy + MAXRADIUS) >> MAPBLOCKSHIFT;
             block = if block >= bmapheight {
                 bmapheight - 1
             } else {
                 block
             };
-            (*sector).blockbox[BOXTOP] = block;
+            (*sector).blockbox[BBox::TOP] = block;
 
-            block = (bbox[BOXBOTTOM] - bmaporgy - MAXRADIUS) >> MAPBLOCKSHIFT;
+            block = (bbox[BBox::BOTTOM] - bmaporgy - MAXRADIUS) >> MAPBLOCKSHIFT;
             block = if block < 0 { 0 } else { block };
-            (*sector).blockbox[BOXBOTTOM] = block;
+            (*sector).blockbox[BBox::BOTTOM] = block;
 
-            block = (bbox[BOXRIGHT] - bmaporgx + MAXRADIUS) >> MAPBLOCKSHIFT;
+            block = (bbox[BBox::RIGHT] - bmaporgx + MAXRADIUS) >> MAPBLOCKSHIFT;
             block = if block >= bmapwidth {
                 bmapwidth - 1
             } else {
                 block
             };
-            (*sector).blockbox[BOXRIGHT] = block;
+            (*sector).blockbox[BBox::RIGHT] = block;
 
-            block = (bbox[BOXLEFT] - bmaporgx - MAXRADIUS) >> MAPBLOCKSHIFT;
+            block = (bbox[BBox::LEFT] - bmaporgx - MAXRADIUS) >> MAPBLOCKSHIFT;
             block = if block < 0 { 0 } else { block };
-            (*sector).blockbox[BOXLEFT] = block;
+            (*sector).blockbox[BBox::LEFT] = block;
 
             sector = sector.add(1);
         }
@@ -905,22 +886,22 @@ pub extern "C" fn P_SetupLevel(episode: c_int, map: c_int, _playermask: c_int, _
         leveltime = 0;
 
         // Note: most of this ordering is important.
-        P_LoadBlockMap(lumpnum + ML_BLOCKMAP);
-        P_LoadVertexes(lumpnum + ML_VERTEXES);
-        P_LoadSectors(lumpnum + ML_SECTORS);
-        P_LoadSideDefs(lumpnum + ML_SIDEDEFS);
+        P_LoadBlockMap(lumpnum + MapLump::BLOCKMAP);
+        P_LoadVertexes(lumpnum + MapLump::VERTEXES);
+        P_LoadSectors(lumpnum + MapLump::SECTORS);
+        P_LoadSideDefs(lumpnum + MapLump::SIDEDEFS);
 
-        P_LoadLineDefs(lumpnum + ML_LINEDEFS);
-        P_LoadSubsectors(lumpnum + ML_SSECTORS);
-        P_LoadNodes(lumpnum + ML_NODES);
-        P_LoadSegs(lumpnum + ML_SEGS);
+        P_LoadLineDefs(lumpnum + MapLump::LINEDEFS);
+        P_LoadSubsectors(lumpnum + MapLump::SSECTORS);
+        P_LoadNodes(lumpnum + MapLump::NODES);
+        P_LoadSegs(lumpnum + MapLump::SEGS);
 
         P_GroupLines();
-        P_LoadReject(lumpnum + ML_REJECT);
+        P_LoadReject(lumpnum + MapLump::REJECT);
 
         bodyqueslot = 0;
         deathmatch_p = std::ptr::addr_of_mut!(deathmatchstarts[0]);
-        P_LoadThings(lumpnum + ML_THINGS);
+        P_LoadThings(lumpnum + MapLump::THINGS);
 
         if deathmatch != 0 {
             for i in 0..MAXPLAYERS {

@@ -271,29 +271,29 @@ fn mapthing_t_offsets() {
 }
 
 // ---------------------------------------------------------------------------
-// ML_ lump-index constants (doomdata.h enum values must be consecutive)
+// MapLump constants (doomdata.h enum values must be consecutive)
 // The constants live in c_ffi so the rest of the ported code can use them.
 // ---------------------------------------------------------------------------
 
 #[test]
 fn ml_lump_order_values() {
-    assert_eq!(c_ffi::ML_LABEL, 0);
-    assert_eq!(c_ffi::ML_THINGS, 1);
-    assert_eq!(c_ffi::ML_LINEDEFS, 2);
-    assert_eq!(c_ffi::ML_SIDEDEFS, 3);
-    assert_eq!(c_ffi::ML_VERTEXES, 4);
-    assert_eq!(c_ffi::ML_SEGS, 5);
-    assert_eq!(c_ffi::ML_SSECTORS, 6);
-    assert_eq!(c_ffi::ML_NODES, 7);
-    assert_eq!(c_ffi::ML_SECTORS, 8);
-    assert_eq!(c_ffi::ML_REJECT, 9);
-    assert_eq!(c_ffi::ML_BLOCKMAP, 10);
+    assert_eq!(c_ffi::MapLump::LABEL, 0);
+    assert_eq!(c_ffi::MapLump::THINGS, 1);
+    assert_eq!(c_ffi::MapLump::LINEDEFS, 2);
+    assert_eq!(c_ffi::MapLump::SIDEDEFS, 3);
+    assert_eq!(c_ffi::MapLump::VERTEXES, 4);
+    assert_eq!(c_ffi::MapLump::SEGS, 5);
+    assert_eq!(c_ffi::MapLump::SSECTORS, 6);
+    assert_eq!(c_ffi::MapLump::NODES, 7);
+    assert_eq!(c_ffi::MapLump::SECTORS, 8);
+    assert_eq!(c_ffi::MapLump::REJECT, 9);
+    assert_eq!(c_ffi::MapLump::BLOCKMAP, 10);
     // Lump indices must be consecutive: BLOCKMAP is the last, at index 10.
-    assert_eq!(c_ffi::ML_BLOCKMAP - c_ffi::ML_LABEL, 10);
+    assert_eq!(c_ffi::MapLump::BLOCKMAP - c_ffi::MapLump::LABEL, 10);
 }
 
 // ---------------------------------------------------------------------------
-// linedef flag bits (ML_* defines from doomdata.h)
+// LinedefFlag bits (ML_* defines from doomdata.h)
 // Each flag occupies exactly one bit and the values must be powers of two.
 // ---------------------------------------------------------------------------
 
@@ -301,15 +301,15 @@ fn ml_lump_order_values() {
 fn ml_linedef_flags() {
     // Verify every flag is a distinct power of two — no two flags may overlap.
     let all_flags = [
-        c_ffi::ML_BLOCKING,
-        c_ffi::ML_BLOCKMONSTERS,
-        c_ffi::ML_TWOSIDED,
-        c_ffi::ML_DONTPEGTOP,
-        c_ffi::ML_DONTPEGBOTTOM,
-        c_ffi::ML_SECRET,
-        c_ffi::ML_SOUNDBLOCK,
-        c_ffi::ML_DONTDRAW,
-        c_ffi::ML_MAPPED,
+        c_ffi::LinedefFlag::BLOCKING,
+        c_ffi::LinedefFlag::BLOCKMONSTERS,
+        c_ffi::LinedefFlag::TWOSIDED,
+        c_ffi::LinedefFlag::DONTPEGTOP,
+        c_ffi::LinedefFlag::DONTPEGBOTTOM,
+        c_ffi::LinedefFlag::SECRET,
+        c_ffi::LinedefFlag::SOUNDBLOCK,
+        c_ffi::LinedefFlag::DONTDRAW,
+        c_ffi::LinedefFlag::MAPPED,
     ];
 
     // Each value must be a power of two.
@@ -332,15 +332,15 @@ fn ml_linedef_flags() {
     assert_eq!(combined, (1u16 << 9) - 1);
 
     // Verify expected absolute values match the C header definitions.
-    assert_eq!(c_ffi::ML_BLOCKING, 1);
-    assert_eq!(c_ffi::ML_BLOCKMONSTERS, 2);
-    assert_eq!(c_ffi::ML_TWOSIDED, 4);
-    assert_eq!(c_ffi::ML_DONTPEGTOP, 8);
-    assert_eq!(c_ffi::ML_DONTPEGBOTTOM, 16);
-    assert_eq!(c_ffi::ML_SECRET, 32);
-    assert_eq!(c_ffi::ML_SOUNDBLOCK, 64);
-    assert_eq!(c_ffi::ML_DONTDRAW, 128);
-    assert_eq!(c_ffi::ML_MAPPED, 256);
+    assert_eq!(c_ffi::LinedefFlag::BLOCKING, 1);
+    assert_eq!(c_ffi::LinedefFlag::BLOCKMONSTERS, 2);
+    assert_eq!(c_ffi::LinedefFlag::TWOSIDED, 4);
+    assert_eq!(c_ffi::LinedefFlag::DONTPEGTOP, 8);
+    assert_eq!(c_ffi::LinedefFlag::DONTPEGBOTTOM, 16);
+    assert_eq!(c_ffi::LinedefFlag::SECRET, 32);
+    assert_eq!(c_ffi::LinedefFlag::SOUNDBLOCK, 64);
+    assert_eq!(c_ffi::LinedefFlag::DONTDRAW, 128);
+    assert_eq!(c_ffi::LinedefFlag::MAPPED, 256);
 }
 
 // ---------------------------------------------------------------------------

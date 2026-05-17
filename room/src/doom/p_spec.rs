@@ -8,10 +8,11 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
+use crate::doom::sounds::Sfx;
 use std::ffi::{c_char, c_int, c_short, c_void};
 use std::ptr;
 
-use crate::doom::c_ffi::{line_t, mobj_t, sector_t, side_t, FLOORSPEED, ML_TWOSIDED};
+use crate::doom::c_ffi::{line_t, mobj_t, sector_t, side_t, LinedefFlag, FLOORSPEED};
 use crate::doom::d_player::{PlayerT, CF_GODMODE};
 use crate::doom::i_timer::TICRATE;
 use crate::doom::info::{MT_BFG, MT_BRUISERSHOT, MT_HEADSHOT, MT_PLASMA, MT_ROCKET, MT_TROOPSHOT};
@@ -88,9 +89,6 @@ const perpetualRaise: c_int = 0;
 // stair_e
 const build8: c_int = 0;
 const turbo16: c_int = 1;
-
-// sfx
-const sfx_swtchn: c_int = 23;
 
 // powers
 const pw_ironfeet: usize = 3;
@@ -293,12 +291,12 @@ pub unsafe extern "C" fn twoSided(sector: c_int, line: c_int) -> c_int {
     let line_ptr = *(*sectors.offset(sector as isize))
         .lines
         .offset(line as isize) as *mut line_t;
-    ((*line_ptr).flags as c_int) & (ML_TWOSIDED as c_int)
+    ((*line_ptr).flags as c_int) & (LinedefFlag::TWOSIDED as c_int)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn getNextSector(line: *mut line_t, sec: *mut sector_t) -> *mut sector_t {
-    if ((*line).flags as c_int) & (ML_TWOSIDED as c_int) == 0 {
+    if ((*line).flags as c_int) & (LinedefFlag::TWOSIDED as c_int) == 0 {
         return ptr::null_mut();
     }
     if (*line).frontsector == sec as *mut c_void {
@@ -880,7 +878,7 @@ pub unsafe extern "C" fn P_UpdateSpecials() {
                 }
                 S_StartSound(
                     &mut buttonlist[i].soundorg as *mut _ as *mut c_void,
-                    sfx_swtchn,
+                    Sfx::Swtchn as c_int,
                 );
                 buttonlist[i] = std::mem::zeroed();
             }
@@ -1157,7 +1155,7 @@ mod tests {
         assert_eq!(MAXLINEANIMS, 64);
         assert_eq!(MAX_ADJOINING_SECTORS, 20);
         assert_eq!(PU_LEVSPEC, 6);
-        assert_eq!(sfx_swtchn, 23);
+        assert_eq!(Sfx::Swtchn as c_int, 23);
         assert_eq!(CF_GODMODE, 2);
         assert_eq!(pw_ironfeet, 3);
     }

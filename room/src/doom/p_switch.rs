@@ -5,6 +5,8 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
+use crate::doom::c_ffi::LinedefFlag;
+use crate::doom::sounds::Sfx;
 use std::ffi::{c_char, c_int, c_void};
 use std::os::raw::c_short;
 
@@ -27,13 +29,6 @@ pub const BUTTONTIME: c_int = 35;
 const top: c_int = 0;
 const middle: c_int = 1;
 const bottom: c_int = 2;
-
-// sfx enum values
-const sfx_swtchn: c_int = 23;
-const sfx_swtchx: c_int = 24;
-
-// line flags
-const ML_SECRET: i16 = 32;
 
 // vldoor_e values
 const vld_normal: c_int = 0;
@@ -429,11 +424,11 @@ pub unsafe extern "C" fn P_ChangeSwitchTexture(line: *mut line_t, useAgain: c_in
     let texMid = (*sides.offset(sidenum)).midtexture;
     let texBot = (*sides.offset(sidenum)).bottomtexture;
 
-    let mut sound = sfx_swtchn;
+    let mut sound = Sfx::Swtchn as c_int;
 
     // EXIT SWITCH?
     if (*line).special == 11 {
-        sound = sfx_swtchx;
+        sound = Sfx::Swtchx as c_int;
     }
 
     for i in 0..(numswitches * 2) as usize {
@@ -488,7 +483,7 @@ pub unsafe extern "C" fn P_UseSpecialLine(
     let mobj = thing as *mut crate::doom::c_ffi::mobj_t;
     if (*mobj).player.is_null() {
         // never open secret doors
-        if (*line).flags & ML_SECRET != 0 {
+        if (*line).flags & LinedefFlag::SECRET as i16 != 0 {
             return 0;
         }
         match (*line).special {

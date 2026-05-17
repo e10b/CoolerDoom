@@ -19,6 +19,7 @@ use crate::doom::p_spec::{
 use crate::doom::p_tick::{leveltime, thinker_t, P_AddThinker, P_RemoveThinker};
 use crate::doom::r_data::textureheight;
 use crate::doom::s_sound::S_StartSound;
+use crate::doom::sounds::Sfx;
 use crate::doom::z_zone::{Z_Malloc, PU_LEVSPEC};
 
 const FLOORSPEED: fixed_t = FRACUNIT;
@@ -48,8 +49,7 @@ const floor_raiseFloor512: c_int = 12;
 const stair_build8: c_int = 0;
 const stair_turbo16: c_int = 1;
 
-// line flags
-const ML_TWOSIDED: i16 = 4;
+use crate::doom::c_ffi::LinedefFlag;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -104,9 +104,6 @@ mod layout_checks {
     const _: () = assert!(std::mem::offset_of!(side_t, midtexture) == 12);
     const _: () = assert!(std::mem::offset_of!(side_t, sector) == 16);
 }
-
-const SFX_PSTOP: c_int = 19;
-const SFX_STNMOV: c_int = 22;
 
 /// Move a plane (floor or ceiling) and check for crushing.
 /// Shared by p_floor, p_ceilng, p_plats, p_doors.
@@ -244,7 +241,7 @@ pub unsafe extern "C" fn T_MoveFloor(floor: *mut floormove_t) {
     if (leveltime & 7) == 0 {
         S_StartSound(
             &(*(*floor).sector).soundorg as *const [u8; 40] as *mut c_void,
-            SFX_STNMOV,
+            Sfx::Stnmov as c_int,
         );
     }
 
@@ -264,7 +261,7 @@ pub unsafe extern "C" fn T_MoveFloor(floor: *mut floormove_t) {
 
         S_StartSound(
             &(*(*floor).sector).soundorg as *const [u8; 40] as *mut c_void,
-            SFX_PSTOP,
+            Sfx::Pstop as c_int,
         );
     }
 }
@@ -477,7 +474,7 @@ pub unsafe extern "C" fn EV_BuildStairs(line: *mut line_t, stype: c_int) -> c_in
             let mut ok: c_int = 0;
             for i in 0..(*sec).linecount as c_int {
                 let l = *(*sec).lines.offset(i as isize) as *mut line_t;
-                if (*l).flags & ML_TWOSIDED == 0 {
+                if (*l).flags & LinedefFlag::TWOSIDED as i16 == 0 {
                     continue;
                 }
 

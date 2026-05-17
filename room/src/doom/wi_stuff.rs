@@ -16,6 +16,7 @@
     clippy::manual_c_str_literals
 )]
 
+use crate::doom::sounds::Sfx;
 use std::cell::UnsafeCell;
 use std::ffi::{c_char, c_int};
 use std::ptr;
@@ -30,6 +31,7 @@ use crate::doom::i_video::{SCREENHEIGHT, SCREENWIDTH};
 use crate::doom::m_misc::M_StringCopy;
 use crate::doom::m_random::M_Random;
 use crate::doom::s_sound::{S_ChangeMusic, S_StartSound};
+use crate::doom::sounds::Mus;
 use crate::doom::v_video::patch_t;
 use crate::doom::v_video::V_DrawPatch;
 use crate::doom::w_wad::{W_CacheLumpName, W_CheckNumForName, W_ReleaseLumpName};
@@ -64,15 +66,6 @@ const DM_VICTIMSX: c_int = 5;
 const DM_VICTIMSY: c_int = 50;
 
 const SHOWNEXTLOCDELAY: c_int = 4;
-
-// Sound / music IDs
-const sfx_pistol: c_int = 1;
-const sfx_barexp: c_int = 82;
-const sfx_slop: c_int = 31;
-const sfx_sgcock: c_int = 3;
-const sfx_pldeth: c_int = 57;
-const mus_inter: c_int = 28;
-const mus_dm2int: c_int = 67;
 
 // ---------------------------------------------------------------------------
 // Types that must match C layout (g_game.c is still C)
@@ -982,13 +975,13 @@ unsafe fn WI_updateDeathmatchStats() {
                 dm_totals[i] = WI_fragSum(i as c_int);
             }
         }
-        S_StartSound(ptr::null_mut(), sfx_barexp);
+        S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
         dm_state = 4;
     }
 
     if dm_state == 2 {
         if bcnt & 3 == 0 {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
         }
         let mut stillticking = false;
         for i in 0..MAXPLAYERS {
@@ -1020,12 +1013,12 @@ unsafe fn WI_updateDeathmatchStats() {
             }
         }
         if !stillticking {
-            S_StartSound(ptr::null_mut(), sfx_barexp);
+            S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
             dm_state += 1;
         }
     } else if dm_state == 4 {
         if acceleratestage != 0 {
-            S_StartSound(ptr::null_mut(), sfx_slop);
+            S_StartSound(ptr::null_mut(), Sfx::Slop as c_int);
             if gamemode == d_mode::commercial {
                 WI_initNoState();
             } else {
@@ -1138,13 +1131,13 @@ unsafe fn WI_updateNetgameStats() {
                 cnt_frags[i] = WI_fragSum(i as c_int);
             }
         }
-        S_StartSound(ptr::null_mut(), sfx_barexp);
+        S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
         ng_state = 10;
     }
 
     if ng_state == 2 {
         if bcnt & 3 == 0 {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
         }
         let mut stillticking = false;
         for i in 0..MAXPLAYERS {
@@ -1160,12 +1153,12 @@ unsafe fn WI_updateNetgameStats() {
             }
         }
         if !stillticking {
-            S_StartSound(ptr::null_mut(), sfx_barexp);
+            S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
             ng_state += 1;
         }
     } else if ng_state == 4 {
         if bcnt & 3 == 0 {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
         }
         let mut stillticking = false;
         for i in 0..MAXPLAYERS {
@@ -1181,12 +1174,12 @@ unsafe fn WI_updateNetgameStats() {
             }
         }
         if !stillticking {
-            S_StartSound(ptr::null_mut(), sfx_barexp);
+            S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
             ng_state += 1;
         }
     } else if ng_state == 6 {
         if bcnt & 3 == 0 {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
         }
         let mut stillticking = false;
         for i in 0..MAXPLAYERS {
@@ -1202,12 +1195,12 @@ unsafe fn WI_updateNetgameStats() {
             }
         }
         if !stillticking {
-            S_StartSound(ptr::null_mut(), sfx_barexp);
+            S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
             ng_state += 1 + 2 * if dofrags == 0 { 1 } else { 0 };
         }
     } else if ng_state == 8 {
         if bcnt & 3 == 0 {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
         }
         let mut stillticking = false;
         for i in 0..MAXPLAYERS {
@@ -1223,12 +1216,12 @@ unsafe fn WI_updateNetgameStats() {
             }
         }
         if !stillticking {
-            S_StartSound(ptr::null_mut(), sfx_pldeth);
+            S_StartSound(ptr::null_mut(), Sfx::Pldeth as c_int);
             ng_state += 1;
         }
     } else if ng_state == 10 {
         if acceleratestage != 0 {
-            S_StartSound(ptr::null_mut(), sfx_sgcock);
+            S_StartSound(ptr::null_mut(), Sfx::Sgcock as c_int);
             if gamemode == d_mode::commercial {
                 WI_initNoState();
             } else {
@@ -1329,46 +1322,46 @@ unsafe fn WI_updateStats() {
         cnt_secret[0] = ((*plrs.offset(me as isize)).ssecret * 100) / (*wbs).maxsecret;
         cnt_time = (*plrs.offset(me as isize)).stime / TICRATE;
         cnt_par = (*wbs).partime / TICRATE;
-        S_StartSound(ptr::null_mut(), sfx_barexp);
+        S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
         sp_state = 10;
     }
 
     if sp_state == 2 {
         cnt_kills[0] += 2;
         if bcnt & 3 == 0 {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
         }
         let target = ((*plrs.offset(me as isize)).skills * 100) / (*wbs).maxkills;
         if cnt_kills[0] >= target {
             cnt_kills[0] = target;
-            S_StartSound(ptr::null_mut(), sfx_barexp);
+            S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
             sp_state += 1;
         }
     } else if sp_state == 4 {
         cnt_items[0] += 2;
         if bcnt & 3 == 0 {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
         }
         let target = ((*plrs.offset(me as isize)).sitems * 100) / (*wbs).maxitems;
         if cnt_items[0] >= target {
             cnt_items[0] = target;
-            S_StartSound(ptr::null_mut(), sfx_barexp);
+            S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
             sp_state += 1;
         }
     } else if sp_state == 6 {
         cnt_secret[0] += 2;
         if bcnt & 3 == 0 {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
         }
         let target = ((*plrs.offset(me as isize)).ssecret * 100) / (*wbs).maxsecret;
         if cnt_secret[0] >= target {
             cnt_secret[0] = target;
-            S_StartSound(ptr::null_mut(), sfx_barexp);
+            S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
             sp_state += 1;
         }
     } else if sp_state == 8 {
         if bcnt & 3 == 0 {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
         }
         cnt_time += 3;
         let target_time = (*plrs.offset(me as isize)).stime / TICRATE;
@@ -1380,13 +1373,13 @@ unsafe fn WI_updateStats() {
         if cnt_par >= target_par {
             cnt_par = target_par;
             if cnt_time >= target_time {
-                S_StartSound(ptr::null_mut(), sfx_barexp);
+                S_StartSound(ptr::null_mut(), Sfx::Barexp as c_int);
                 sp_state += 1;
             }
         }
     } else if sp_state == 10 {
         if acceleratestage != 0 {
-            S_StartSound(ptr::null_mut(), sfx_sgcock);
+            S_StartSound(ptr::null_mut(), Sfx::Sgcock as c_int);
             if gamemode == d_mode::commercial {
                 WI_initNoState();
             } else {
@@ -1467,9 +1460,9 @@ pub unsafe extern "C" fn WI_Ticker() {
 
     if bcnt == 1 {
         if gamemode == d_mode::commercial {
-            S_ChangeMusic(mus_dm2int, 1);
+            S_ChangeMusic(Mus::Dm2int as c_int, 1);
         } else {
-            S_ChangeMusic(mus_inter, 1);
+            S_ChangeMusic(Mus::Inter as c_int, 1);
         }
     }
 

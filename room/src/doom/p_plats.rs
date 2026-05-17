@@ -4,6 +4,7 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
+use crate::doom::sounds::Sfx;
 use std::ffi::c_void;
 use std::os::raw::c_int;
 
@@ -44,11 +45,6 @@ const downWaitUpStay: c_int = 1;
 const raiseAndChange: c_int = 2;
 const raiseToNearestAndChange: c_int = 3;
 const blazeDWUS: c_int = 4;
-
-// sfx enum values
-const sfx_pstart: c_int = 18;
-const sfx_pstop: c_int = 19;
-const sfx_stnmov: c_int = 22;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -106,7 +102,7 @@ pub unsafe extern "C" fn T_PlatRaise(plat: *mut plat_t) {
             {
                 S_StartSound(
                     &(*(*plat).sector).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_stnmov,
+                    Sfx::Stnmov as c_int,
                 );
             }
 
@@ -115,14 +111,14 @@ pub unsafe extern "C" fn T_PlatRaise(plat: *mut plat_t) {
                 (*plat).status = down;
                 S_StartSound(
                     &(*(*plat).sector).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_pstart,
+                    Sfx::Pstart as c_int,
                 );
             } else if res == result_pastdest {
                 (*plat).count = (*plat).wait;
                 (*plat).status = waiting;
                 S_StartSound(
                     &(*(*plat).sector).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_pstop,
+                    Sfx::Pstop as c_int,
                 );
 
                 match (*plat).r#type {
@@ -145,7 +141,7 @@ pub unsafe extern "C" fn T_PlatRaise(plat: *mut plat_t) {
                 (*plat).status = waiting;
                 S_StartSound(
                     &(*(*plat).sector).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_pstop,
+                    Sfx::Pstop as c_int,
                 );
             }
         }
@@ -159,7 +155,7 @@ pub unsafe extern "C" fn T_PlatRaise(plat: *mut plat_t) {
                 }
                 S_StartSound(
                     &(*(*plat).sector).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_pstart,
+                    Sfx::Pstart as c_int,
                 );
             }
         }
@@ -220,7 +216,7 @@ pub unsafe extern "C" fn EV_DoPlat(line: *mut line_t, plattype: c_int, amount: c
                 (*sec).special = 0;
                 S_StartSound(
                     &(*sec).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_stnmov,
+                    Sfx::Stnmov as c_int,
                 );
             }
             x if x == raiseAndChange => {
@@ -232,7 +228,7 @@ pub unsafe extern "C" fn EV_DoPlat(line: *mut line_t, plattype: c_int, amount: c
                 (*plat).status = up;
                 S_StartSound(
                     &(*sec).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_stnmov,
+                    Sfx::Stnmov as c_int,
                 );
             }
             x if x == downWaitUpStay => {
@@ -246,7 +242,7 @@ pub unsafe extern "C" fn EV_DoPlat(line: *mut line_t, plattype: c_int, amount: c
                 (*plat).status = down;
                 S_StartSound(
                     &(*sec).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_pstart,
+                    Sfx::Pstart as c_int,
                 );
             }
             x if x == blazeDWUS => {
@@ -260,7 +256,7 @@ pub unsafe extern "C" fn EV_DoPlat(line: *mut line_t, plattype: c_int, amount: c
                 (*plat).status = down;
                 S_StartSound(
                     &(*sec).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_pstart,
+                    Sfx::Pstart as c_int,
                 );
             }
             x if x == perpetualRaise => {
@@ -277,7 +273,7 @@ pub unsafe extern "C" fn EV_DoPlat(line: *mut line_t, plattype: c_int, amount: c
                 (*plat).status = P_Random() & 1;
                 S_StartSound(
                     &(*sec).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_pstart,
+                    Sfx::Pstart as c_int,
                 );
             }
             _ => {}

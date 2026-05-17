@@ -4,6 +4,7 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
+use crate::doom::sounds::Sfx;
 use std::ffi::{c_char, c_int, c_short, c_uint};
 use std::ptr;
 
@@ -33,27 +34,6 @@ const ev_keydown: c_int = 0;
 const FF_FRAMEMASK: c_int = 0x7fff;
 
 const MAXPLAYERS: usize = 4;
-
-// Music indices (from sounds.c)
-const mus_victor: c_int = 31;
-const mus_read_m: c_int = 65;
-const mus_bunny: c_int = 30;
-const mus_evil: c_int = 63;
-
-// Sfx indices (from sounds.c)
-const sfx_dshtgn: c_int = 4;
-const sfx_pistol: c_int = 1;
-const sfx_shotgn: c_int = 2;
-const sfx_vilatk: c_int = 54;
-const sfx_skeswg: c_int = 56;
-const sfx_skepch: c_int = 53;
-const sfx_skeatk: c_int = 107;
-const sfx_firsht: c_int = 16;
-const sfx_claw: c_int = 55;
-const sfx_sgtatk: c_int = 52;
-const sfx_sklatk: c_int = 51;
-const sfx_plasma: c_int = 8;
-const sfx_rlaunc: c_int = 14;
 
 // ---------------------------------------------------------------------------
 // Finale text strings (from d_englsh.h)
@@ -207,6 +187,7 @@ use crate::doom::v_video::{V_DrawPatch, V_DrawPatchFlipped, V_MarkRect};
 
 // s_sound.rs
 use crate::doom::s_sound::{S_ChangeMusic, S_StartMusic, S_StartSound};
+use crate::doom::sounds::Mus;
 
 // ---------------------------------------------------------------------------
 // Local helpers
@@ -508,9 +489,9 @@ pub extern "C" fn F_StartFinale() {
         automapactive = 0;
 
         if logical_gamemission() == d_mode::doom {
-            S_ChangeMusic(mus_victor, 1);
+            S_ChangeMusic(Mus::Victor as c_int, 1);
         } else {
-            S_ChangeMusic(mus_read_m, 1);
+            S_ChangeMusic(Mus::ReadM as c_int, 1);
         }
 
         finaletext = ptr::null_mut();
@@ -598,7 +579,7 @@ pub extern "C" fn F_Ticker() {
                 FINALE_STAGE = FinaleStage::ArtScreen;
                 wipegamestate = -1;
                 if gameepisode == 3 {
-                    S_StartMusic(mus_bunny);
+                    S_StartMusic(Mus::Bunny as c_int);
                 }
             }
         }
@@ -683,7 +664,7 @@ pub extern "C" fn F_StartCast() {
         castframes = 0;
         castonmelee = 0;
         castattacking = 0;
-        S_ChangeMusic(mus_evil, 1);
+        S_ChangeMusic(Mus::Evil as c_int, 1);
     }
 }
 
@@ -708,8 +689,8 @@ pub extern "C" fn F_CastTicker() {
             }
             let info = &*std::ptr::addr_of!(crate::doom::info::mobjinfo[0])
                 .add(CASTORDER[castnum as usize].type_ as usize);
-            if info.seesound != 0 {
-                S_StartSound(ptr::null_mut(), info.seesound);
+            if info.seesound != Sfx::None {
+                S_StartSound(ptr::null_mut(), info.seesound as c_int);
             }
             let st = info.seestate;
             caststate = &mut crate::doom::info::states[st as usize];
@@ -726,23 +707,23 @@ pub extern "C" fn F_CastTicker() {
             castframes += 1;
 
             let sfx = match st {
-                S_PLAY_ATK1 => sfx_dshtgn,
-                S_POSS_ATK2 => sfx_pistol,
-                S_SPOS_ATK2 => sfx_shotgn,
-                S_VILE_ATK2 => sfx_vilatk,
-                S_SKEL_FIST2 => sfx_skeswg,
-                S_SKEL_FIST4 => sfx_skepch,
-                S_SKEL_MISS2 => sfx_skeatk,
-                S_FATT_ATK8 | S_FATT_ATK5 | S_FATT_ATK2 => sfx_firsht,
-                S_CPOS_ATK2 | S_CPOS_ATK3 | S_CPOS_ATK4 => sfx_shotgn,
-                S_TROO_ATK3 => sfx_claw,
-                S_SARG_ATK2 => sfx_sgtatk,
-                S_BOSS_ATK2 | S_BOS2_ATK2 | S_HEAD_ATK2 => sfx_firsht,
-                S_SKULL_ATK2 => sfx_sklatk,
-                S_SPID_ATK2 | S_SPID_ATK3 => sfx_shotgn,
-                S_BSPI_ATK2 => sfx_plasma,
-                S_CYBER_ATK2 | S_CYBER_ATK4 | S_CYBER_ATK6 => sfx_rlaunc,
-                S_PAIN_ATK3 => sfx_sklatk,
+                S_PLAY_ATK1 => Sfx::Dshtgn as c_int,
+                S_POSS_ATK2 => Sfx::Pistol as c_int,
+                S_SPOS_ATK2 => Sfx::Shotgn as c_int,
+                S_VILE_ATK2 => Sfx::Vilatk as c_int,
+                S_SKEL_FIST2 => Sfx::Skeswg as c_int,
+                S_SKEL_FIST4 => Sfx::Skepch as c_int,
+                S_SKEL_MISS2 => Sfx::Skeatk as c_int,
+                S_FATT_ATK8 | S_FATT_ATK5 | S_FATT_ATK2 => Sfx::Firsht as c_int,
+                S_CPOS_ATK2 | S_CPOS_ATK3 | S_CPOS_ATK4 => Sfx::Shotgn as c_int,
+                S_TROO_ATK3 => Sfx::Claw as c_int,
+                S_SARG_ATK2 => Sfx::Sgtatk as c_int,
+                S_BOSS_ATK2 | S_BOS2_ATK2 | S_HEAD_ATK2 => Sfx::Firsht as c_int,
+                S_SKULL_ATK2 => Sfx::Sklatk as c_int,
+                S_SPID_ATK2 | S_SPID_ATK3 => Sfx::Shotgn as c_int,
+                S_BSPI_ATK2 => Sfx::Plasma as c_int,
+                S_CYBER_ATK2 | S_CYBER_ATK4 | S_CYBER_ATK6 => Sfx::Rlaunc as c_int,
+                S_PAIN_ATK3 => Sfx::Sklatk as c_int,
                 _ => 0,
             };
 
@@ -827,8 +808,8 @@ pub extern "C" fn F_CastResponder(ev: *mut event_t) -> c_int {
         casttics = (*caststate).tics;
         castframes = 0;
         castattacking = 0;
-        if info.deathsound != 0 {
-            S_StartSound(ptr::null_mut(), info.deathsound);
+        if info.deathsound != Sfx::None {
+            S_StartSound(ptr::null_mut(), info.deathsound as c_int);
         }
         1
     }
@@ -973,7 +954,7 @@ pub extern "C" fn F_BunnyScroll() {
             stage = 6;
         }
         if stage > LAST_STAGE {
-            S_StartSound(ptr::null_mut(), sfx_pistol);
+            S_StartSound(ptr::null_mut(), Sfx::Pistol as c_int);
             LAST_STAGE = stage;
         }
 

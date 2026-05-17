@@ -4,6 +4,7 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
+use crate::doom::sounds::Sfx;
 use std::ffi::c_void;
 use std::os::raw::c_int;
 
@@ -32,10 +33,6 @@ const lowerAndCrush: c_int = 2;
 const crushAndRaise: c_int = 3;
 const fastCrushAndRaise: c_int = 4;
 const silentCrushAndRaise: c_int = 5;
-
-// sfx enum values
-const sfx_pstop: c_int = 19;
-const sfx_stnmov: c_int = 22;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -94,7 +91,7 @@ pub unsafe extern "C" fn T_MoveCeiling(ceiling: *mut ceiling_t) {
             _ => {
                 S_StartSound(
                     &(*(*ceiling).sector).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_stnmov,
+                    Sfx::Stnmov as c_int,
                 );
             }
         }
@@ -108,7 +105,7 @@ pub unsafe extern "C" fn T_MoveCeiling(ceiling: *mut ceiling_t) {
             x if x == silentCrushAndRaise => {
                 S_StartSound(
                     &(*(*ceiling).sector).soundorg as *const [u8; 40] as *mut c_void,
-                    sfx_pstop,
+                    Sfx::Pstop as c_int,
                 );
             }
             x if x == fastCrushAndRaise || x == crushAndRaise => {

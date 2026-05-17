@@ -4,6 +4,7 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
+use crate::doom::sounds::Sfx;
 use std::ffi::c_void;
 use std::os::raw::c_int;
 
@@ -59,17 +60,6 @@ const MISSILERANGE: c_int = 32 * 64 * FRACUNIT;
 
 // Dehacked default
 const DEH_DEFAULT_BFG_CELLS_PER_SHOT: c_int = 40;
-
-// Sound effect constants
-const sfx_sawup: c_int = 10;
-const sfx_sawidl: c_int = 11;
-const sfx_sawful: c_int = 12;
-const sfx_sawhit: c_int = 13;
-const sfx_pistol: c_int = 1;
-const sfx_shotgn: c_int = 2;
-const sfx_dshtgn: c_int = 4;
-const sfx_bfg: c_int = 9;
-const sfx_punch: c_int = 83;
 
 use crate::doom::p_enemy::P_NoiseAlert;
 use crate::doom::p_inter::P_DamageMobj;
@@ -152,7 +142,7 @@ pub unsafe extern "C" fn P_BringUpWeapon(player: *mut PlayerT) {
     }
 
     if (*player).pendingweapon == wp_chainsaw {
-        S_StartSound((*player).mo as *mut c_void, sfx_sawup);
+        S_StartSound((*player).mo as *mut c_void, Sfx::Sawup as c_int);
     }
 
     let newstate = weaponinfo[(*player).pendingweapon as usize].upstate;
@@ -271,7 +261,7 @@ pub unsafe extern "C" fn A_WeaponReady(player: *mut PlayerT, psp: *mut PspdefT) 
     if (*player).readyweapon == wp_chainsaw
         && std::ptr::eq((*psp).state as *mut State, &info::states[S_SAW as usize])
     {
-        S_StartSound(mo as *mut c_void, sfx_sawidl);
+        S_StartSound(mo as *mut c_void, Sfx::Sawidl as c_int);
     }
 
     // Check for change: if player is dead, put the weapon away.
@@ -399,7 +389,7 @@ pub unsafe extern "C" fn A_Punch(player: *mut PlayerT, _psp: *mut PspdefT) {
 
     // Turn to face target.
     if !linetarget.is_null() {
-        S_StartSound(mo as *mut c_void, sfx_punch);
+        S_StartSound(mo as *mut c_void, Sfx::Punch as c_int);
         (*mo).angle = R_PointToAngle2((*mo).x, (*mo).y, (*linetarget).x, (*linetarget).y);
     }
 }
@@ -423,10 +413,10 @@ pub unsafe extern "C" fn A_Saw(player: *mut PlayerT, _psp: *mut PspdefT) {
     );
 
     if linetarget.is_null() {
-        S_StartSound(mo as *mut c_void, sfx_sawful);
+        S_StartSound(mo as *mut c_void, Sfx::Sawful as c_int);
         return;
     }
-    S_StartSound(mo as *mut c_void, sfx_sawhit);
+    S_StartSound(mo as *mut c_void, Sfx::Sawhit as c_int);
 
     // Turn to face target.
     let angle = R_PointToAngle2((*mo).x, (*mo).y, (*linetarget).x, (*linetarget).y);
@@ -531,7 +521,7 @@ pub unsafe extern "C" fn P_GunShot(mo: *mut mobj_t, accurate: c_int) {
 #[no_mangle]
 pub unsafe extern "C" fn A_FirePistol(player: *mut PlayerT, _psp: *mut PspdefT) {
     let mo = (*player).mo as *mut mobj_t;
-    S_StartSound(mo as *mut c_void, sfx_pistol);
+    S_StartSound(mo as *mut c_void, Sfx::Pistol as c_int);
 
     P_SetMobjState(mo, S_PLAY_ATK2);
     DecreaseAmmo(player, weaponinfo[(*player).readyweapon as usize].ammo, 1);
@@ -550,7 +540,7 @@ pub unsafe extern "C" fn A_FirePistol(player: *mut PlayerT, _psp: *mut PspdefT) 
 #[no_mangle]
 pub unsafe extern "C" fn A_FireShotgun(player: *mut PlayerT, _psp: *mut PspdefT) {
     let mo = (*player).mo as *mut mobj_t;
-    S_StartSound(mo as *mut c_void, sfx_shotgn);
+    S_StartSound(mo as *mut c_void, Sfx::Shotgn as c_int);
     P_SetMobjState(mo, S_PLAY_ATK2);
 
     DecreaseAmmo(player, weaponinfo[(*player).readyweapon as usize].ammo, 1);
@@ -572,7 +562,7 @@ pub unsafe extern "C" fn A_FireShotgun(player: *mut PlayerT, _psp: *mut PspdefT)
 #[no_mangle]
 pub unsafe extern "C" fn A_FireShotgun2(player: *mut PlayerT, _psp: *mut PspdefT) {
     let mo = (*player).mo as *mut mobj_t;
-    S_StartSound(mo as *mut c_void, sfx_dshtgn);
+    S_StartSound(mo as *mut c_void, Sfx::Dshtgn as c_int);
     P_SetMobjState(mo, S_PLAY_ATK2);
 
     DecreaseAmmo(player, weaponinfo[(*player).readyweapon as usize].ammo, 2);
@@ -603,7 +593,7 @@ pub unsafe extern "C" fn A_FireShotgun2(player: *mut PlayerT, _psp: *mut PspdefT
 #[no_mangle]
 pub unsafe extern "C" fn A_FireCGun(player: *mut PlayerT, psp: *mut PspdefT) {
     let mo = (*player).mo as *mut mobj_t;
-    S_StartSound(mo as *mut c_void, sfx_pistol);
+    S_StartSound(mo as *mut c_void, Sfx::Pistol as c_int);
 
     if (*player).ammo[weaponinfo[(*player).readyweapon as usize].ammo as usize] == 0 {
         return;
@@ -681,7 +671,7 @@ pub unsafe extern "C" fn A_BFGSpray(mo: *mut mobj_t) {
 /// Play BFG firing sound.
 #[no_mangle]
 pub unsafe extern "C" fn A_BFGsound(player: *mut PlayerT, _psp: *mut PspdefT) {
-    S_StartSound((*player).mo as *mut c_void, sfx_bfg);
+    S_StartSound((*player).mo as *mut c_void, Sfx::Bfg as c_int);
 }
 
 /// Called at start of level for each player.

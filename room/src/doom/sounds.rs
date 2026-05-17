@@ -17,6 +17,7 @@ pub struct SfxInfo {
 }
 
 #[repr(C)]
+#[derive(Default)]
 pub struct MusicInfo {
     pub name: *mut c_char,
     pub lumpnum: c_int,
@@ -24,18 +25,444 @@ pub struct MusicInfo {
     pub handle: *mut c_void,
 }
 
-pub const NUMSFX: usize = 109;
-pub const NUMMUSIC: usize = 68;
+// sfxenum_t in sounds.h ends with NUMSFX = 109
+pub const NUMSFX: usize = Sfx::Radio as usize + 1;
+// musicenum_t in sounds.h ends with NUMMUSIC = 68
+pub const NUMMUSIC: usize = Mus::Dm2int as usize + 1;
 
-pub const sfx_pistol: c_int = 1;
-pub const sfx_chgun: c_int = 86;
+const _: () = assert!(
+    std::mem::size_of::<Sfx>() == std::mem::size_of::<std::ffi::c_int>(),
+    "Sfx must be the same size as c_int"
+);
+const _: () = assert!(
+    std::mem::size_of::<Mus>() == std::mem::size_of::<std::ffi::c_int>(),
+    "Mus must be the same size as c_int"
+);
+
+/// Sound effect IDs, matching the `sfxenum_t` C enum in `sounds.h`.
+#[doc(alias = "sfxenum_t")]
+#[repr(C)]
+#[derive(Default, PartialEq, Clone, Copy)]
+pub enum Sfx {
+    #[default]
+    #[doc(alias = "sfx_None")]
+    None = 0,
+    #[doc(alias = "sfx_pistol")]
+    Pistol = 1,
+    #[doc(alias = "sfx_shotgn")]
+    Shotgn = 2,
+    #[doc(alias = "sfx_sgcock")]
+    Sgcock = 3,
+    #[doc(alias = "sfx_dshtgn")]
+    Dshtgn = 4,
+    #[doc(alias = "sfx_dbopn")]
+    Dbopn = 5,
+    #[doc(alias = "sfx_dbcls")]
+    Dbcls = 6,
+    #[doc(alias = "sfx_dbload")]
+    Dbload = 7,
+    #[doc(alias = "sfx_plasma")]
+    Plasma = 8,
+    #[doc(alias = "sfx_bfg")]
+    Bfg = 9,
+    #[doc(alias = "sfx_sawup")]
+    Sawup = 10,
+    #[doc(alias = "sfx_sawidl")]
+    Sawidl = 11,
+    #[doc(alias = "sfx_sawful")]
+    Sawful = 12,
+    #[doc(alias = "sfx_sawhit")]
+    Sawhit = 13,
+    #[doc(alias = "sfx_rlaunc")]
+    Rlaunc = 14,
+    #[doc(alias = "sfx_rxplod")]
+    Rxplod = 15,
+    #[doc(alias = "sfx_firsht")]
+    Firsht = 16,
+    #[doc(alias = "sfx_firxpl")]
+    Firxpl = 17,
+    #[doc(alias = "sfx_pstart")]
+    Pstart = 18,
+    #[doc(alias = "sfx_pstop")]
+    Pstop = 19,
+    #[doc(alias = "sfx_doropn")]
+    Doropn = 20,
+    #[doc(alias = "sfx_dorcls")]
+    Dorcls = 21,
+    #[doc(alias = "sfx_stnmov")]
+    Stnmov = 22,
+    #[doc(alias = "sfx_swtchn")]
+    Swtchn = 23,
+    #[doc(alias = "sfx_swtchx")]
+    Swtchx = 24,
+    #[doc(alias = "sfx_plpain")]
+    Plpain = 25,
+    #[doc(alias = "sfx_dmpain")]
+    Dmpain = 26,
+    #[doc(alias = "sfx_popain")]
+    Popain = 27,
+    #[doc(alias = "sfx_vipain")]
+    Vipain = 28,
+    #[doc(alias = "sfx_mnpain")]
+    Mnpain = 29,
+    #[doc(alias = "sfx_pepain")]
+    Pepain = 30,
+    #[doc(alias = "sfx_slop")]
+    Slop = 31,
+    #[doc(alias = "sfx_itemup")]
+    Itemup = 32,
+    #[doc(alias = "sfx_wpnup")]
+    Wpnup = 33,
+    #[doc(alias = "sfx_oof")]
+    Oof = 34,
+    #[doc(alias = "sfx_telept")]
+    Telept = 35,
+    #[doc(alias = "sfx_posit1")]
+    Posit1 = 36,
+    #[doc(alias = "sfx_posit2")]
+    Posit2 = 37,
+    #[doc(alias = "sfx_posit3")]
+    Posit3 = 38,
+    #[doc(alias = "sfx_bgsit1")]
+    Bgsit1 = 39,
+    #[doc(alias = "sfx_bgsit2")]
+    Bgsit2 = 40,
+    #[doc(alias = "sfx_sgtsit")]
+    Sgtsit = 41,
+    #[doc(alias = "sfx_cacsit")]
+    Cacsit = 42,
+    #[doc(alias = "sfx_brssit")]
+    Brssit = 43,
+    #[doc(alias = "sfx_cybsit")]
+    Cybsit = 44,
+    #[doc(alias = "sfx_spisit")]
+    Spisit = 45,
+    #[doc(alias = "sfx_bspsit")]
+    Bspsit = 46,
+    #[doc(alias = "sfx_kntsit")]
+    Kntsit = 47,
+    #[doc(alias = "sfx_vilsit")]
+    Vilsit = 48,
+    #[doc(alias = "sfx_mansit")]
+    Mansit = 49,
+    #[doc(alias = "sfx_pesit")]
+    Pesit = 50,
+    #[doc(alias = "sfx_sklatk")]
+    Sklatk = 51,
+    #[doc(alias = "sfx_sgtatk")]
+    Sgtatk = 52,
+    #[doc(alias = "sfx_skepch")]
+    Skepch = 53,
+    #[doc(alias = "sfx_vilatk")]
+    Vilatk = 54,
+    #[doc(alias = "sfx_claw")]
+    Claw = 55,
+    #[doc(alias = "sfx_skeswg")]
+    Skeswg = 56,
+    #[doc(alias = "sfx_pldeth")]
+    Pldeth = 57,
+    #[doc(alias = "sfx_pdiehi")]
+    Pdiehi = 58,
+    #[doc(alias = "sfx_podth1")]
+    Podth1 = 59,
+    #[doc(alias = "sfx_podth2")]
+    Podth2 = 60,
+    #[doc(alias = "sfx_podth3")]
+    Podth3 = 61,
+    #[doc(alias = "sfx_bgdth1")]
+    Bgdth1 = 62,
+    #[doc(alias = "sfx_bgdth2")]
+    Bgdth2 = 63,
+    #[doc(alias = "sfx_sgtdth")]
+    Sgtdth = 64,
+    #[doc(alias = "sfx_cacdth")]
+    Cacdth = 65,
+    #[doc(alias = "sfx_skldth")]
+    Skldth = 66,
+    #[doc(alias = "sfx_brsdth")]
+    Brsdth = 67,
+    #[doc(alias = "sfx_cybdth")]
+    Cybdth = 68,
+    #[doc(alias = "sfx_spidth")]
+    Spidth = 69,
+    #[doc(alias = "sfx_bspdth")]
+    Bspdth = 70,
+    #[doc(alias = "sfx_vildth")]
+    Vildth = 71,
+    #[doc(alias = "sfx_kntdth")]
+    Kntdth = 72,
+    #[doc(alias = "sfx_pedth")]
+    Pedth = 73,
+    #[doc(alias = "sfx_skedth")]
+    Skedth = 74,
+    #[doc(alias = "sfx_posact")]
+    Posact = 75,
+    #[doc(alias = "sfx_bgact")]
+    Bgact = 76,
+    #[doc(alias = "sfx_dmact")]
+    Dmact = 77,
+    #[doc(alias = "sfx_bspact")]
+    Bspact = 78,
+    #[doc(alias = "sfx_bspwlk")]
+    Bspwlk = 79,
+    #[doc(alias = "sfx_vilact")]
+    Vilact = 80,
+    #[doc(alias = "sfx_noway")]
+    Noway = 81,
+    #[doc(alias = "sfx_barexp")]
+    Barexp = 82,
+    #[doc(alias = "sfx_punch")]
+    Punch = 83,
+    #[doc(alias = "sfx_hoof")]
+    Hoof = 84,
+    #[doc(alias = "sfx_metal")]
+    Metal = 85,
+    #[doc(alias = "sfx_chgun")]
+    Chgun = 86,
+    #[doc(alias = "sfx_tink")]
+    Tink = 87,
+    #[doc(alias = "sfx_bdopn")]
+    Bdopn = 88,
+    #[doc(alias = "sfx_bdcls")]
+    Bdcls = 89,
+    #[doc(alias = "sfx_itmbk")]
+    Itmbk = 90,
+    #[doc(alias = "sfx_flame")]
+    Flame = 91,
+    #[doc(alias = "sfx_flamst")]
+    Flamst = 92,
+    #[doc(alias = "sfx_getpow")]
+    Getpow = 93,
+    #[doc(alias = "sfx_bospit")]
+    Bospit = 94,
+    #[doc(alias = "sfx_boscub")]
+    Boscub = 95,
+    #[doc(alias = "sfx_bossit")]
+    Bossit = 96,
+    #[doc(alias = "sfx_bospn")]
+    Bospn = 97,
+    #[doc(alias = "sfx_bosdth")]
+    Bosdth = 98,
+    #[doc(alias = "sfx_manatk")]
+    Manatk = 99,
+    #[doc(alias = "sfx_mandth")]
+    Mandth = 100,
+    #[doc(alias = "sfx_sssit")]
+    Sssit = 101,
+    #[doc(alias = "sfx_ssdth")]
+    Ssdth = 102,
+    #[doc(alias = "sfx_keenpn")]
+    Keenpn = 103,
+    #[doc(alias = "sfx_keendt")]
+    Keendt = 104,
+    #[doc(alias = "sfx_skeact")]
+    Skeact = 105,
+    #[doc(alias = "sfx_skesit")]
+    Skesit = 106,
+    #[doc(alias = "sfx_skeatk")]
+    Skeatk = 107,
+    #[doc(alias = "sfx_radio")]
+    Radio = 108,
+}
+
+/// Music track IDs, matching the `musicenum_t` C enum in `sounds.h`.
+#[doc(alias = "musicenum_t")]
+#[repr(C)]
+#[derive(Default, PartialEq, Clone, Copy)]
+pub enum Mus {
+    #[default]
+    #[doc(alias = "mus_None")]
+    None = 0,
+    #[doc(alias = "mus_e1m1")]
+    E1m1 = 1,
+    #[doc(alias = "mus_e1m2")]
+    E1m2 = 2,
+    #[doc(alias = "mus_e1m3")]
+    E1m3 = 3,
+    #[doc(alias = "mus_e1m4")]
+    E1m4 = 4,
+    #[doc(alias = "mus_e1m5")]
+    E1m5 = 5,
+    #[doc(alias = "mus_e1m6")]
+    E1m6 = 6,
+    #[doc(alias = "mus_e1m7")]
+    E1m7 = 7,
+    #[doc(alias = "mus_e1m8")]
+    E1m8 = 8,
+    #[doc(alias = "mus_e1m9")]
+    E1m9 = 9,
+    #[doc(alias = "mus_e2m1")]
+    E2m1 = 10,
+    #[doc(alias = "mus_e2m2")]
+    E2m2 = 11,
+    #[doc(alias = "mus_e2m3")]
+    E2m3 = 12,
+    #[doc(alias = "mus_e2m4")]
+    E2m4 = 13,
+    #[doc(alias = "mus_e2m5")]
+    E2m5 = 14,
+    #[doc(alias = "mus_e2m6")]
+    E2m6 = 15,
+    #[doc(alias = "mus_e2m7")]
+    E2m7 = 16,
+    #[doc(alias = "mus_e2m8")]
+    E2m8 = 17,
+    #[doc(alias = "mus_e2m9")]
+    E2m9 = 18,
+    #[doc(alias = "mus_e3m1")]
+    E3m1 = 19,
+    #[doc(alias = "mus_e3m2")]
+    E3m2 = 20,
+    #[doc(alias = "mus_e3m3")]
+    E3m3 = 21,
+    #[doc(alias = "mus_e3m4")]
+    E3m4 = 22,
+    #[doc(alias = "mus_e3m5")]
+    E3m5 = 23,
+    #[doc(alias = "mus_e3m6")]
+    E3m6 = 24,
+    #[doc(alias = "mus_e3m7")]
+    E3m7 = 25,
+    #[doc(alias = "mus_e3m8")]
+    E3m8 = 26,
+    #[doc(alias = "mus_e3m9")]
+    E3m9 = 27,
+    #[doc(alias = "mus_inter")]
+    Inter = 28,
+    #[doc(alias = "mus_intro")]
+    Intro = 29,
+    #[doc(alias = "mus_bunny")]
+    Bunny = 30,
+    #[doc(alias = "mus_victor")]
+    Victor = 31,
+    #[doc(alias = "mus_introa")]
+    Introa = 32,
+    #[doc(alias = "mus_runnin")]
+    Runnin = 33,
+    #[doc(alias = "mus_stalks")]
+    Stalks = 34,
+    #[doc(alias = "mus_countd")]
+    Countd = 35,
+    #[doc(alias = "mus_betwee")]
+    Betwee = 36,
+    #[doc(alias = "mus_doom")]
+    Doom = 37,
+    #[doc(alias = "mus_the_da")]
+    TheDa = 38,
+    #[doc(alias = "mus_shawn")]
+    Shawn = 39,
+    #[doc(alias = "mus_ddtblu")]
+    Ddtblu = 40,
+    #[doc(alias = "mus_in_cit")]
+    InCit = 41,
+    #[doc(alias = "mus_dead")]
+    Dead = 42,
+    #[doc(alias = "mus_stlks2")]
+    Stlks2 = 43,
+    #[doc(alias = "mus_theda2")]
+    Theda2 = 44,
+    #[doc(alias = "mus_doom2")]
+    Doom2 = 45,
+    #[doc(alias = "mus_ddtbl2")]
+    Ddtbl2 = 46,
+    #[doc(alias = "mus_runni2")]
+    Runni2 = 47,
+    #[doc(alias = "mus_dead2")]
+    Dead2 = 48,
+    #[doc(alias = "mus_stlks3")]
+    Stlks3 = 49,
+    #[doc(alias = "mus_romero")]
+    Romero = 50,
+    #[doc(alias = "mus_shawn2")]
+    Shawn2 = 51,
+    #[doc(alias = "mus_messag")]
+    Messag = 52,
+    #[doc(alias = "mus_count2")]
+    Count2 = 53,
+    #[doc(alias = "mus_ddtbl3")]
+    Ddtbl3 = 54,
+    #[doc(alias = "mus_ampie")]
+    Ampie = 55,
+    #[doc(alias = "mus_theda3")]
+    Theda3 = 56,
+    #[doc(alias = "mus_adrian")]
+    Adrian = 57,
+    #[doc(alias = "mus_messg2")]
+    Messg2 = 58,
+    #[doc(alias = "mus_romer2")]
+    Romer2 = 59,
+    #[doc(alias = "mus_tense")]
+    Tense = 60,
+    #[doc(alias = "mus_shawn3")]
+    Shawn3 = 61,
+    #[doc(alias = "mus_openin")]
+    Openin = 62,
+    #[doc(alias = "mus_evil")]
+    Evil = 63,
+    #[doc(alias = "mus_ultima")]
+    Ultima = 64,
+    #[doc(alias = "mus_read_m")]
+    ReadM = 65,
+    #[doc(alias = "mus_dm2ttl")]
+    Dm2ttl = 66,
+    #[doc(alias = "mus_dm2int")]
+    Dm2int = 67,
+}
 
 unsafe impl Sync for SfxInfo {}
 unsafe impl Sync for MusicInfo {}
 
-const fn name(s: &str) -> [c_char; 9] {
+impl SfxInfo {
+    const fn new(name: [c_char; 9], priority: c_int) -> Self {
+        SfxInfo {
+            tagname: std::ptr::null_mut(),
+            name,
+            priority,
+            link: std::ptr::null_mut(),
+            pitch: -1,
+            volume: -1,
+            usefulness: 0,
+            lumpnum: 0,
+            numchannels: -1,
+            driver_data: std::ptr::null_mut(),
+        }
+    }
+
+    const fn with_pitch(mut self, pitch: c_int) -> Self {
+        self.pitch = pitch;
+        self
+    }
+
+    const fn with_volume(mut self, volume: c_int) -> Self {
+        self.volume = volume;
+        self
+    }
+}
+
+impl MusicInfo {
+    const fn none() -> Self {
+        MusicInfo {
+            name: std::ptr::null_mut(),
+            lumpnum: 0,
+            data: std::ptr::null_mut(),
+            handle: std::ptr::null_mut(),
+        }
+    }
+
+    const fn new<const N: usize>(name: &'static [c_char; N]) -> Self {
+        MusicInfo {
+            name: name.as_ptr() as *mut c_char,
+            lumpnum: 0,
+            data: std::ptr::null_mut(),
+            handle: std::ptr::null_mut(),
+        }
+    }
+}
+
+const fn name<const N: usize>(s: &str) -> [c_char; N] {
     let b = s.as_bytes();
-    let mut a = [0i8; 9];
+    assert!(b.len() < N, "String is too long for the array");
+    let mut a = [0i8; N];
     let mut i = 0;
     while i < b.len() {
         a[i] = b[i] as c_char;
@@ -154,2073 +581,279 @@ const N_skesit: [c_char; 9] = name("skesit");
 const N_skeatk: [c_char; 9] = name("skeatk");
 const N_radio: [c_char; 9] = name("radio");
 
-const fn mp(s: &str) -> *mut c_char {
-    s.as_ptr() as *mut c_char
-}
-
-static MUS_e1m1: [c_char; 5] = [b'e' as _, b'1' as _, b'm' as _, b'1' as _, 0];
-static MUS_e1m2: [c_char; 5] = [b'e' as _, b'1' as _, b'm' as _, b'2' as _, 0];
-static MUS_e1m3: [c_char; 5] = [b'e' as _, b'1' as _, b'm' as _, b'3' as _, 0];
-static MUS_e1m4: [c_char; 5] = [b'e' as _, b'1' as _, b'm' as _, b'4' as _, 0];
-static MUS_e1m5: [c_char; 5] = [b'e' as _, b'1' as _, b'm' as _, b'5' as _, 0];
-static MUS_e1m6: [c_char; 5] = [b'e' as _, b'1' as _, b'm' as _, b'6' as _, 0];
-static MUS_e1m7: [c_char; 5] = [b'e' as _, b'1' as _, b'm' as _, b'7' as _, 0];
-static MUS_e1m8: [c_char; 5] = [b'e' as _, b'1' as _, b'm' as _, b'8' as _, 0];
-static MUS_e1m9: [c_char; 5] = [b'e' as _, b'1' as _, b'm' as _, b'9' as _, 0];
-static MUS_e2m1: [c_char; 5] = [b'e' as _, b'2' as _, b'm' as _, b'1' as _, 0];
-static MUS_e2m2: [c_char; 5] = [b'e' as _, b'2' as _, b'm' as _, b'2' as _, 0];
-static MUS_e2m3: [c_char; 5] = [b'e' as _, b'2' as _, b'm' as _, b'3' as _, 0];
-static MUS_e2m4: [c_char; 5] = [b'e' as _, b'2' as _, b'm' as _, b'4' as _, 0];
-static MUS_e2m5: [c_char; 5] = [b'e' as _, b'2' as _, b'm' as _, b'5' as _, 0];
-static MUS_e2m6: [c_char; 5] = [b'e' as _, b'2' as _, b'm' as _, b'6' as _, 0];
-static MUS_e2m7: [c_char; 5] = [b'e' as _, b'2' as _, b'm' as _, b'7' as _, 0];
-static MUS_e2m8: [c_char; 5] = [b'e' as _, b'2' as _, b'm' as _, b'8' as _, 0];
-static MUS_e2m9: [c_char; 5] = [b'e' as _, b'2' as _, b'm' as _, b'9' as _, 0];
-static MUS_e3m1: [c_char; 5] = [b'e' as _, b'3' as _, b'm' as _, b'1' as _, 0];
-static MUS_e3m2: [c_char; 5] = [b'e' as _, b'3' as _, b'm' as _, b'2' as _, 0];
-static MUS_e3m3: [c_char; 5] = [b'e' as _, b'3' as _, b'm' as _, b'3' as _, 0];
-static MUS_e3m4: [c_char; 5] = [b'e' as _, b'3' as _, b'm' as _, b'4' as _, 0];
-static MUS_e3m5: [c_char; 5] = [b'e' as _, b'3' as _, b'm' as _, b'5' as _, 0];
-static MUS_e3m6: [c_char; 5] = [b'e' as _, b'3' as _, b'm' as _, b'6' as _, 0];
-static MUS_e3m7: [c_char; 5] = [b'e' as _, b'3' as _, b'm' as _, b'7' as _, 0];
-static MUS_e3m8: [c_char; 5] = [b'e' as _, b'3' as _, b'm' as _, b'8' as _, 0];
-static MUS_e3m9: [c_char; 5] = [b'e' as _, b'3' as _, b'm' as _, b'9' as _, 0];
-static MUS_inter: [c_char; 6] = [b'i' as _, b'n' as _, b't' as _, b'e' as _, b'r' as _, 0];
-static MUS_intro: [c_char; 6] = [b'i' as _, b'n' as _, b't' as _, b'r' as _, b'o' as _, 0];
-static MUS_bunny: [c_char; 6] = [b'b' as _, b'u' as _, b'n' as _, b'n' as _, b'y' as _, 0];
-static MUS_victor: [c_char; 7] = [
-    b'v' as _, b'i' as _, b'c' as _, b't' as _, b'o' as _, b'r' as _, 0,
-];
-static MUS_introa: [c_char; 7] = [
-    b'i' as _, b'n' as _, b't' as _, b'r' as _, b'o' as _, b'a' as _, 0,
-];
-static MUS_runnin: [c_char; 7] = [
-    b'r' as _, b'u' as _, b'n' as _, b'n' as _, b'i' as _, b'n' as _, 0,
-];
-static MUS_stalks: [c_char; 7] = [
-    b's' as _, b't' as _, b'a' as _, b'l' as _, b'k' as _, b's' as _, 0,
-];
-static MUS_countd: [c_char; 7] = [
-    b'c' as _, b'o' as _, b'u' as _, b'n' as _, b't' as _, b'd' as _, 0,
-];
-static MUS_betwee: [c_char; 7] = [
-    b'b' as _, b'e' as _, b't' as _, b'w' as _, b'e' as _, b'e' as _, 0,
-];
-static MUS_doom: [c_char; 5] = [b'd' as _, b'o' as _, b'o' as _, b'm' as _, 0];
-static MUS_the_da: [c_char; 7] = [
-    b't' as _, b'h' as _, b'e' as _, b'_' as _, b'd' as _, b'a' as _, 0,
-];
-static MUS_shawn: [c_char; 6] = [b's' as _, b'h' as _, b'a' as _, b'w' as _, b'n' as _, 0];
-static MUS_ddtblu: [c_char; 7] = [
-    b'd' as _, b'd' as _, b't' as _, b'b' as _, b'l' as _, b'u' as _, 0,
-];
-static MUS_in_cit: [c_char; 7] = [
-    b'i' as _, b'n' as _, b'_' as _, b'c' as _, b'i' as _, b't' as _, 0,
-];
-static MUS_dead: [c_char; 5] = [b'd' as _, b'e' as _, b'a' as _, b'd' as _, 0];
-static MUS_stlks2: [c_char; 7] = [
-    b's' as _, b't' as _, b'l' as _, b'k' as _, b's' as _, b'2' as _, 0,
-];
-static MUS_theda2: [c_char; 7] = [
-    b't' as _, b'h' as _, b'e' as _, b'd' as _, b'a' as _, b'2' as _, 0,
-];
-static MUS_doom2: [c_char; 6] = [b'd' as _, b'o' as _, b'o' as _, b'm' as _, b'2' as _, 0];
-static MUS_ddtbl2: [c_char; 7] = [
-    b'd' as _, b'd' as _, b't' as _, b'b' as _, b'l' as _, b'2' as _, 0,
-];
-static MUS_runni2: [c_char; 7] = [
-    b'r' as _, b'u' as _, b'n' as _, b'n' as _, b'i' as _, b'2' as _, 0,
-];
-static MUS_dead2: [c_char; 6] = [b'd' as _, b'e' as _, b'a' as _, b'd' as _, b'2' as _, 0];
-static MUS_stlks3: [c_char; 7] = [
-    b's' as _, b't' as _, b'l' as _, b'k' as _, b's' as _, b'3' as _, 0,
-];
-static MUS_romero: [c_char; 7] = [
-    b'r' as _, b'o' as _, b'm' as _, b'e' as _, b'r' as _, b'o' as _, 0,
-];
-static MUS_shawn2: [c_char; 7] = [
-    b's' as _, b'h' as _, b'a' as _, b'w' as _, b'n' as _, b'2' as _, 0,
-];
-static MUS_messag: [c_char; 7] = [
-    b'm' as _, b'e' as _, b's' as _, b's' as _, b'a' as _, b'g' as _, 0,
-];
-static MUS_count2: [c_char; 7] = [
-    b'c' as _, b'o' as _, b'u' as _, b'n' as _, b't' as _, b'2' as _, 0,
-];
-static MUS_ddtbl3: [c_char; 7] = [
-    b'd' as _, b'd' as _, b't' as _, b'b' as _, b'l' as _, b'3' as _, 0,
-];
-static MUS_ampie: [c_char; 6] = [b'a' as _, b'm' as _, b'p' as _, b'i' as _, b'e' as _, 0];
-static MUS_theda3: [c_char; 7] = [
-    b't' as _, b'h' as _, b'e' as _, b'd' as _, b'a' as _, b'3' as _, 0,
-];
-static MUS_adrian: [c_char; 7] = [
-    b'a' as _, b'd' as _, b'r' as _, b'i' as _, b'a' as _, b'n' as _, 0,
-];
-static MUS_messg2: [c_char; 7] = [
-    b'm' as _, b'e' as _, b's' as _, b's' as _, b'g' as _, b'2' as _, 0,
-];
-static MUS_romer2: [c_char; 7] = [
-    b'r' as _, b'o' as _, b'm' as _, b'e' as _, b'r' as _, b'2' as _, 0,
-];
-static MUS_tense: [c_char; 6] = [b't' as _, b'e' as _, b'n' as _, b's' as _, b'e' as _, 0];
-static MUS_shawn3: [c_char; 7] = [
-    b's' as _, b'h' as _, b'a' as _, b'w' as _, b'n' as _, b'3' as _, 0,
-];
-static MUS_openin: [c_char; 7] = [
-    b'o' as _, b'p' as _, b'e' as _, b'n' as _, b'i' as _, b'n' as _, 0,
-];
-static MUS_evil: [c_char; 5] = [b'e' as _, b'v' as _, b'i' as _, b'l' as _, 0];
-static MUS_ultima: [c_char; 7] = [
-    b'u' as _, b'l' as _, b't' as _, b'i' as _, b'm' as _, b'a' as _, 0,
-];
-static MUS_read_m: [c_char; 7] = [
-    b'r' as _, b'e' as _, b'a' as _, b'd' as _, b'_' as _, b'm' as _, 0,
-];
-static MUS_dm2ttl: [c_char; 7] = [
-    b'd' as _, b'm' as _, b'2' as _, b't' as _, b't' as _, b'l' as _, 0,
-];
-static MUS_dm2int: [c_char; 7] = [
-    b'd' as _, b'm' as _, b'2' as _, b'i' as _, b'n' as _, b't' as _, 0,
-];
+const MUS_e1m1: [c_char; 5] = name("e1m1");
+const MUS_e1m2: [c_char; 5] = name("e1m2");
+const MUS_e1m3: [c_char; 5] = name("e1m3");
+const MUS_e1m4: [c_char; 5] = name("e1m4");
+const MUS_e1m5: [c_char; 5] = name("e1m5");
+const MUS_e1m6: [c_char; 5] = name("e1m6");
+const MUS_e1m7: [c_char; 5] = name("e1m7");
+const MUS_e1m8: [c_char; 5] = name("e1m8");
+const MUS_e1m9: [c_char; 5] = name("e1m9");
+const MUS_e2m1: [c_char; 5] = name("e2m1");
+const MUS_e2m2: [c_char; 5] = name("e2m2");
+const MUS_e2m3: [c_char; 5] = name("e2m3");
+const MUS_e2m4: [c_char; 5] = name("e2m4");
+const MUS_e2m5: [c_char; 5] = name("e2m5");
+const MUS_e2m6: [c_char; 5] = name("e2m6");
+const MUS_e2m7: [c_char; 5] = name("e2m7");
+const MUS_e2m8: [c_char; 5] = name("e2m8");
+const MUS_e2m9: [c_char; 5] = name("e2m9");
+const MUS_e3m1: [c_char; 5] = name("e3m1");
+const MUS_e3m2: [c_char; 5] = name("e3m2");
+const MUS_e3m3: [c_char; 5] = name("e3m3");
+const MUS_e3m4: [c_char; 5] = name("e3m4");
+const MUS_e3m5: [c_char; 5] = name("e3m5");
+const MUS_e3m6: [c_char; 5] = name("e3m6");
+const MUS_e3m7: [c_char; 5] = name("e3m7");
+const MUS_e3m8: [c_char; 5] = name("e3m8");
+const MUS_e3m9: [c_char; 5] = name("e3m9");
+const MUS_inter: [c_char; 6] = name("inter");
+const MUS_intro: [c_char; 6] = name("intro");
+const MUS_bunny: [c_char; 6] = name("bunny");
+const MUS_victor: [c_char; 7] = name("victor");
+const MUS_introa: [c_char; 7] = name("introa");
+const MUS_runnin: [c_char; 7] = name("runnin");
+const MUS_stalks: [c_char; 7] = name("stalks");
+const MUS_countd: [c_char; 7] = name("countd");
+const MUS_betwee: [c_char; 7] = name("betwee");
+const MUS_doom: [c_char; 5] = name("doom");
+const MUS_the_da: [c_char; 7] = name("the_da");
+const MUS_shawn: [c_char; 6] = name("shawn");
+const MUS_ddtblu: [c_char; 7] = name("ddtblu");
+const MUS_in_cit: [c_char; 7] = name("in_cit");
+const MUS_dead: [c_char; 5] = name("dead");
+const MUS_stlks2: [c_char; 7] = name("stlks2");
+const MUS_theda2: [c_char; 7] = name("theda2");
+const MUS_doom2: [c_char; 6] = name("doom2");
+const MUS_ddtbl2: [c_char; 7] = name("ddtbl2");
+const MUS_runni2: [c_char; 7] = name("runni2");
+const MUS_dead2: [c_char; 6] = name("dead2");
+const MUS_stlks3: [c_char; 7] = name("stlks3");
+const MUS_romero: [c_char; 7] = name("romero");
+const MUS_shawn2: [c_char; 7] = name("shawn2");
+const MUS_messag: [c_char; 7] = name("messag");
+const MUS_count2: [c_char; 7] = name("count2");
+const MUS_ddtbl3: [c_char; 7] = name("ddtbl3");
+const MUS_ampie: [c_char; 6] = name("ampie");
+const MUS_theda3: [c_char; 7] = name("theda3");
+const MUS_adrian: [c_char; 7] = name("adrian");
+const MUS_messg2: [c_char; 7] = name("messg2");
+const MUS_romer2: [c_char; 7] = name("romer2");
+const MUS_tense: [c_char; 6] = name("tense");
+const MUS_shawn3: [c_char; 7] = name("shawn3");
+const MUS_openin: [c_char; 7] = name("openin");
+const MUS_evil: [c_char; 5] = name("evil");
+const MUS_ultima: [c_char; 7] = name("ultima");
+const MUS_read_m: [c_char; 7] = name("read_m");
+const MUS_dm2ttl: [c_char; 7] = name("dm2ttl");
+const MUS_dm2int: [c_char; 7] = name("dm2int");
 
 #[no_mangle]
 pub static mut S_sfx: [SfxInfo; NUMSFX] = [
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_none,
-        priority: 0,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_pistol,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_shotgn,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sgcock,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_dshtgn,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_dbopn,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_dbcls,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_dbload,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_plasma,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bfg,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sawup,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sawidl,
-        priority: 118,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sawful,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sawhit,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_rlaunc,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_rxplod,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_firsht,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_firxpl,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_pstart,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_pstop,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_doropn,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_dorcls,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_stnmov,
-        priority: 119,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_swtchn,
-        priority: 78,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_swtchx,
-        priority: 78,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_plpain,
-        priority: 96,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_dmpain,
-        priority: 96,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_popain,
-        priority: 96,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_vipain,
-        priority: 96,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_mnpain,
-        priority: 96,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_pepain,
-        priority: 96,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_slop,
-        priority: 78,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_itemup,
-        priority: 78,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_wpnup,
-        priority: 78,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_oof,
-        priority: 96,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_telept,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_posit1,
-        priority: 98,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_posit2,
-        priority: 98,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_posit3,
-        priority: 98,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bgsit1,
-        priority: 98,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bgsit2,
-        priority: 98,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sgtsit,
-        priority: 98,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_cacsit,
-        priority: 98,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_brssit,
-        priority: 94,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_cybsit,
-        priority: 92,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_spisit,
-        priority: 90,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bspit,
-        priority: 90,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_kntsit,
-        priority: 90,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_vilsit,
-        priority: 90,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_mansit,
-        priority: 90,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_pesit,
-        priority: 90,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sklatk,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sgtatk,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_skepch,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_vilatk,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_claw,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_skeswg,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_pldeth,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_pdiehi,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_podth1,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_podth2,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_podth3,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bgdth1,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bgdth2,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sgtdth,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_cacdth,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_skldth,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_brsdth,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_cybdth,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_spidth,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bspdth,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_vildth,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_kntdth,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_pedth,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_skedth,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_posact,
-        priority: 120,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bgact,
-        priority: 120,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_dmact,
-        priority: 120,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bspact,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bspwlk,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_vilact,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_noway,
-        priority: 78,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_barexp,
-        priority: 60,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_punch,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_hoof,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_metal,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_chgun,
-        priority: 64,
-        link: std::ptr::null_mut(),
-        pitch: 150,
-        volume: 0,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_tink,
-        priority: 60,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bdopn,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bdcls,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_itmbk,
-        priority: 100,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_flame,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_flamst,
-        priority: 32,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_getpow,
-        priority: 60,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bospit,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_boscub,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bossit,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bospn,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_bosdth,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_manatk,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_mandth,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_sssit,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_ssdth,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_keenpn,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_keendt,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_skeact,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_skesit,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_skeatk,
-        priority: 70,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
-    SfxInfo {
-        tagname: std::ptr::null_mut(),
-        name: N_radio,
-        priority: 60,
-        link: std::ptr::null_mut(),
-        pitch: -1,
-        volume: -1,
-        usefulness: 0,
-        lumpnum: 0,
-        numchannels: -1,
-        driver_data: std::ptr::null_mut(),
-    },
+    SfxInfo::new(N_none, 0),
+    SfxInfo::new(N_pistol, 64),
+    SfxInfo::new(N_shotgn, 64),
+    SfxInfo::new(N_sgcock, 64),
+    SfxInfo::new(N_dshtgn, 64),
+    SfxInfo::new(N_dbopn, 64),
+    SfxInfo::new(N_dbcls, 64),
+    SfxInfo::new(N_dbload, 64),
+    SfxInfo::new(N_plasma, 64),
+    SfxInfo::new(N_bfg, 64),
+    SfxInfo::new(N_sawup, 64),
+    SfxInfo::new(N_sawidl, 118),
+    SfxInfo::new(N_sawful, 64),
+    SfxInfo::new(N_sawhit, 64),
+    SfxInfo::new(N_rlaunc, 64),
+    SfxInfo::new(N_rxplod, 70),
+    SfxInfo::new(N_firsht, 70),
+    SfxInfo::new(N_firxpl, 70),
+    SfxInfo::new(N_pstart, 100),
+    SfxInfo::new(N_pstop, 100),
+    SfxInfo::new(N_doropn, 100),
+    SfxInfo::new(N_dorcls, 100),
+    SfxInfo::new(N_stnmov, 119),
+    SfxInfo::new(N_swtchn, 78),
+    SfxInfo::new(N_swtchx, 78),
+    SfxInfo::new(N_plpain, 96),
+    SfxInfo::new(N_dmpain, 96),
+    SfxInfo::new(N_popain, 96),
+    SfxInfo::new(N_vipain, 96),
+    SfxInfo::new(N_mnpain, 96),
+    SfxInfo::new(N_pepain, 96),
+    SfxInfo::new(N_slop, 78),
+    SfxInfo::new(N_itemup, 78),
+    SfxInfo::new(N_wpnup, 78),
+    SfxInfo::new(N_oof, 96),
+    SfxInfo::new(N_telept, 32),
+    SfxInfo::new(N_posit1, 98),
+    SfxInfo::new(N_posit2, 98),
+    SfxInfo::new(N_posit3, 98),
+    SfxInfo::new(N_bgsit1, 98),
+    SfxInfo::new(N_bgsit2, 98),
+    SfxInfo::new(N_sgtsit, 98),
+    SfxInfo::new(N_cacsit, 98),
+    SfxInfo::new(N_brssit, 94),
+    SfxInfo::new(N_cybsit, 92),
+    SfxInfo::new(N_spisit, 90),
+    SfxInfo::new(N_bspit, 90),
+    SfxInfo::new(N_kntsit, 90),
+    SfxInfo::new(N_vilsit, 90),
+    SfxInfo::new(N_mansit, 90),
+    SfxInfo::new(N_pesit, 90),
+    SfxInfo::new(N_sklatk, 70),
+    SfxInfo::new(N_sgtatk, 70),
+    SfxInfo::new(N_skepch, 70),
+    SfxInfo::new(N_vilatk, 70),
+    SfxInfo::new(N_claw, 70),
+    SfxInfo::new(N_skeswg, 70),
+    SfxInfo::new(N_pldeth, 32),
+    SfxInfo::new(N_pdiehi, 32),
+    SfxInfo::new(N_podth1, 70),
+    SfxInfo::new(N_podth2, 70),
+    SfxInfo::new(N_podth3, 70),
+    SfxInfo::new(N_bgdth1, 70),
+    SfxInfo::new(N_bgdth2, 70),
+    SfxInfo::new(N_sgtdth, 70),
+    SfxInfo::new(N_cacdth, 70),
+    SfxInfo::new(N_skldth, 70),
+    SfxInfo::new(N_brsdth, 32),
+    SfxInfo::new(N_cybdth, 32),
+    SfxInfo::new(N_spidth, 32),
+    SfxInfo::new(N_bspdth, 32),
+    SfxInfo::new(N_vildth, 32),
+    SfxInfo::new(N_kntdth, 32),
+    SfxInfo::new(N_pedth, 32),
+    SfxInfo::new(N_skedth, 32),
+    SfxInfo::new(N_posact, 120),
+    SfxInfo::new(N_bgact, 120),
+    SfxInfo::new(N_dmact, 120),
+    SfxInfo::new(N_bspact, 100),
+    SfxInfo::new(N_bspwlk, 100),
+    SfxInfo::new(N_vilact, 100),
+    SfxInfo::new(N_noway, 78),
+    SfxInfo::new(N_barexp, 60),
+    SfxInfo::new(N_punch, 64),
+    SfxInfo::new(N_hoof, 70),
+    SfxInfo::new(N_metal, 70),
+    SfxInfo::new(N_chgun, 64).with_volume(0).with_pitch(150),
+    SfxInfo::new(N_tink, 60),
+    SfxInfo::new(N_bdopn, 100),
+    SfxInfo::new(N_bdcls, 100),
+    SfxInfo::new(N_itmbk, 100),
+    SfxInfo::new(N_flame, 32),
+    SfxInfo::new(N_flamst, 32),
+    SfxInfo::new(N_getpow, 60),
+    SfxInfo::new(N_bospit, 70),
+    SfxInfo::new(N_boscub, 70),
+    SfxInfo::new(N_bossit, 70),
+    SfxInfo::new(N_bospn, 70),
+    SfxInfo::new(N_bosdth, 70),
+    SfxInfo::new(N_manatk, 70),
+    SfxInfo::new(N_mandth, 70),
+    SfxInfo::new(N_sssit, 70),
+    SfxInfo::new(N_ssdth, 70),
+    SfxInfo::new(N_keenpn, 70),
+    SfxInfo::new(N_keendt, 70),
+    SfxInfo::new(N_skeact, 70),
+    SfxInfo::new(N_skesit, 70),
+    SfxInfo::new(N_skeatk, 70),
+    SfxInfo::new(N_radio, 60),
 ];
-
-const fn pe1m1() -> *mut c_char {
-    MUS_e1m1.as_ptr() as *mut c_char
-}
-const fn pe1m2() -> *mut c_char {
-    MUS_e1m2.as_ptr() as *mut c_char
-}
-const fn pe1m3() -> *mut c_char {
-    MUS_e1m3.as_ptr() as *mut c_char
-}
-const fn pe1m4() -> *mut c_char {
-    MUS_e1m4.as_ptr() as *mut c_char
-}
-const fn pe1m5() -> *mut c_char {
-    MUS_e1m5.as_ptr() as *mut c_char
-}
-const fn pe1m6() -> *mut c_char {
-    MUS_e1m6.as_ptr() as *mut c_char
-}
-const fn pe1m7() -> *mut c_char {
-    MUS_e1m7.as_ptr() as *mut c_char
-}
-const fn pe1m8() -> *mut c_char {
-    MUS_e1m8.as_ptr() as *mut c_char
-}
-const fn pe1m9() -> *mut c_char {
-    MUS_e1m9.as_ptr() as *mut c_char
-}
-const fn pe2m1() -> *mut c_char {
-    MUS_e2m1.as_ptr() as *mut c_char
-}
-const fn pe2m2() -> *mut c_char {
-    MUS_e2m2.as_ptr() as *mut c_char
-}
-const fn pe2m3() -> *mut c_char {
-    MUS_e2m3.as_ptr() as *mut c_char
-}
-const fn pe2m4() -> *mut c_char {
-    MUS_e2m4.as_ptr() as *mut c_char
-}
-const fn pe2m5() -> *mut c_char {
-    MUS_e2m5.as_ptr() as *mut c_char
-}
-const fn pe2m6() -> *mut c_char {
-    MUS_e2m6.as_ptr() as *mut c_char
-}
-const fn pe2m7() -> *mut c_char {
-    MUS_e2m7.as_ptr() as *mut c_char
-}
-const fn pe2m8() -> *mut c_char {
-    MUS_e2m8.as_ptr() as *mut c_char
-}
-const fn pe2m9() -> *mut c_char {
-    MUS_e2m9.as_ptr() as *mut c_char
-}
-const fn pe3m1() -> *mut c_char {
-    MUS_e3m1.as_ptr() as *mut c_char
-}
-const fn pe3m2() -> *mut c_char {
-    MUS_e3m2.as_ptr() as *mut c_char
-}
-const fn pe3m3() -> *mut c_char {
-    MUS_e3m3.as_ptr() as *mut c_char
-}
-const fn pe3m4() -> *mut c_char {
-    MUS_e3m4.as_ptr() as *mut c_char
-}
-const fn pe3m5() -> *mut c_char {
-    MUS_e3m5.as_ptr() as *mut c_char
-}
-const fn pe3m6() -> *mut c_char {
-    MUS_e3m6.as_ptr() as *mut c_char
-}
-const fn pe3m7() -> *mut c_char {
-    MUS_e3m7.as_ptr() as *mut c_char
-}
-const fn pe3m8() -> *mut c_char {
-    MUS_e3m8.as_ptr() as *mut c_char
-}
-const fn pe3m9() -> *mut c_char {
-    MUS_e3m9.as_ptr() as *mut c_char
-}
-const fn pinter() -> *mut c_char {
-    MUS_inter.as_ptr() as *mut c_char
-}
-const fn pintro() -> *mut c_char {
-    MUS_intro.as_ptr() as *mut c_char
-}
-const fn pbunny() -> *mut c_char {
-    MUS_bunny.as_ptr() as *mut c_char
-}
-const fn pvictor() -> *mut c_char {
-    MUS_victor.as_ptr() as *mut c_char
-}
-const fn pintroa() -> *mut c_char {
-    MUS_introa.as_ptr() as *mut c_char
-}
-const fn prunnin() -> *mut c_char {
-    MUS_runnin.as_ptr() as *mut c_char
-}
-const fn pstalks() -> *mut c_char {
-    MUS_stalks.as_ptr() as *mut c_char
-}
-const fn pcountd() -> *mut c_char {
-    MUS_countd.as_ptr() as *mut c_char
-}
-const fn pbetwee() -> *mut c_char {
-    MUS_betwee.as_ptr() as *mut c_char
-}
-const fn pdoom() -> *mut c_char {
-    MUS_doom.as_ptr() as *mut c_char
-}
-const fn pthe_da() -> *mut c_char {
-    MUS_the_da.as_ptr() as *mut c_char
-}
-const fn pshawn() -> *mut c_char {
-    MUS_shawn.as_ptr() as *mut c_char
-}
-const fn pddtblu() -> *mut c_char {
-    MUS_ddtblu.as_ptr() as *mut c_char
-}
-const fn pin_cit() -> *mut c_char {
-    MUS_in_cit.as_ptr() as *mut c_char
-}
-const fn pdead() -> *mut c_char {
-    MUS_dead.as_ptr() as *mut c_char
-}
-const fn pstlks2() -> *mut c_char {
-    MUS_stlks2.as_ptr() as *mut c_char
-}
-const fn ptheda2() -> *mut c_char {
-    MUS_theda2.as_ptr() as *mut c_char
-}
-const fn pdoom2() -> *mut c_char {
-    MUS_doom2.as_ptr() as *mut c_char
-}
-const fn pddtbl2() -> *mut c_char {
-    MUS_ddtbl2.as_ptr() as *mut c_char
-}
-const fn prunni2() -> *mut c_char {
-    MUS_runni2.as_ptr() as *mut c_char
-}
-const fn pdead2() -> *mut c_char {
-    MUS_dead2.as_ptr() as *mut c_char
-}
-const fn pstlks3() -> *mut c_char {
-    MUS_stlks3.as_ptr() as *mut c_char
-}
-const fn promero() -> *mut c_char {
-    MUS_romero.as_ptr() as *mut c_char
-}
-const fn pshawn2() -> *mut c_char {
-    MUS_shawn2.as_ptr() as *mut c_char
-}
-const fn pmessag() -> *mut c_char {
-    MUS_messag.as_ptr() as *mut c_char
-}
-const fn pcount2() -> *mut c_char {
-    MUS_count2.as_ptr() as *mut c_char
-}
-const fn pddtbl3() -> *mut c_char {
-    MUS_ddtbl3.as_ptr() as *mut c_char
-}
-const fn pampie() -> *mut c_char {
-    MUS_ampie.as_ptr() as *mut c_char
-}
-const fn ptheda3() -> *mut c_char {
-    MUS_theda3.as_ptr() as *mut c_char
-}
-const fn padrian() -> *mut c_char {
-    MUS_adrian.as_ptr() as *mut c_char
-}
-const fn pmessg2() -> *mut c_char {
-    MUS_messg2.as_ptr() as *mut c_char
-}
-const fn promer2() -> *mut c_char {
-    MUS_romer2.as_ptr() as *mut c_char
-}
-const fn ptense() -> *mut c_char {
-    MUS_tense.as_ptr() as *mut c_char
-}
-const fn pshawn3() -> *mut c_char {
-    MUS_shawn3.as_ptr() as *mut c_char
-}
-const fn popenin() -> *mut c_char {
-    MUS_openin.as_ptr() as *mut c_char
-}
-const fn pev() -> *mut c_char {
-    MUS_evil.as_ptr() as *mut c_char
-}
-const fn pultima() -> *mut c_char {
-    MUS_ultima.as_ptr() as *mut c_char
-}
-const fn pread_m() -> *mut c_char {
-    MUS_read_m.as_ptr() as *mut c_char
-}
-const fn pdm2ttl() -> *mut c_char {
-    MUS_dm2ttl.as_ptr() as *mut c_char
-}
-const fn pdm2int() -> *mut c_char {
-    MUS_dm2int.as_ptr() as *mut c_char
-}
 
 #[no_mangle]
 pub static mut S_music: [MusicInfo; NUMMUSIC] = [
-    MusicInfo {
-        name: std::ptr::null_mut(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe1m1(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe1m2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe1m3(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe1m4(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe1m5(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe1m6(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe1m7(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe1m8(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe1m9(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe2m1(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe2m2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe2m3(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe2m4(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe2m5(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe2m6(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe2m7(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe2m8(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe2m9(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe3m1(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe3m2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe3m3(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe3m4(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe3m5(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe3m6(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe3m7(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe3m8(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pe3m9(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pinter(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pintro(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pbunny(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pvictor(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pintroa(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: prunnin(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pstalks(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pcountd(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pbetwee(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pdoom(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pthe_da(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pshawn(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pddtblu(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pin_cit(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pdead(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pstlks2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: ptheda2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pdoom2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pddtbl2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: prunni2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pdead2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pstlks3(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: promero(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pshawn2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pmessag(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pcount2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pddtbl3(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pampie(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: ptheda3(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: padrian(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pmessg2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: promer2(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: ptense(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pshawn3(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: popenin(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pev(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pultima(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pread_m(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pdm2ttl(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
-    MusicInfo {
-        name: pdm2int(),
-        lumpnum: 0,
-        data: std::ptr::null_mut(),
-        handle: std::ptr::null_mut(),
-    },
+    MusicInfo::none(),
+    MusicInfo::new(&MUS_e1m1),
+    MusicInfo::new(&MUS_e1m2),
+    MusicInfo::new(&MUS_e1m3),
+    MusicInfo::new(&MUS_e1m4),
+    MusicInfo::new(&MUS_e1m5),
+    MusicInfo::new(&MUS_e1m6),
+    MusicInfo::new(&MUS_e1m7),
+    MusicInfo::new(&MUS_e1m8),
+    MusicInfo::new(&MUS_e1m9),
+    MusicInfo::new(&MUS_e2m1),
+    MusicInfo::new(&MUS_e2m2),
+    MusicInfo::new(&MUS_e2m3),
+    MusicInfo::new(&MUS_e2m4),
+    MusicInfo::new(&MUS_e2m5),
+    MusicInfo::new(&MUS_e2m6),
+    MusicInfo::new(&MUS_e2m7),
+    MusicInfo::new(&MUS_e2m8),
+    MusicInfo::new(&MUS_e2m9),
+    MusicInfo::new(&MUS_e3m1),
+    MusicInfo::new(&MUS_e3m2),
+    MusicInfo::new(&MUS_e3m3),
+    MusicInfo::new(&MUS_e3m4),
+    MusicInfo::new(&MUS_e3m5),
+    MusicInfo::new(&MUS_e3m6),
+    MusicInfo::new(&MUS_e3m7),
+    MusicInfo::new(&MUS_e3m8),
+    MusicInfo::new(&MUS_e3m9),
+    MusicInfo::new(&MUS_inter),
+    MusicInfo::new(&MUS_intro),
+    MusicInfo::new(&MUS_bunny),
+    MusicInfo::new(&MUS_victor),
+    MusicInfo::new(&MUS_introa),
+    MusicInfo::new(&MUS_runnin),
+    MusicInfo::new(&MUS_stalks),
+    MusicInfo::new(&MUS_countd),
+    MusicInfo::new(&MUS_betwee),
+    MusicInfo::new(&MUS_doom),
+    MusicInfo::new(&MUS_the_da),
+    MusicInfo::new(&MUS_shawn),
+    MusicInfo::new(&MUS_ddtblu),
+    MusicInfo::new(&MUS_in_cit),
+    MusicInfo::new(&MUS_dead),
+    MusicInfo::new(&MUS_stlks2),
+    MusicInfo::new(&MUS_theda2),
+    MusicInfo::new(&MUS_doom2),
+    MusicInfo::new(&MUS_ddtbl2),
+    MusicInfo::new(&MUS_runni2),
+    MusicInfo::new(&MUS_dead2),
+    MusicInfo::new(&MUS_stlks3),
+    MusicInfo::new(&MUS_romero),
+    MusicInfo::new(&MUS_shawn2),
+    MusicInfo::new(&MUS_messag),
+    MusicInfo::new(&MUS_count2),
+    MusicInfo::new(&MUS_ddtbl3),
+    MusicInfo::new(&MUS_ampie),
+    MusicInfo::new(&MUS_theda3),
+    MusicInfo::new(&MUS_adrian),
+    MusicInfo::new(&MUS_messg2),
+    MusicInfo::new(&MUS_romer2),
+    MusicInfo::new(&MUS_tense),
+    MusicInfo::new(&MUS_shawn3),
+    MusicInfo::new(&MUS_openin),
+    MusicInfo::new(&MUS_evil),
+    MusicInfo::new(&MUS_ultima),
+    MusicInfo::new(&MUS_read_m),
+    MusicInfo::new(&MUS_dm2ttl),
+    MusicInfo::new(&MUS_dm2int),
 ];
 
 #[no_mangle]
 pub extern "C" fn S_InitSfxLinks() {
     unsafe {
-        S_sfx[sfx_chgun as usize].link = &mut S_sfx[sfx_pistol as usize] as *mut SfxInfo;
+        S_sfx[Sfx::Chgun as usize].link = &mut S_sfx[Sfx::Pistol as usize] as *mut SfxInfo;
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::CStr;
+
+    #[test]
+    fn numsfx_matches_c_source() {
+        assert_eq!(NUMSFX, 109);
+    }
+
+    #[test]
+    fn nummusic_matches_c_source() {
+        assert_eq!(NUMMUSIC, 68);
+    }
 
     #[test]
     fn sfx_table_has_correct_length() {
@@ -2254,7 +887,7 @@ mod tests {
     #[test]
     fn sfx_pistol_is_entry_1_with_priority_64() {
         unsafe {
-            let entry = &S_sfx[sfx_pistol as usize];
+            let entry = &S_sfx[Sfx::Pistol as usize];
             assert_eq!(entry.priority, 64);
             // name must start with "pistol"
             let name_bytes: Vec<u8> = entry.name.iter().map(|&c| c as u8).collect();
@@ -2270,8 +903,8 @@ mod tests {
     fn sfx_chgun_links_to_pistol_after_init() {
         unsafe {
             S_InitSfxLinks();
-            let pistol_ptr = &S_sfx[sfx_pistol as usize] as *const SfxInfo;
-            let chgun_link = S_sfx[sfx_chgun as usize].link as *const SfxInfo;
+            let pistol_ptr = &S_sfx[Sfx::Pistol as usize] as *const SfxInfo;
+            let chgun_link = S_sfx[Sfx::Chgun as usize].link as *const SfxInfo;
             assert_eq!(
                 chgun_link, pistol_ptr,
                 "sfx_chgun.link must point to sfx_pistol"

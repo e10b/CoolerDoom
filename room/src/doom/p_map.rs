@@ -8,11 +8,11 @@ use std::ffi::{c_int, c_uint, c_void};
 use std::ptr;
 
 use crate::doom::c_ffi::{
-    intercept_t, line_t, mobj_t, sector_t, subsector_t, DEFAULT_SPECHIT_MAGIC, MAPBLOCKSHIFT,
-    ML_BLOCKING, ML_BLOCKMONSTERS, ML_TWOSIDED,
+    intercept_t, line_t, mobj_t, sector_t, subsector_t, LinedefFlag, DEFAULT_SPECHIT_MAGIC,
+    MAPBLOCKSHIFT,
 };
 use crate::doom::info::MobjInfo;
-use crate::doom::m_bbox::{BOXBOTTOM, BOXLEFT, BOXRIGHT, BOXTOP};
+use crate::doom::m_bbox::BBox;
 use crate::doom::m_fixed::{fixed_t, FixedDiv, FixedMul, FRACBITS, FRACUNIT};
 use crate::doom::m_random::P_Random;
 use crate::doom::p_maputl::{
@@ -80,6 +80,7 @@ use crate::doom::p_switch::P_UseSpecialLine;
 use crate::doom::p_tick::leveltime;
 use crate::doom::r_sky::skyflatnum;
 use crate::doom::s_sound::S_StartSound;
+use crate::doom::sounds::Sfx;
 
 // Type aliases for cross-module pointer casts (all #[repr(C)] identical layouts).
 type TeleptMobj = crate::doom::p_telept::mobj_t;
@@ -152,10 +153,10 @@ pub unsafe extern "C" fn P_TeleportMove(thing: *mut mobj_t, x: fixed_t, y: fixed
     tmx = x;
     tmy = y;
 
-    tmbbox[BOXTOP] = y + (*tmthing).radius;
-    tmbbox[BOXBOTTOM] = y - (*tmthing).radius;
-    tmbbox[BOXRIGHT] = x + (*tmthing).radius;
-    tmbbox[BOXLEFT] = x - (*tmthing).radius;
+    tmbbox[BBox::TOP] = y + (*tmthing).radius;
+    tmbbox[BBox::BOTTOM] = y - (*tmthing).radius;
+    tmbbox[BBox::RIGHT] = x + (*tmthing).radius;
+    tmbbox[BBox::LEFT] = x - (*tmthing).radius;
 
     let newsubsec = R_PointInSubsector(x, y) as *mut subsector_t;
     ceilingline = ptr::null_mut();
@@ -167,10 +168,10 @@ pub unsafe extern "C" fn P_TeleportMove(thing: *mut mobj_t, x: fixed_t, y: fixed
     validcount = validcount.wrapping_add(1);
     numspechit = 0;
 
-    let xl = (tmbbox[BOXLEFT] - bmaporgx - MAXRADIUS) >> MAPBLOCKSHIFT;
-    let xh = (tmbbox[BOXRIGHT] - bmaporgx + MAXRADIUS) >> MAPBLOCKSHIFT;
-    let yl = (tmbbox[BOXBOTTOM] - bmaporgy - MAXRADIUS) >> MAPBLOCKSHIFT;
-    let yh = (tmbbox[BOXTOP] - bmaporgy + MAXRADIUS) >> MAPBLOCKSHIFT;
+    let xl = (tmbbox[BBox::LEFT] - bmaporgx - MAXRADIUS) >> MAPBLOCKSHIFT;
+    let xh = (tmbbox[BBox::RIGHT] - bmaporgx + MAXRADIUS) >> MAPBLOCKSHIFT;
+    let yl = (tmbbox[BBox::BOTTOM] - bmaporgy - MAXRADIUS) >> MAPBLOCKSHIFT;
+    let yh = (tmbbox[BBox::TOP] - bmaporgy + MAXRADIUS) >> MAPBLOCKSHIFT;
 
     for bx in xl..=xh {
         for by in yl..=yh {
@@ -197,10 +198,10 @@ pub unsafe extern "C" fn P_TeleportMove(thing: *mut mobj_t, x: fixed_t, y: fixed
 #[no_mangle]
 pub unsafe extern "C" fn PIT_CheckLine(ld: *mut line_t) -> c_uint {
     let ld = &*ld;
-    if tmbbox[BOXRIGHT] <= ld.bbox[BOXLEFT]
-        || tmbbox[BOXLEFT] >= ld.bbox[BOXRIGHT]
-        || tmbbox[BOXTOP] <= ld.bbox[BOXBOTTOM]
-        || tmbbox[BOXBOTTOM] >= ld.bbox[BOXTOP]
+    if tmbbox[BBox::RIGHT] <= ld.bbox[BBox::LEFT]
+        || tmbbox[BBox::LEFT] >= ld.bbox[BBox::RIGHT]
+        || tmbbox[BBox::TOP] <= ld.bbox[BBox::BOTTOM]
+        || tmbbox[BBox::BOTTOM] >= ld.bbox[BBox::TOP]
     {
         return 1;
     }
@@ -211,10 +212,12 @@ pub unsafe extern "C" fn PIT_CheckLine(ld: *mut line_t) -> c_uint {
         return 0;
     }
     if (*tmthing).flags & MF_MISSILE == 0 {
-        if (ld.flags as c_int) & (ML_BLOCKING as c_int) != 0 {
+        if (ld.flags as c_int) & (LinedefFlag::BLOCKING as c_int) != 0 {
             return 0;
         }
-        if (*tmthing).player.is_null() && (ld.flags as c_int) & (ML_BLOCKMONSTERS as c_int) != 0 {
+        if (*tmthing).player.is_null()
+            && (ld.flags as c_int) & (LinedefFlag::BLOCKMONSTERS as c_int) != 0
+        {
             return 0;
         }
     }
@@ -337,10 +340,10 @@ pub unsafe extern "C" fn P_CheckPosition(thing: *mut mobj_t, x: fixed_t, y: fixe
     tmx = x;
     tmy = y;
 
-    tmbbox[BOXTOP] = y + (*tmthing).radius;
-    tmbbox[BOXBOTTOM] = y - (*tmthing).radius;
-    tmbbox[BOXRIGHT] = x + (*tmthing).radius;
-    tmbbox[BOXLEFT] = x - (*tmthing).radius;
+    tmbbox[BBox::TOP] = y + (*tmthing).radius;
+    tmbbox[BBox::BOTTOM] = y - (*tmthing).radius;
+    tmbbox[BBox::RIGHT] = x + (*tmthing).radius;
+    tmbbox[BBox::LEFT] = x - (*tmthing).radius;
 
     let newsubsec = R_PointInSubsector(x, y) as *mut subsector_t;
     ceilingline = ptr::null_mut();
@@ -356,10 +359,10 @@ pub unsafe extern "C" fn P_CheckPosition(thing: *mut mobj_t, x: fixed_t, y: fixe
         return 1;
     }
 
-    let xl = (tmbbox[BOXLEFT] - bmaporgx - MAXRADIUS) >> MAPBLOCKSHIFT;
-    let xh = (tmbbox[BOXRIGHT] - bmaporgx + MAXRADIUS) >> MAPBLOCKSHIFT;
-    let yl = (tmbbox[BOXBOTTOM] - bmaporgy - MAXRADIUS) >> MAPBLOCKSHIFT;
-    let yh = (tmbbox[BOXTOP] - bmaporgy + MAXRADIUS) >> MAPBLOCKSHIFT;
+    let xl = (tmbbox[BBox::LEFT] - bmaporgx - MAXRADIUS) >> MAPBLOCKSHIFT;
+    let xh = (tmbbox[BBox::RIGHT] - bmaporgx + MAXRADIUS) >> MAPBLOCKSHIFT;
+    let yl = (tmbbox[BBox::BOTTOM] - bmaporgy - MAXRADIUS) >> MAPBLOCKSHIFT;
+    let yh = (tmbbox[BBox::TOP] - bmaporgy + MAXRADIUS) >> MAPBLOCKSHIFT;
 
     for bx in xl..=xh {
         for by in yl..=yh {
@@ -369,10 +372,10 @@ pub unsafe extern "C" fn P_CheckPosition(thing: *mut mobj_t, x: fixed_t, y: fixe
         }
     }
 
-    let xl = (tmbbox[BOXLEFT] - bmaporgx) >> MAPBLOCKSHIFT;
-    let xh = (tmbbox[BOXRIGHT] - bmaporgx) >> MAPBLOCKSHIFT;
-    let yl = (tmbbox[BOXBOTTOM] - bmaporgy) >> MAPBLOCKSHIFT;
-    let yh = (tmbbox[BOXTOP] - bmaporgy) >> MAPBLOCKSHIFT;
+    let xl = (tmbbox[BBox::LEFT] - bmaporgx) >> MAPBLOCKSHIFT;
+    let xh = (tmbbox[BBox::RIGHT] - bmaporgx) >> MAPBLOCKSHIFT;
+    let yl = (tmbbox[BBox::BOTTOM] - bmaporgy) >> MAPBLOCKSHIFT;
+    let yh = (tmbbox[BBox::TOP] - bmaporgy) >> MAPBLOCKSHIFT;
 
     for bx in xl..=xh {
         for by in yl..=yh {
@@ -504,7 +507,7 @@ pub unsafe extern "C" fn PTR_SlideTraverse(in_: *mut intercept_t) -> c_uint {
         i_error!("PTR_SlideTraverse: not a line?");
     }
     let li = in_.d.line;
-    if (*li).flags as c_int & ML_TWOSIDED as c_int == 0 {
+    if (*li).flags as c_int & LinedefFlag::TWOSIDED as c_int == 0 {
         if P_PointOnLineSide((*slidemo).x, (*slidemo).y, li) != 0 {
             return 1;
         }
@@ -637,7 +640,7 @@ pub unsafe extern "C" fn PTR_AimTraverse(in_: *mut intercept_t) -> c_uint {
     let in_ = &*in_;
     if in_.isaline != 0 {
         let li = in_.d.line;
-        if (*li).flags as c_int & ML_TWOSIDED as c_int == 0 {
+        if (*li).flags as c_int & LinedefFlag::TWOSIDED as c_int == 0 {
             return 0;
         }
         P_LineOpening(li);
@@ -702,7 +705,7 @@ pub unsafe extern "C" fn PTR_ShootTraverse(in_: *mut intercept_t) -> c_uint {
         if (*li).special != 0 {
             P_ShootSpecialLine(shootthing, li);
         }
-        if (*li).flags as c_int & ML_TWOSIDED as c_int != 0 {
+        if (*li).flags as c_int & LinedefFlag::TWOSIDED as c_int != 0 {
             P_LineOpening(li);
             let dist = FixedMul(attackrange, in_.frac);
             let back = (*li).backsector as *mut sector_t;
@@ -864,7 +867,7 @@ pub unsafe extern "C" fn PTR_UseTraverse(in_: *mut intercept_t) -> c_uint {
     if (*in_.d.line).special == 0 {
         P_LineOpening(in_.d.line);
         if openrange <= 0 {
-            S_StartSound(usething as *mut c_void, 81); // sfx_noway
+            S_StartSound(usething as *mut c_void, Sfx::Noway as c_int);
             return 0;
         }
         return 1;
@@ -1003,8 +1006,8 @@ pub unsafe extern "C" fn P_ChangeSector(sector: *mut sector_t, crunch: c_int) ->
     nofit = 0;
     crushchange = crunch;
     let sec = &*sector;
-    for x in sec.blockbox[BOXLEFT]..=sec.blockbox[BOXRIGHT] {
-        for y in sec.blockbox[BOXBOTTOM]..=sec.blockbox[BOXTOP] {
+    for x in sec.blockbox[BBox::LEFT]..=sec.blockbox[BBox::RIGHT] {
+        for y in sec.blockbox[BBox::BOTTOM]..=sec.blockbox[BBox::TOP] {
             P_BlockThingsIterator(x, y, Some(PIT_ChangeSector));
         }
     }
