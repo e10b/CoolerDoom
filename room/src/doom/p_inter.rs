@@ -185,6 +185,44 @@ const DEH_DEFAULT_SOULSPHERE_HEALTH: c_int = 100;
 const DEH_DEFAULT_MEGASPHERE_HEALTH: c_int = 200;
 
 // ---------------------------------------------------------------------------
+// Runtime DEHacked-tunable globals.
+//
+// These mirror the `deh_*` variables in upstream Chocolate Doom's
+// `p_inter.c`.  They are initialized to the constants above and may be
+// overridden at runtime by the DEHacked loader.  Pickup code must read
+// the global, not the `DEH_DEFAULT_*` constant, so DEH overrides take
+// effect.
+// ---------------------------------------------------------------------------
+
+/// Runtime maximum health achievable via bonus health spheres.
+#[no_mangle]
+pub static mut deh_max_health: c_int = DEH_DEFAULT_MAX_HEALTH;
+
+/// Runtime maximum armor achievable via armor bonuses.
+#[no_mangle]
+pub static mut deh_max_armor: c_int = DEH_DEFAULT_MAX_ARMOR;
+
+/// Runtime armor class granted by the green security armor shirt.
+#[no_mangle]
+pub static mut deh_green_armor_class: c_int = DEH_DEFAULT_GREEN_ARMOR_CLASS;
+
+/// Runtime armor class granted by the blue mega-armor.
+#[no_mangle]
+pub static mut deh_blue_armor_class: c_int = DEH_DEFAULT_BLUE_ARMOR_CLASS;
+
+/// Runtime upper health limit imposed by the soulsphere.
+#[no_mangle]
+pub static mut deh_max_soulsphere: c_int = DEH_DEFAULT_MAX_SOULSPHERE;
+
+/// Runtime health points added by the soulsphere.
+#[no_mangle]
+pub static mut deh_soulsphere_health: c_int = DEH_DEFAULT_SOULSPHERE_HEALTH;
+
+/// Runtime health set when the megasphere is picked up.
+#[no_mangle]
+pub static mut deh_megasphere_health: c_int = DEH_DEFAULT_MEGASPHERE_HEALTH;
+
+// ---------------------------------------------------------------------------
 // Pick-up message strings
 // ---------------------------------------------------------------------------
 
@@ -328,57 +366,64 @@ pub static mut clipammo: [c_int; NUMAMMO] = [10, 4, 20, 1];
 /// Global mutable statics `maxammo`, `clipammo`, `gameskill` must only be
 /// accessed from the game-logic thread.
 #[no_mangle]
-pub unsafe extern "C" fn P_GiveAmmo(player: *mut PlayerT, ammo: c_int, mut num: c_int) -> c_int {
+pub unsafe extern "C" fn P_GiveAmmo(player: *mut PlayerT, ammo: c_int, num: c_int) -> c_int {
+    p_give_ammo(&mut *player, ammo, num)
+}
+
+/// Rust-side body of [`P_GiveAmmo`]. Takes `&mut PlayerT` so callers can
+/// pass an existing borrow without re-deriving a second `&mut` from the
+/// same raw pointer (which would violate aliasing rules).
+unsafe fn p_give_ammo(player: &mut PlayerT, ammo: c_int, mut num: c_int) -> c_int {
     if ammo == am_noammo {
         return 0;
     }
     if ammo > NUMAMMO as c_int {
         i_error!("P_GiveAmmo: bad type");
     }
-    if (*player).ammo[ammo as usize] == (*player).maxammo[ammo as usize] {
+    let idx = ammo as usize;
+    if player.ammo[idx] == player.maxammo[idx] {
         return 0;
     }
     if num != 0 {
-        num *= clipammo[ammo as usize];
+        num *= clipammo[idx];
     } else {
-        num = clipammo[ammo as usize] / 2;
+        num = clipammo[idx] / 2;
     }
     if gameskill == sk_baby || gameskill == sk_nightmare {
         num <<= 1;
     }
-    let oldammo = (*player).ammo[ammo as usize];
-    (*player).ammo[ammo as usize] += num;
-    if (*player).ammo[ammo as usize] > (*player).maxammo[ammo as usize] {
-        (*player).ammo[ammo as usize] = (*player).maxammo[ammo as usize];
+    let oldammo = player.ammo[idx];
+    player.ammo[idx] += num;
+    if player.ammo[idx] > player.maxammo[idx] {
+        player.ammo[idx] = player.maxammo[idx];
     }
     if oldammo != 0 {
         return 1;
     }
     match ammo {
-        am_clip if (*player).readyweapon == wp_fist => {
-            if (*player).weaponowned[wp_chaingun as usize] != 0 {
-                (*player).pendingweapon = wp_chaingun;
+        am_clip if player.readyweapon == wp_fist => {
+            if player.weaponowned[wp_chaingun as usize] != 0 {
+                player.pendingweapon = wp_chaingun;
             } else {
-                (*player).pendingweapon = wp_pistol;
+                player.pendingweapon = wp_pistol;
             }
         }
         am_shell
-            if ((*player).readyweapon == wp_fist || (*player).readyweapon == wp_pistol)
-                && (*player).weaponowned[wp_shotgun as usize] != 0 =>
+            if (player.readyweapon == wp_fist || player.readyweapon == wp_pistol)
+                && player.weaponowned[wp_shotgun as usize] != 0 =>
         {
-            (*player).pendingweapon = wp_shotgun;
+            player.pendingweapon = wp_shotgun;
         }
         am_cell
-            if ((*player).readyweapon == wp_fist || (*player).readyweapon == wp_pistol)
-                && (*player).weaponowned[wp_plasma as usize] != 0 =>
+            if (player.readyweapon == wp_fist || player.readyweapon == wp_pistol)
+                && player.weaponowned[wp_plasma as usize] != 0 =>
         {
-            (*player).pendingweapon = wp_plasma;
+            player.pendingweapon = wp_plasma;
         }
         am_misl
-            if (*player).readyweapon == wp_fist
-                && (*player).weaponowned[wp_missile as usize] != 0 =>
+            if player.readyweapon == wp_fist && player.weaponowned[wp_missile as usize] != 0 =>
         {
-            (*player).pendingweapon = wp_missile;
+            player.pendingweapon = wp_missile;
         }
         _ => {}
     }
@@ -410,43 +455,52 @@ pub unsafe extern "C" fn P_GiveWeapon(
     weapon: c_int,
     dropped: c_int,
 ) -> c_int {
+    p_give_weapon(&mut *player, weapon, dropped)
+}
+
+/// Rust-side body of [`P_GiveWeapon`]. Takes `&mut PlayerT` so callers can
+/// pass an existing borrow; avoids re-deriving a second `&mut` from the
+/// same raw pointer.
+unsafe fn p_give_weapon(player: &mut PlayerT, weapon: c_int, dropped: c_int) -> c_int {
+    let widx = weapon as usize;
+    let ammo_kind = weaponinfo[widx].ammo;
     if netgame != 0 && deathmatch != 2 && dropped == 0 {
-        if (*player).weaponowned[weapon as usize] != 0 {
+        if player.weaponowned[widx] != 0 {
             return 0;
         }
-        (*player).bonuscount += BONUSADD;
-        (*player).weaponowned[weapon as usize] = 1;
+        player.bonuscount += BONUSADD;
+        player.weaponowned[widx] = 1;
         if deathmatch != 0 {
-            P_GiveAmmo(player, weaponinfo[weapon as usize].ammo, 5);
+            p_give_ammo(player, ammo_kind, 5);
         } else {
-            P_GiveAmmo(player, weaponinfo[weapon as usize].ammo, 2);
+            p_give_ammo(player, ammo_kind, 2);
         }
-        (*player).pendingweapon = weapon;
+        player.pendingweapon = weapon;
+        let player_ptr = player as *mut PlayerT;
         if std::ptr::eq(
-            player,
+            player_ptr,
             std::ptr::addr_of_mut!(players[0]).add(consoleplayer as usize),
         ) {
             S_StartSound(std::ptr::null_mut(), Sfx::Wpnup as c_int);
         }
         return 0;
     }
-    let gaveammo: c_int;
-    if weaponinfo[weapon as usize].ammo != am_noammo {
+    let gaveammo: c_int = if ammo_kind != am_noammo {
         if dropped != 0 {
-            gaveammo = P_GiveAmmo(player, weaponinfo[weapon as usize].ammo, 1);
+            p_give_ammo(player, ammo_kind, 1)
         } else {
-            gaveammo = P_GiveAmmo(player, weaponinfo[weapon as usize].ammo, 2);
+            p_give_ammo(player, ammo_kind, 2)
         }
     } else {
-        gaveammo = 0;
-    }
+        0
+    };
     let gaveweapon: c_int;
-    if (*player).weaponowned[weapon as usize] != 0 {
+    if player.weaponowned[widx] != 0 {
         gaveweapon = 0;
     } else {
         gaveweapon = 1;
-        (*player).weaponowned[weapon as usize] = 1;
-        (*player).pendingweapon = weapon;
+        player.weaponowned[widx] = 1;
+        player.pendingweapon = weapon;
     }
     (gaveweapon != 0 || gaveammo != 0) as c_int
 }
@@ -467,15 +521,20 @@ pub unsafe extern "C" fn P_GiveWeapon(
 /// `player.mo` must be a valid, non-null pointer to the player's map object.
 #[no_mangle]
 pub unsafe extern "C" fn P_GiveBody(player: *mut PlayerT, num: c_int) -> c_int {
-    if (*player).health >= MAXHEALTH {
+    p_give_body(&mut *player, num)
+}
+
+/// Rust-side body of [`P_GiveBody`]. See [`p_give_ammo`] for rationale.
+unsafe fn p_give_body(player: &mut PlayerT, num: c_int) -> c_int {
+    if player.health >= MAXHEALTH {
         return 0;
     }
-    (*player).health += num;
-    if (*player).health > MAXHEALTH {
-        (*player).health = MAXHEALTH;
+    player.health += num;
+    if player.health > MAXHEALTH {
+        player.health = MAXHEALTH;
     }
-    let mo = (*player).mo as *mut mobj_t;
-    (*mo).health = (*player).health;
+    let mo = &mut *(player.mo as *mut mobj_t);
+    mo.health = player.health;
     1
 }
 
@@ -495,12 +554,17 @@ pub unsafe extern "C" fn P_GiveBody(player: *mut PlayerT, num: c_int) -> c_int {
 /// `player` must be a valid, non-null pointer to a live `PlayerT`.
 #[no_mangle]
 pub unsafe extern "C" fn P_GiveArmor(player: *mut PlayerT, armortype: c_int) -> c_int {
+    p_give_armor(&mut *player, armortype)
+}
+
+/// Rust-side body of [`P_GiveArmor`]. See [`p_give_ammo`] for rationale.
+fn p_give_armor(player: &mut PlayerT, armortype: c_int) -> c_int {
     let hits = armortype * 100;
-    if (*player).armorpoints >= hits {
+    if player.armorpoints >= hits {
         return 0;
     }
-    (*player).armortype = armortype;
-    (*player).armorpoints = hits;
+    player.armortype = armortype;
+    player.armorpoints = hits;
     1
 }
 
@@ -519,11 +583,17 @@ pub unsafe extern "C" fn P_GiveArmor(player: *mut PlayerT, armortype: c_int) -> 
 /// `player` must be a valid, non-null pointer to a live `PlayerT`.
 #[no_mangle]
 pub unsafe extern "C" fn P_GiveCard(player: *mut PlayerT, card: c_int) {
-    if (*player).cards[card as usize] != 0 {
+    p_give_card(&mut *player, card)
+}
+
+/// Rust-side body of [`P_GiveCard`]. See [`p_give_ammo`] for rationale.
+fn p_give_card(player: &mut PlayerT, card: c_int) {
+    let idx = card as usize;
+    if player.cards[idx] != 0 {
         return;
     }
-    (*player).bonuscount = BONUSADD;
-    (*player).cards[card as usize] = 1;
+    player.bonuscount = BONUSADD;
+    player.cards[idx] = 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -545,34 +615,39 @@ pub unsafe extern "C" fn P_GiveCard(player: *mut PlayerT, card: c_int) {
 /// `pw_invisibility`, `player.mo` must also be valid.
 #[no_mangle]
 pub unsafe extern "C" fn P_GivePower(player: *mut PlayerT, power: c_int) -> c_int {
+    p_give_power(&mut *player, power)
+}
+
+/// Rust-side body of [`P_GivePower`]. See [`p_give_ammo`] for rationale.
+unsafe fn p_give_power(player: &mut PlayerT, power: c_int) -> c_int {
     let power = power as usize;
     if power == pw_invulnerability {
-        (*player).powers[power] = INVULNTICS;
+        player.powers[power] = INVULNTICS;
         return 1;
     }
     if power == pw_invisibility {
-        (*player).powers[power] = INVISTICS;
-        let mo = (*player).mo as *mut mobj_t;
-        (*mo).flags |= MF_SHADOW;
+        player.powers[power] = INVISTICS;
+        let mo = &mut *(player.mo as *mut mobj_t);
+        mo.flags |= MF_SHADOW;
         return 1;
     }
     if power == pw_infrared {
-        (*player).powers[power] = INFRATICS;
+        player.powers[power] = INFRATICS;
         return 1;
     }
     if power == pw_ironfeet {
-        (*player).powers[power] = IRONTICS;
+        player.powers[power] = IRONTICS;
         return 1;
     }
     if power == pw_strength {
-        P_GiveBody(player, 100);
-        (*player).powers[power] = 1;
+        p_give_body(player, 100);
+        player.powers[power] = 1;
         return 1;
     }
-    if (*player).powers[power] != 0 {
+    if player.powers[power] != 0 {
         return 0;
     }
-    (*player).powers[power] = 1;
+    player.powers[power] = 1;
     1
 }
 
@@ -599,27 +674,16 @@ pub unsafe extern "C" fn P_GivePower(player: *mut PlayerT, power: c_int) -> c_in
 /// owning `PlayerT`.  Global game-state statics (`players`, `consoleplayer`,
 /// `netgame`, `gamemode`, `gameskill`) must only be accessed from the
 /// game-logic thread.
-///
-/// # FIXME
-///
-/// The C source (`p_inter.c` lines 357-359) guards against a dead toucher
-/// (`toucher->health <= 0`) to handle sliding player corpses.  This Rust
-/// port omits that guard.
-///
-/// # FIXME
-///
-/// For `SPR_ARM1` the C source passes `deh_green_armor_class` (a runtime
-/// DEHacked value) to `P_GiveArmor`, but this port hardcodes `1`.
 #[no_mangle]
 pub unsafe extern "C" fn P_TouchSpecialThing(special: *mut mobj_t, toucher: *mut mobj_t) {
-    let _test_spr = SPR_ARM1;
+    // Read all primitives from `special` / `toucher` up front via raw
+    // pointers so we never hold a `&mut` to either of them across the
+    // FFI helper calls or `P_RemoveMobj` below; those reborrow the
+    // raw pointers and would alias.
     let delta = (*special).z - (*toucher).z;
     if delta > (*toucher).height || delta < -8 * FRACUNIT {
         return;
     }
-
-    let mut sound: c_int = Sfx::Itemup as c_int;
-    let player = (*toucher).player as *mut PlayerT;
 
     // Dead thing touching.
     // Can happen with a sliding player corpse.
@@ -627,322 +691,334 @@ pub unsafe extern "C" fn P_TouchSpecialThing(special: *mut mobj_t, toucher: *mut
         return;
     }
 
+    let mut sound: c_int = Sfx::Itemup as c_int;
+    let player_ptr = (*toucher).player as *mut PlayerT;
+    let sprite = (*special).sprite;
+    let special_flags = (*special).flags;
+    // Snapshot the DEH-tunable `static mut` values into locals so each
+    // unsafe read happens here, not inline inside the match arms.
+    let green_armor_class = deh_green_armor_class;
+    let blue_armor_class = deh_blue_armor_class;
+    let max_health = deh_max_health;
+    let max_armor = deh_max_armor;
+    let max_soulsphere = deh_max_soulsphere;
+    let soulsphere_health = deh_soulsphere_health;
+    let megasphere_health = deh_megasphere_health;
+    // `player` is the long-lived borrow. Every helper called below
+    // takes `&mut PlayerT` (the `p_give_*` inner fns), so no second
+    // `&mut PlayerT` is ever derived from `player_ptr`.
+    let player = &mut *player_ptr;
+
     // Identify by sprite.
-    match (*special).sprite {
+    match sprite {
         // armor
         SPR_ARM1 => {
-            if P_GiveArmor(player, 1) == 0 {
+            if p_give_armor(player, green_armor_class) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTARMOR);
+            player.message = DEH_String(GOTARMOR);
         }
         SPR_ARM2 => {
-            if P_GiveArmor(player, DEH_DEFAULT_BLUE_ARMOR_CLASS) == 0 {
+            if p_give_armor(player, blue_armor_class) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTMEGA);
+            player.message = DEH_String(GOTMEGA);
         }
         // bonus items
         SPR_BON1 => {
-            (*player).health += 1;
-            if (*player).health > DEH_DEFAULT_MAX_HEALTH {
-                (*player).health = DEH_DEFAULT_MAX_HEALTH;
+            player.health += 1;
+            if player.health > max_health {
+                player.health = max_health;
             }
-            let mo = (*player).mo as *mut mobj_t;
-            (*mo).health = (*player).health;
-            (*player).message = DEH_String(GOTHTHBONUS);
+            let mo = &mut *(player.mo as *mut mobj_t);
+            mo.health = player.health;
+            player.message = DEH_String(GOTHTHBONUS);
         }
         SPR_BON2 => {
-            (*player).armorpoints += 1;
-            if (*player).armorpoints > DEH_DEFAULT_MAX_ARMOR {
-                (*player).armorpoints = DEH_DEFAULT_MAX_ARMOR;
+            player.armorpoints += 1;
+            if player.armorpoints > max_armor {
+                player.armorpoints = max_armor;
             }
-            if (*player).armortype == 0 {
-                (*player).armortype = 1;
+            // `deh_green_armor_class` only applies to the green armor
+            // shirt; for the armor helmets, armortype 1 is always used.
+            if player.armortype == 0 {
+                player.armortype = 1;
             }
-            (*player).message = DEH_String(GOTARMBONUS);
+            player.message = DEH_String(GOTARMBONUS);
         }
         SPR_SOUL => {
-            (*player).health += DEH_DEFAULT_SOULSPHERE_HEALTH;
-            if (*player).health > DEH_DEFAULT_MAX_SOULSPHERE {
-                (*player).health = DEH_DEFAULT_MAX_SOULSPHERE;
+            player.health += soulsphere_health;
+            if player.health > max_soulsphere {
+                player.health = max_soulsphere;
             }
-            let mo = (*player).mo as *mut mobj_t;
-            (*mo).health = (*player).health;
-            (*player).message = DEH_String(GOTSUPER);
+            let mo = &mut *(player.mo as *mut mobj_t);
+            mo.health = player.health;
+            player.message = DEH_String(GOTSUPER);
             sound = Sfx::Getpow as c_int;
         }
         SPR_MEGA => {
             if gamemode != commercial {
                 return;
             }
-            (*player).health = DEH_DEFAULT_MEGASPHERE_HEALTH;
-            let mo = (*player).mo as *mut mobj_t;
-            (*mo).health = (*player).health;
-            P_GiveArmor(player, 2);
-            (*player).message = DEH_String(GOTMSPHERE);
+            player.health = megasphere_health;
+            {
+                let mo = &mut *(player.mo as *mut mobj_t);
+                mo.health = player.health;
+            }
+            // We always give armor type 2 for the megasphere; DEHacked
+            // only affects the standalone MegaArmor pickup
+            // (`SPR_ARM2`), not this one.
+            p_give_armor(player, 2);
+            player.message = DEH_String(GOTMSPHERE);
             sound = Sfx::Getpow as c_int;
         }
         // cards
         SPR_BKEY => {
-            if (*player).cards[it_bluecard as usize] == 0 {
-                (*player).message = DEH_String(GOTBLUECARD);
+            if player.cards[it_bluecard as usize] == 0 {
+                player.message = DEH_String(GOTBLUECARD);
             }
-            P_GiveCard(player, it_bluecard);
-            if netgame == 0 {
-                // fall through to common epilogue
-            } else {
+            p_give_card(player, it_bluecard);
+            if netgame != 0 {
                 return;
             }
         }
         SPR_YKEY => {
-            if (*player).cards[it_yellowcard as usize] == 0 {
-                (*player).message = DEH_String(GOTYELWCARD);
+            if player.cards[it_yellowcard as usize] == 0 {
+                player.message = DEH_String(GOTYELWCARD);
             }
-            P_GiveCard(player, it_yellowcard);
-            if netgame == 0 {
-                // fall through
-            } else {
+            p_give_card(player, it_yellowcard);
+            if netgame != 0 {
                 return;
             }
         }
         SPR_RKEY => {
-            if (*player).cards[it_redcard as usize] == 0 {
-                (*player).message = DEH_String(GOTREDCARD);
+            if player.cards[it_redcard as usize] == 0 {
+                player.message = DEH_String(GOTREDCARD);
             }
-            P_GiveCard(player, it_redcard);
-            if netgame == 0 {
-                // fall through
-            } else {
+            p_give_card(player, it_redcard);
+            if netgame != 0 {
                 return;
             }
         }
         SPR_BSKU => {
-            if (*player).cards[it_blueskull as usize] == 0 {
-                (*player).message = DEH_String(GOTBLUESKUL);
+            if player.cards[it_blueskull as usize] == 0 {
+                player.message = DEH_String(GOTBLUESKUL);
             }
-            P_GiveCard(player, it_blueskull);
-            if netgame == 0 {
-                // fall through
-            } else {
+            p_give_card(player, it_blueskull);
+            if netgame != 0 {
                 return;
             }
         }
         SPR_YSKU => {
-            if (*player).cards[it_yellowskull as usize] == 0 {
-                (*player).message = DEH_String(GOTYELWSKUL);
+            if player.cards[it_yellowskull as usize] == 0 {
+                player.message = DEH_String(GOTYELWSKUL);
             }
-            P_GiveCard(player, it_yellowskull);
-            if netgame == 0 {
-                // fall through
-            } else {
+            p_give_card(player, it_yellowskull);
+            if netgame != 0 {
                 return;
             }
         }
         SPR_RSKU => {
-            if (*player).cards[it_redskull as usize] == 0 {
-                (*player).message = DEH_String(GOTREDSKULL);
+            if player.cards[it_redskull as usize] == 0 {
+                player.message = DEH_String(GOTREDSKULL);
             }
-            P_GiveCard(player, it_redskull);
-            if netgame == 0 {
-                // fall through
-            } else {
+            p_give_card(player, it_redskull);
+            if netgame != 0 {
                 return;
             }
         }
         // medikits, heals
         SPR_STIM => {
-            if P_GiveBody(player, 10) == 0 {
+            if p_give_body(player, 10) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTSTIM);
+            player.message = DEH_String(GOTSTIM);
         }
         SPR_MEDI => {
-            if P_GiveBody(player, 25) == 0 {
+            if p_give_body(player, 25) == 0 {
                 return;
             }
-            if (*player).health < 25 {
-                (*player).message = DEH_String(GOTMEDINEED);
+            if player.health < 25 {
+                player.message = DEH_String(GOTMEDINEED);
             } else {
-                (*player).message = DEH_String(GOTMEDIKIT);
+                player.message = DEH_String(GOTMEDIKIT);
             }
         }
         // power ups
         SPR_PINV => {
-            if P_GivePower(player, pw_invulnerability as c_int) == 0 {
+            if p_give_power(player, pw_invulnerability as c_int) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTINVUL);
+            player.message = DEH_String(GOTINVUL);
             sound = Sfx::Getpow as c_int;
         }
         SPR_PSTR => {
-            if P_GivePower(player, pw_strength as c_int) == 0 {
+            if p_give_power(player, pw_strength as c_int) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTBERSERK);
-            if (*player).readyweapon != wp_fist {
-                (*player).pendingweapon = wp_fist;
+            player.message = DEH_String(GOTBERSERK);
+            if player.readyweapon != wp_fist {
+                player.pendingweapon = wp_fist;
             }
             sound = Sfx::Getpow as c_int;
         }
         SPR_PINS => {
-            if P_GivePower(player, pw_invisibility as c_int) == 0 {
+            if p_give_power(player, pw_invisibility as c_int) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTINVIS);
+            player.message = DEH_String(GOTINVIS);
             sound = Sfx::Getpow as c_int;
         }
         SPR_SUIT => {
-            if P_GivePower(player, pw_ironfeet as c_int) == 0 {
+            if p_give_power(player, pw_ironfeet as c_int) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTSUIT);
+            player.message = DEH_String(GOTSUIT);
             sound = Sfx::Getpow as c_int;
         }
         SPR_PMAP => {
-            if P_GivePower(player, pw_allmap as c_int) == 0 {
+            if p_give_power(player, pw_allmap as c_int) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTMAP);
+            player.message = DEH_String(GOTMAP);
             sound = Sfx::Getpow as c_int;
         }
         SPR_PVIS => {
-            if P_GivePower(player, pw_infrared as c_int) == 0 {
+            if p_give_power(player, pw_infrared as c_int) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTVISOR);
+            player.message = DEH_String(GOTVISOR);
             sound = Sfx::Getpow as c_int;
         }
         // ammo
         SPR_CLIP => {
-            if (*special).flags & MF_DROPPED != 0 {
-                if P_GiveAmmo(player, am_clip, 0) == 0 {
-                    return;
-                }
+            let amount = if special_flags & MF_DROPPED != 0 {
+                0
             } else {
-                if P_GiveAmmo(player, am_clip, 1) == 0 {
-                    return;
-                }
+                1
+            };
+            if p_give_ammo(player, am_clip, amount) == 0 {
+                return;
             }
-            (*player).message = DEH_String(GOTCLIP);
+            player.message = DEH_String(GOTCLIP);
         }
         SPR_AMMO => {
-            if P_GiveAmmo(player, am_clip, 5) == 0 {
+            if p_give_ammo(player, am_clip, 5) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTCLIPBOX);
+            player.message = DEH_String(GOTCLIPBOX);
         }
         SPR_ROCK => {
-            if P_GiveAmmo(player, am_misl, 1) == 0 {
+            if p_give_ammo(player, am_misl, 1) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTROCKET);
+            player.message = DEH_String(GOTROCKET);
         }
         SPR_BROK => {
-            if P_GiveAmmo(player, am_misl, 5) == 0 {
+            if p_give_ammo(player, am_misl, 5) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTROCKBOX);
+            player.message = DEH_String(GOTROCKBOX);
         }
         SPR_CELL => {
-            if P_GiveAmmo(player, am_cell, 1) == 0 {
+            if p_give_ammo(player, am_cell, 1) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTCELL);
+            player.message = DEH_String(GOTCELL);
         }
         SPR_CELP => {
-            if P_GiveAmmo(player, am_cell, 5) == 0 {
+            if p_give_ammo(player, am_cell, 5) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTCELLBOX);
+            player.message = DEH_String(GOTCELLBOX);
         }
         SPR_SHEL => {
-            if P_GiveAmmo(player, am_shell, 1) == 0 {
+            if p_give_ammo(player, am_shell, 1) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTSHELLS);
+            player.message = DEH_String(GOTSHELLS);
         }
         SPR_SBOX => {
-            if P_GiveAmmo(player, am_shell, 5) == 0 {
+            if p_give_ammo(player, am_shell, 5) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTSHELLBOX);
+            player.message = DEH_String(GOTSHELLBOX);
         }
         SPR_BPAK => {
-            if (*player).backpack == 0 {
+            if player.backpack == 0 {
                 for i in 0..NUMAMMO {
-                    (*player).maxammo[i] *= 2;
+                    player.maxammo[i] *= 2;
                 }
-                (*player).backpack = 1;
+                player.backpack = 1;
             }
             for i in 0..NUMAMMO {
-                P_GiveAmmo(player, i as c_int, 1);
+                p_give_ammo(player, i as c_int, 1);
             }
-            (*player).message = DEH_String(GOTBACKPACK);
+            player.message = DEH_String(GOTBACKPACK);
         }
         // weapons
         SPR_BFUG => {
-            if P_GiveWeapon(player, wp_bfg, 0) == 0 {
+            if p_give_weapon(player, wp_bfg, 0) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTBFG9000);
+            player.message = DEH_String(GOTBFG9000);
             sound = Sfx::Wpnup as c_int;
         }
         SPR_MGUN => {
-            if P_GiveWeapon(
+            if p_give_weapon(
                 player,
                 wp_chaingun,
-                (((*special).flags & MF_DROPPED) != 0) as c_int,
+                ((special_flags & MF_DROPPED) != 0) as c_int,
             ) == 0
             {
                 return;
             }
-            (*player).message = DEH_String(GOTCHAINGUN);
+            player.message = DEH_String(GOTCHAINGUN);
             sound = Sfx::Wpnup as c_int;
         }
         SPR_CSAW => {
-            if P_GiveWeapon(player, wp_chainsaw, 0) == 0 {
+            if p_give_weapon(player, wp_chainsaw, 0) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTCHAINSAW);
+            player.message = DEH_String(GOTCHAINSAW);
             sound = Sfx::Wpnup as c_int;
         }
         SPR_LAUN => {
-            if P_GiveWeapon(player, wp_missile, 0) == 0 {
+            if p_give_weapon(player, wp_missile, 0) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTLAUNCHER);
+            player.message = DEH_String(GOTLAUNCHER);
             sound = Sfx::Wpnup as c_int;
         }
         SPR_PLAS => {
-            if P_GiveWeapon(player, wp_plasma, 0) == 0 {
+            if p_give_weapon(player, wp_plasma, 0) == 0 {
                 return;
             }
-            (*player).message = DEH_String(GOTPLASMA);
+            player.message = DEH_String(GOTPLASMA);
             sound = Sfx::Wpnup as c_int;
         }
         SPR_SHOT => {
-            if P_GiveWeapon(
+            if p_give_weapon(
                 player,
                 wp_shotgun,
-                (((*special).flags & MF_DROPPED) != 0) as c_int,
+                ((special_flags & MF_DROPPED) != 0) as c_int,
             ) == 0
             {
                 return;
             }
-            (*player).message = DEH_String(GOTSHOTGUN);
+            player.message = DEH_String(GOTSHOTGUN);
             sound = Sfx::Wpnup as c_int;
         }
         SPR_SGN2 => {
-            if P_GiveWeapon(
+            if p_give_weapon(
                 player,
                 wp_supershotgun,
-                (((*special).flags & MF_DROPPED) != 0) as c_int,
+                ((special_flags & MF_DROPPED) != 0) as c_int,
             ) == 0
             {
                 return;
             }
-            (*player).message = DEH_String(GOTSHOTGUN2);
+            player.message = DEH_String(GOTSHOTGUN2);
             sound = Sfx::Wpnup as c_int;
         }
         _ => {
@@ -950,13 +1026,13 @@ pub unsafe extern "C" fn P_TouchSpecialThing(special: *mut mobj_t, toucher: *mut
         }
     }
 
-    if (*special).flags & MF_COUNTITEM != 0 {
-        (*player).itemcount += 1;
+    if special_flags & MF_COUNTITEM != 0 {
+        player.itemcount += 1;
     }
     P_RemoveMobj(special);
-    (*player).bonuscount += BONUSADD;
+    player.bonuscount += BONUSADD;
     if std::ptr::eq(
-        player,
+        player_ptr,
         std::ptr::addr_of_mut!(players[0]).add(consoleplayer as usize),
     ) {
         S_StartSound(std::ptr::null_mut(), sound);
@@ -1299,5 +1375,19 @@ mod tests {
         assert_eq!(DEH_DEFAULT_MAX_SOULSPHERE, 200);
         assert_eq!(DEH_DEFAULT_SOULSPHERE_HEALTH, 100);
         assert_eq!(DEH_DEFAULT_MEGASPHERE_HEALTH, 200);
+    }
+
+    #[test]
+    fn deh_runtime_globals_default_to_deh_values() {
+        let _g = LOCK.lock().unwrap();
+        unsafe {
+            assert_eq!(deh_max_health, DEH_DEFAULT_MAX_HEALTH);
+            assert_eq!(deh_max_armor, DEH_DEFAULT_MAX_ARMOR);
+            assert_eq!(deh_green_armor_class, DEH_DEFAULT_GREEN_ARMOR_CLASS);
+            assert_eq!(deh_blue_armor_class, DEH_DEFAULT_BLUE_ARMOR_CLASS);
+            assert_eq!(deh_max_soulsphere, DEH_DEFAULT_MAX_SOULSPHERE);
+            assert_eq!(deh_soulsphere_health, DEH_DEFAULT_SOULSPHERE_HEALTH);
+            assert_eq!(deh_megasphere_health, DEH_DEFAULT_MEGASPHERE_HEALTH);
+        }
     }
 }
