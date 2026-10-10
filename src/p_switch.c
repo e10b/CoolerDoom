@@ -112,7 +112,7 @@ void P_InitSwitchList(void)
 
     episode = 1;
 
-    if (gamemode == registered || retail)
+    if (gamemode == registered || gamemode == retail)
         episode = 2;
     else if ( gamemode == commercial )
 	    episode = 3;
@@ -650,4 +650,3 @@ P_UseSpecialLine
 
     return true;
 }
-

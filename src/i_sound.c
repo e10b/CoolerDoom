@@ -37,7 +37,11 @@
 #endif
 
 #include <fcntl.h>
+#ifdef _WIN32
 #include <io.h>
+#else
+#include <unistd.h>
+#endif
 #include <SDL3/SDL_audio.h>
 //#include <ioctl.h>
 // Linux voxware output.
@@ -214,7 +218,7 @@ getsfx
     if (W_CheckNumForName(name) == -1)
     {
 
-        return;
+        return NULL;
 //      sfxlump = W_GetNumForName("dspistol");
     }
     else

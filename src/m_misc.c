@@ -32,7 +32,11 @@ rcsid[] = "$Id: m_misc.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 //#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#include <unistd.h>
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 #include <ctype.h>
 
@@ -146,7 +150,6 @@ M_ReadFile
 {
     FILE* handle;
     int count, length;
-    struct stat	fileinfo;
     byte		*buf;
 
    // handle = open (name, O_RDONLY | O_BINARY, 0666);
@@ -250,10 +253,10 @@ default_t	defaults[] =
 
     {"key_right",&key_right, KEY_RIGHTARROW},
     {"key_left",&key_left, KEY_LEFTARROW},
-    {"key_up",&key_up, KEY_UPARROW},
-    {"key_down",&key_down, KEY_DOWNARROW},
-    {"key_strafeleft",&key_strafeleft, ','},
-    {"key_straferight",&key_straferight, '.'},
+    {"key_up",&key_up, 'w'},
+    {"key_down",&key_down, 's'},
+    {"key_strafeleft",&key_strafeleft, 'a'},
+    {"key_straferight",&key_straferight, 'd'},
 
     {"key_fire",&key_fire, KEY_RCTRL},
     {"key_use",&key_use, ' '},
@@ -527,5 +530,4 @@ void M_ScreenShot (void)
 
     players[consoleplayer].message = "screen shot";
 }
-
 

@@ -45,7 +45,10 @@ rcsid[] = "$Id: r_data.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 
 #include "r_data.h"
 #include <string.h>
+#include <stdlib.h>
+#ifdef _WIN32
 #include <malloc.h>
+#endif
 //
 // Graphics.
 // DOOM graphics for walls and sprites
