@@ -12,29 +12,107 @@
       margin: 0;
       overflow: hidden;
       background: #000;
+      display: grid;
+      place-items: center;
     }
 
     #canvas {
       display: block;
-      width: 100vw;
-      height: 100vh;
+      width: min(960px, calc(100vw - 48px), calc((100vh - 48px) * 1.6));
+      aspect-ratio: 8 / 5;
       border: 0;
       outline: 0;
       background: #000;
       cursor: none;
       image-rendering: pixelated;
     }
+
+    #console {
+      position: fixed;
+      right: 20px;
+      bottom: 76px;
+      width: min(640px, calc(100vw - 40px));
+      height: min(280px, calc(100vh - 116px));
+      box-sizing: border-box;
+      margin: 0;
+      padding: 14px;
+      overflow: auto;
+      border: 1px solid #343434;
+      border-radius: 8px;
+      background: rgba(8, 8, 8, 0.96);
+      color: #d7ffd7;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
+    }
+
+    #console[hidden] {
+      display: none;
+    }
+
+    #console-toggle {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      border: 1px solid #3d3d3d;
+      border-radius: 10px;
+      background: #171717;
+      color: #8cff8c;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+    }
+
+    #console-toggle:hover,
+    #console-toggle[aria-expanded="true"] {
+      border-color: #72d572;
+      background: #232923;
+    }
+
+    #console-toggle svg {
+      width: 23px;
+      height: 23px;
+    }
   </style>
 </head>
 <body>
   <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+  <pre id="console" aria-live="polite" hidden></pre>
+  <button id="console-toggle" type="button" aria-label="Toggle debug console" aria-controls="console" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 7l4 4-4 4M11 17h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
   <script>
+    const canvas = document.getElementById("canvas");
+    const consoleOutput = document.getElementById("console");
+    const consoleToggle = document.getElementById("console-toggle");
+
+    function writeConsole(args, writer) {
+      const text = args.join(" ");
+      writer(text);
+      consoleOutput.append(document.createTextNode(text + "\n"));
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
     var Module = {
-      canvas: document.getElementById("canvas"),
-      print: (...args) => console.log(...args),
-      printErr: (...args) => console.error(...args),
+      canvas,
+      print: (...args) => writeConsole(args, console.log),
+      printErr: (...args) => writeConsole(args, console.error),
       setStatus: () => {}
     };
+
+    consoleToggle.addEventListener("click", () => {
+      const opening = consoleOutput.hidden;
+      consoleOutput.hidden = !opening;
+      consoleToggle.setAttribute("aria-expanded", String(opening));
+      if (!opening) canvas.focus();
+    });
     Module.canvas.addEventListener("pointerdown", () => Module.canvas.focus());
     Module.canvas.focus();
   </script>
