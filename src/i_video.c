@@ -46,6 +46,7 @@ rcsid[] = "$Id: i_x.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 #include "d_main.h"
 
 #include "doomdef.h"
+#include "i_video_wgpu.h"
 
 #define POINTER_WARP_COUNTDOWN	1
 
@@ -177,6 +178,7 @@ void I_ShutdownGraphics(void)
 
   // Paranoia.
   //image->data = NULL;
+  I_WGPUShutdown();
   SDL_DestroyRenderer(mainRenderer);
   SDL_DestroyWindow(mainWindow);
 
@@ -416,6 +418,7 @@ void I_SetPalette (byte* pal)
     SDL_SetSurfacePalette(UISurface, palette);
 
 SDL_SetSurfacePalette(imageSurface,palette);
+I_WGPUSetPalette(pal);
    // UploadNewPalette(X_cmap, palette);
 
 }
@@ -478,16 +481,13 @@ void I_InitGraphics(void)
 	if (!mainWindow)
 		I_Error("Could not create game window: %s", SDL_GetError());
 
-	mainSurface = SDL_GetWindowSurface(mainWindow);
-	if (!mainSurface)
-		I_Error("Could not get game window surface: %s", SDL_GetError());
-
 	imageSurface = SDL_CreateSurface(X_width, X_height, SDL_PIXELFORMAT_INDEX8 );
-    // use the default visual
-	SDL_ShowWindow(mainWindow);
+	if (!I_WGPUInit(mainWindow, X_width, X_height))
+		I_Error("Could not initialize mywgfx compute presenter");
+
+    SDL_ShowWindow(mainWindow);
     // wait until it is OK to draw
     SDL_SetSurfaceBlendMode(imageSurface, SDL_BLENDMODE_NONE);
-    SDL_SetSurfaceBlendMode(mainSurface, SDL_BLENDMODE_NONE);
     
     SDL_SetWindowRelativeMouseMode(mainWindow, true);
 imageSurface->pixels = (void*) screens[0];
@@ -497,14 +497,5 @@ imageSurface->pixels = (void*) screens[0];
 
 void I_UpdateScreen(void)
 {
-
-     SDL_BlitSurfaceScaled(imageSurface, NULL, mainSurface, NULL, SDL_SCALEMODE_PIXELART);
-  //   SDL_BlitSurfaceScaled(UISurface, NULL, mainSurface, &destRect, SDL_SCALEMODE_PIXELART);
-
-
-SDL_UpdateWindowSurface(mainWindow);
-
-
-
+    I_WGPUPresent(screens[0]);
 }
-
