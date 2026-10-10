@@ -112,10 +112,16 @@ bool CreateFrameTexture()
 {
     wgpu::TextureDescriptor descriptor{};
     descriptor.dimension = wgpu::TextureDimension::_2D;
-    // Doom's PLAYPAL entries are sRGB-encoded bytes. Sampling through an
-    // sRGB view decodes them to linear before the presentation pass writes
-    // to the swapchain, avoiding a second gamma encoding by the compositor.
+    // Doom's PLAYPAL entries are sRGB-encoded bytes. Native swapchains expose
+    // an sRGB render target, so decode while sampling and let the target encode
+    // again. Browser canvas targets are plain *Unorm and are composited as
+    // sRGB; keeping the sampled bytes encoded avoids presenting linear values
+    // as if they were already sRGB (which makes the image far too dark).
+#ifdef __EMSCRIPTEN__
+    descriptor.format = wgpu::TextureFormat::RGBA8Unorm;
+#else
     descriptor.format = wgpu::TextureFormat::RGBA8UnormSrgb;
+#endif
     descriptor.size = {gSourceWidth, gSourceHeight, 1};
     descriptor.mipLevelCount = 1;
     descriptor.sampleCount = 1;
