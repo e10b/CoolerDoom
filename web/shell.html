@@ -5,6 +5,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>wDoom</title>
+  <link rel="preload" href="title/1.jpeg" as="image">
+  <link rel="preload" href="title/2.jpeg" as="image">
+  <link rel="preload" href="title/3.jpeg" as="image">
+  <link rel="preload" href="title/4.jpeg" as="image">
+  <link rel="preload" href="title/5.jpeg" as="image">
+  <link rel="preload" href="title/a.flac" as="audio" type="audio/flac">
   <style>
     html,
     body {
@@ -26,6 +32,43 @@
       background: #000;
       cursor: none;
       image-rendering: pixelated;
+    }
+
+    #title-intro {
+      position: fixed;
+      z-index: 100;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      border: 0;
+      background: #000;
+      color: #888;
+      cursor: pointer;
+    }
+
+    #title-intro[hidden] {
+      display: none;
+    }
+
+    #title-frame {
+      display: block;
+      width: min(600px, calc(100vw - 48px));
+      height: auto;
+    }
+
+    #title-prompt {
+      display: block;
+      margin-top: 18px;
+      font: 12px system-ui, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    #title-prompt[hidden] {
+      display: none;
     }
 
     #console {
@@ -191,6 +234,13 @@
   </style>
 </head>
 <body>
+  <button id="title-intro" type="button" aria-label="Start wDoom">
+    <span>
+      <img id="title-frame" src="title/1.jpeg" alt="wDoom">
+      <span id="title-prompt" hidden>Click to start</span>
+    </span>
+  </button>
+  <audio id="title-audio" src="title/a.flac" preload="auto" autoplay></audio>
   <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
   <pre id="console" aria-live="polite" hidden></pre>
   <button id="console-toggle" type="button" title="Console" aria-label="Toggle debug console" aria-controls="console" aria-expanded="false">
@@ -216,12 +266,51 @@
   </div>
   <script>
     const canvas = document.getElementById("canvas");
+    const titleIntro = document.getElementById("title-intro");
+    const titleFrame = document.getElementById("title-frame");
+    const titlePrompt = document.getElementById("title-prompt");
+    const titleAudio = document.getElementById("title-audio");
     const consoleOutput = document.getElementById("console");
     const consoleToggle = document.getElementById("console-toggle");
     const creditsToggle = document.getElementById("credits-toggle");
     const creditsOverlay = document.getElementById("credits-overlay");
     const creditsDialog = document.getElementById("credits-dialog");
     const creditsClose = document.getElementById("credits-close");
+    const titleFrames = [1, 2, 3, 4, 5].map(frame => `title/${frame}.jpeg`);
+    const titleFramesReady = Promise.all(titleFrames.map(source => new Promise(resolve => {
+      const image = new Image();
+      image.addEventListener("load", resolve, { once: true });
+      image.addEventListener("error", resolve, { once: true });
+      image.src = source;
+    })));
+    let titleStarted = false;
+
+    async function playTitleIntro() {
+      if (titleStarted) return;
+      titleStarted = true;
+      titlePrompt.hidden = true;
+
+      try {
+        await titleAudio.play();
+      } catch {
+        titleStarted = false;
+        titlePrompt.hidden = false;
+        return;
+      }
+
+      await titleFramesReady;
+
+      titleFrames.forEach((source, index) => {
+        window.setTimeout(() => { titleFrame.src = source; }, index * 400);
+      });
+      window.setTimeout(() => {
+        titleIntro.hidden = true;
+        canvas.focus();
+      }, 2000);
+    }
+
+    titleIntro.addEventListener("click", playTitleIntro);
+    playTitleIntro();
 
     function writeConsole(args, writer) {
       const text = args.join(" ");

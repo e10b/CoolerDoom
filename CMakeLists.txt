@@ -100,6 +100,19 @@ if(EMSCRIPTEN)
     configure_file(LICENSE "${CMAKE_BINARY_DIR}/LICENSE" COPYONLY)
     configure_file(LICENSE-DOOM1 "${CMAKE_BINARY_DIR}/LICENSE-DOOM1" COPYONLY)
     configure_file(NOTICE.md "${CMAKE_BINARY_DIR}/NOTICE.md" COPYONLY)
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/title")
+    foreach(TITLE_FRAME RANGE 1 5)
+        configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/title/${TITLE_FRAME}.jpeg"
+            "${CMAKE_BINARY_DIR}/title/${TITLE_FRAME}.jpeg"
+            COPYONLY
+        )
+    endforeach()
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/title/a.flac"
+        "${CMAKE_BINARY_DIR}/title/a.flac"
+        COPYONLY
+    )
     target_link_options(wDoom PRIVATE
         "--shell-file"
         "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
