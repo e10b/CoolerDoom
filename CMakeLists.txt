@@ -1,6 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
 cmake_minimum_required(VERSION 3.16...3.25)
 
-project(CustomDoomPort LANGUAGES C CXX)
+project(wDoom LANGUAGES C CXX)
 
 include(FetchContent)
 
@@ -62,35 +64,37 @@ file(GLOB_RECURSE doom_c_sources CONFIGURE_DEPENDS "src/*.c")
 file(GLOB_RECURSE doom_cpp_sources CONFIGURE_DEPENDS "src/*.cpp")
 list(FILTER doom_c_sources EXCLUDE REGEX "src/i_main.c$")
 
-add_executable(CustomDoom
+add_executable(wDoom
     ${doom_c_sources}
     ${doom_cpp_sources}
     src/i_main.c
 )
 
-target_include_directories(CustomDoom PRIVATE
+target_include_directories(wDoom PRIVATE
     src
     deps/wgfx/src
 )
-target_link_libraries(CustomDoom PRIVATE
+target_link_libraries(wDoom PRIVATE
     wgfx::wgfx
     webgpu
     sdl2webgpu
     ${DOOM_SDL_TARGET}
 )
-target_compile_features(CustomDoom PRIVATE cxx_std_17)
+target_compile_features(wDoom PRIVATE cxx_std_17)
 
 if(EMSCRIPTEN)
     set(DOOM_WAD "" CACHE FILEPATH "IWAD to package into the browser build")
     if(NOT DOOM_WAD OR NOT EXISTS "${DOOM_WAD}")
         message(FATAL_ERROR "Set DOOM_WAD to a readable IWAD for the web build")
     endif()
-    set_target_properties(CustomDoom PROPERTIES
+    set_target_properties(wDoom PROPERTIES
         OUTPUT_NAME index
         SUFFIX ".html"
         LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
     )
-    target_link_options(CustomDoom PRIVATE
+    configure_file(LICENSE "${CMAKE_BINARY_DIR}/LICENSE" COPYONLY)
+    configure_file(NOTICE.md "${CMAKE_BINARY_DIR}/NOTICE.md" COPYONLY)
+    target_link_options(wDoom PRIVATE
         "--shell-file"
         "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
         "--preload-file"
@@ -104,5 +108,5 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
-target_copy_webgpu_binaries(CustomDoom)
+target_copy_webgpu_binaries(wDoom)
 

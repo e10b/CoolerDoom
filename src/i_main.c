@@ -4,6 +4,10 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Modified for CoolDoom and wDoom in 2026.
+// id Software later released the DOOM engine source under GNU GPL v2.
+// This modified file is distributed under GPL v2; see LICENSE and NOTICE.md.
+// See Git history for modification details.
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as
@@ -35,7 +39,10 @@ main
 ( int		argc,
   char**	argv )
 {
-    printf("Custom Doom Starting\n\n");
+    printf("wDoom\n");
+    printf("Copyright (C) 1993-1996 id Software, Inc.; 2026 brubid and Ethan Herman\n");
+    printf("Licensed under GNU GPL v2. ABSOLUTELY NO WARRANTY.\n");
+    printf("See LICENSE and NOTICE.md for license terms, source, and attribution.\n\n");
     myargc = argc;
     myargv = argv;
 

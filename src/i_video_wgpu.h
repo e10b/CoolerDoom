@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #ifndef I_VIDEO_WGPU_H
 #define I_VIDEO_WGPU_H
 

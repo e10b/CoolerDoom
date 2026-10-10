@@ -1,9 +1,10 @@
 <!doctype html>
+<!-- SPDX-License-Identifier: GPL-2.0-only -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CoolerDoom</title>
+  <title>wDoom</title>
   <style>
     html,
     body {
@@ -166,6 +167,11 @@
       font-size: 12px;
     }
 
+    .credits-note a {
+      color: #999;
+      text-underline-offset: 3px;
+    }
+
     #credits-close {
       margin-top: 22px;
       padding: 6px 12px;
@@ -201,10 +207,10 @@
         <p>The original GitHub project, Doom/SDL 3 port foundation, and expanded visplane limit.</p>
       </div>
       <div class="credit">
-        <h2><a href="https://github.com/e10b" target="_blank" rel="noreferrer">CoolerDoom — @e10b</a></h2>
+        <h2><a href="https://github.com/e10b" target="_blank" rel="noreferrer">wDoom — @e10b</a></h2>
         <p>macOS build and runtime support, the mywgfx WebGPU compute renderer, Emscripten browser port, and web interface.</p>
       </div>
-      <p class="credits-note">Based on the original DOOM source code by id Software.</p>
+      <p class="credits-note">Lineage: DOOM → CoolDoom → wDoom. Source licensed under GNU GPL v2; game data is not included.<br><a href="https://github.com/e10b/CoolerDoom" target="_blank" rel="noreferrer">Source and license</a>.</p>
       <button id="credits-close" type="button">Close</button>
     </section>
   </div>
@@ -245,6 +251,8 @@
     }
 
     creditsToggle.addEventListener("click", () => {
+      consoleOutput.hidden = true;
+      consoleToggle.setAttribute("aria-expanded", "false");
       creditsOverlay.hidden = false;
       creditsToggle.setAttribute("aria-expanded", "true");
       creditsClose.focus();

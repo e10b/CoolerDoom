@@ -4,6 +4,10 @@
 // $Id:$
 //
 // Copyright (C) 1993-1996 by id Software, Inc.
+// Modified for CoolDoom and wDoom in 2026.
+// id Software later released the DOOM engine source under GNU GPL v2.
+// This modified file is distributed under GPL v2; see LICENSE and NOTICE.md.
+// See Git history for modification details.
 //
 // This source is available for distribution and/or modification
 // only under the terms of the DOOM Source Code License as

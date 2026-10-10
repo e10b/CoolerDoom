@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #ifndef SDL2_WEBGPU_H
 #define SDL2_WEBGPU_H
 

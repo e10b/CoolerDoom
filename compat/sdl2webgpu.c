@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include "sdl2webgpu.h"
 
 #if defined(__EMSCRIPTEN__)
