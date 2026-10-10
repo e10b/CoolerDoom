@@ -12,6 +12,7 @@
 
 # Local game data and runtime configuration
 *.wad
+!doom1.wad
 default.cfg
 
 # User-specific files (MonoDevelop/Xamarin Studio)

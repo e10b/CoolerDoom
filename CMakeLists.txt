@@ -83,9 +83,14 @@ target_link_libraries(wDoom PRIVATE
 target_compile_features(wDoom PRIVATE cxx_std_17)
 
 if(EMSCRIPTEN)
-    set(DOOM_WAD "" CACHE FILEPATH "IWAD to package into the browser build")
-    if(NOT DOOM_WAD OR NOT EXISTS "${DOOM_WAD}")
-        message(FATAL_ERROR "Set DOOM_WAD to a readable IWAD for the web build")
+    set(DOOM1_WAD "${CMAKE_CURRENT_SOURCE_DIR}/doom1.wad")
+    set(DOOM1_WAD_SHA256 "c4e9e6e6cc24a1c5a21c382c396ee3e2d5513d3f196ff464dcdfb2a003fbcc2e")
+    if(NOT EXISTS "${DOOM1_WAD}")
+        message(FATAL_ERROR "The bundled shareware doom1.wad is missing")
+    endif()
+    file(SHA256 "${DOOM1_WAD}" DOOM1_WAD_ACTUAL_SHA256)
+    if(NOT DOOM1_WAD_ACTUAL_SHA256 STREQUAL DOOM1_WAD_SHA256)
+        message(FATAL_ERROR "doom1.wad is not the original unmodified shareware v1.0 IWAD")
     endif()
     set_target_properties(wDoom PROPERTIES
         OUTPUT_NAME index
@@ -93,12 +98,13 @@ if(EMSCRIPTEN)
         LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
     )
     configure_file(LICENSE "${CMAKE_BINARY_DIR}/LICENSE" COPYONLY)
+    configure_file(LICENSE-DOOM1 "${CMAKE_BINARY_DIR}/LICENSE-DOOM1" COPYONLY)
     configure_file(NOTICE.md "${CMAKE_BINARY_DIR}/NOTICE.md" COPYONLY)
     target_link_options(wDoom PRIVATE
         "--shell-file"
         "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
         "--preload-file"
-        "${DOOM_WAD}@/doom.wad"
+        "${DOOM1_WAD}@/doom1.wad"
         "-sALLOW_MEMORY_GROWTH=1"
         "-sASYNCIFY=1"
         "-sEXIT_RUNTIME=0"

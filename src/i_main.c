@@ -42,7 +42,7 @@ main
     printf("wDoom\n");
     printf("Copyright (C) 1993-1996 id Software, Inc.; 2026 brubid and Ethan Herman\n");
     printf("Licensed under GNU GPL v2. ABSOLUTELY NO WARRANTY.\n");
-    printf("See LICENSE and NOTICE.md for license terms, source, and attribution.\n\n");
+    printf("See LICENSE, LICENSE-DOOM1, and NOTICE.md for license terms, source, and attribution.\n\n");
     myargc = argc;
     myargv = argv;
 

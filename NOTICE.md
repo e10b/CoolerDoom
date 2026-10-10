@@ -20,5 +20,8 @@ for the complete terms and the Git history for file-by-file modification
 history, authorship, and dates. Third-party dependencies retain their own
 copyright notices and compatible licenses.
 
-DOOM game data, including retail IWAD files, artwork, levels, music, and sound,
-is not licensed by the GPL source release and is not part of this repository.
+The bundled `doom1.wad` is the original, unmodified DOOM shareware v1.0
+Episode 1 IWAD, Copyright © 1993 id Software, Inc. It is not licensed under the
+GPL. Its separate terms are in [LICENSE-DOOM1](LICENSE-DOOM1); access to or use
+of that shareware content must not be sold. No commercial `DOOM.WAD` is
+included. Other DOOM game data is not part of this repository.
