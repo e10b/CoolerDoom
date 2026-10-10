@@ -74,7 +74,7 @@ extern boolean		chat_on;		// in heads-up code
 // defaulted values
 //
 int			mouseSensitivity,x_mouse,y_mouse;       // has default
-int key_lookup, key_lookdown;
+extern int key_lookup, key_lookdown;
 // Show messages has default, 0 = off, 1 = on
 int			showMessages;
 
@@ -136,7 +136,7 @@ char	endstring[160];
 
 boolean needInput = false;
 
-int autoaim, mouselook;
+extern int autoaim, mouselook;
 //
 // MENU TYPEDEFS
 //

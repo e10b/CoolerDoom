@@ -34,6 +34,9 @@ static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
 //#include <unistd.h>
 //#include <sys/types.h>
 //#include <sys/stat.h>
@@ -350,6 +353,33 @@ void D_Display (void)
 //
 extern  boolean         demorecording;
 
+static void D_DoomFrame (void)
+{
+    if (singletics)
+    {
+	D_ProcessEvents ();
+	I_StartTic ();
+	D_ProcessEvents ();
+	G_BuildTiccmd (&netcmds[consoleplayer][maketic%BACKUPTICS]);
+	if (advancedemo)
+            D_DoAdvanceDemo ();
+
+	M_Ticker ();
+        G_Ticker ();
+	gametic++;
+	maketic++;
+    }
+    else
+    {
+	TryRunTics (); // will run at least one tic
+    }
+
+    S_UpdateSounds(players[consoleplayer].mo);
+    D_Display ();
+    I_UpdateSound();
+    I_SubmitSound();
+}
+
 void D_DoomLoop (void)
 {
     printf("D_DoomLoop\n");
@@ -365,43 +395,12 @@ void D_DoomLoop (void)
     }
     I_InitGraphics ();
 
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(D_DoomFrame, 0, 1);
+#else
     while (1)
-    {
-
-
-
-	if (singletics)
-	{
-	  
-
-
-		D_ProcessEvents ();
-	    I_StartTic ();
-	    D_ProcessEvents ();
-	    G_BuildTiccmd (&netcmds[consoleplayer][maketic%BACKUPTICS]);
-	    if (advancedemo)
-           D_DoAdvanceDemo ();
-
-	    M_Ticker ();
-        G_Ticker ();
-	    gametic++;
-	    maketic++;
-
-	}
-	else
-	{
-	    TryRunTics (); // will run at least one tic
-	}
-
-	S_UpdateSounds(players[consoleplayer].mo);
-
-	D_Display ();
-
-	I_UpdateSound();
-
-	I_SubmitSound();
-
-}
+        D_DoomFrame ();
+#endif
 }
 
 
@@ -726,6 +725,12 @@ void IdentifyVersion (void)
     }
     int gameChoice = -1;
 
+#ifdef __EMSCRIPTEN__
+    if (gameCount != 1)
+        I_Error("Web build expected exactly one packaged IWAD, found %i", gameCount);
+    gameChoice = 0;
+    printf("Using packaged IWAD: %s\n", iwadStr[gameChoice]);
+#else
     for(int i =0; i<gameCount;i++)
     {
         printf("%i. %s \n",i+1, iwadStr[i]);
@@ -738,6 +743,7 @@ void IdentifyVersion (void)
             break;
     }
     gameChoice--;
+#endif
     D_AddFile(iwadStr[gameChoice]);
     if(strcmp(iwadStr[gameChoice],doom2fwad)== 0)
     {

@@ -70,7 +70,7 @@ void**			lumpcache;
 #else
 #define strcmpi strcasecmp
 
-static void strupr (char* s)
+static void W_Strupr (char* s)
 {
     while (*s) { *s = toupper((unsigned char)*s); s++; }
 }
@@ -199,7 +199,7 @@ void W_AddFile (char *filename)
 	//read (handle, &header, sizeof(header));
 	fread(&header,sizeof(header),1,handle);
 	printf("WAD HEADER: ");
-	printf(header.identification);
+	printf("%.4s", header.identification);
 	printf("\n");
 	if (strncmp(header.identification,"IWAD",4) != 0)
 	{
@@ -391,7 +391,7 @@ int W_CheckNumForName (char* name)
     name8.s[8] = 0;
 
     // case insensitive
-    strupr (name8.s);
+    W_Strupr (name8.s);
 
     v1 = name8.x[0];
     v2 = name8.x[1];
@@ -630,5 +630,4 @@ void W_Profile (void)
     }
     fclose (f);
 }
-
 

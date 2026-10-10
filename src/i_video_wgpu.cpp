@@ -309,6 +309,9 @@ extern "C" void I_WGPUPresent(const uint8_t* framebuffer)
 
     wgpu::RenderPassColorAttachment attachment{};
     attachment.view = gSurfaceColor.colorView;
+#ifdef __EMSCRIPTEN__
+    attachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
+#endif
     attachment.loadOp = wgpu::LoadOp::Clear;
     attachment.storeOp = wgpu::StoreOp::Store;
     attachment.clearValue = {0.0, 0.0, 0.0, 1.0};

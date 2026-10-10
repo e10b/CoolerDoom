@@ -40,7 +40,7 @@ rcsid[] = "$Id: p_mobj.c,v 1.5 1997/02/03 22:45:12 b1 Exp $";
 #include "doomstat.h"
 #include "m_misc.h"
 
-int autoaim;
+extern int autoaim;
 
 void G_PlayerReborn (int player);
 void P_SpawnMapThing (mapthing_t*	mthing);
@@ -992,4 +992,3 @@ P_SpawnPlayerMissile
 
     P_CheckMissileSpawn (th);
 }
-

@@ -1,6 +1,8 @@
 #include "sdl2webgpu.h"
 
-#if defined(SDL_PLATFORM_MACOS)
+#if defined(__EMSCRIPTEN__)
+#include <emscripten/html5.h>
+#elif defined(SDL_PLATFORM_MACOS)
 #include <Cocoa/Cocoa.h>
 #include <Foundation/Foundation.h>
 #include <QuartzCore/CAMetalLayer.h>
@@ -12,7 +14,21 @@
 
 WGPUSurface SDL_GetWGPUSurface(WGPUInstance instance, SDL_Window* window)
 {
-#if defined(SDL_PLATFORM_MACOS)
+#if defined(__EMSCRIPTEN__)
+    (void)window;
+    WGPUSurfaceDescriptorFromCanvasHTMLSelector canvasDescriptor = {
+        .chain = {
+            .next = NULL,
+            .sType = WGPUSType_SurfaceDescriptorFromCanvasHTMLSelector,
+        },
+        .selector = "#canvas",
+    };
+    WGPUSurfaceDescriptor descriptor = {
+        .nextInChain = (const WGPUChainedStruct*)&canvasDescriptor,
+        .label = NULL,
+    };
+    return wgpuInstanceCreateSurface(instance, &descriptor);
+#elif defined(SDL_PLATFORM_MACOS)
     id metalLayer = NULL;
     NSWindow* nativeWindow = (__bridge NSWindow*)SDL_GetPointerProperty(
         SDL_GetWindowProperties(window),
