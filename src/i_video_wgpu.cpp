@@ -112,7 +112,10 @@ bool CreateFrameTexture()
 {
     wgpu::TextureDescriptor descriptor{};
     descriptor.dimension = wgpu::TextureDimension::_2D;
-    descriptor.format = wgpu::TextureFormat::RGBA8Unorm;
+    // Doom's PLAYPAL entries are sRGB-encoded bytes. Sampling through an
+    // sRGB view decodes them to linear before the presentation pass writes
+    // to the swapchain, avoiding a second gamma encoding by the compositor.
+    descriptor.format = wgpu::TextureFormat::RGBA8UnormSrgb;
     descriptor.size = {gSourceWidth, gSourceHeight, 1};
     descriptor.mipLevelCount = 1;
     descriptor.sampleCount = 1;
