@@ -145,9 +145,25 @@
       font-weight: 600;
     }
 
+    .credit a {
+      color: inherit;
+      text-decoration-color: #666;
+      text-underline-offset: 3px;
+    }
+
+    .credit a:hover {
+      color: #fff;
+    }
+
     .credit p {
       margin: 0;
       color: #aaa;
+    }
+
+    .credits-note {
+      margin: 20px 0 0;
+      color: #777;
+      font-size: 12px;
     }
 
     #credits-close {
@@ -181,13 +197,14 @@
     <section id="credits-dialog" role="dialog" aria-modal="true" aria-labelledby="credits-title">
       <h1 id="credits-title">Credits</h1>
       <div class="credit">
-        <h2>DOOM — id Software</h2>
-        <p>The original game, engine, levels, artwork, sound, and the source code that made this port possible.</p>
+        <h2><a href="https://github.com/brubid" target="_blank" rel="noreferrer">CoolDoom — @brubid</a></h2>
+        <p>The original GitHub project, Doom/SDL 3 port foundation, and expanded visplane limit.</p>
       </div>
       <div class="credit">
-        <h2>CoolerDoom — Ethan “e10b” Herman</h2>
-        <p>Project creator and direction, macOS and SDL 3 support, WebGPU compute rendering, and the browser port.</p>
+        <h2><a href="https://github.com/e10b" target="_blank" rel="noreferrer">CoolerDoom — @e10b</a></h2>
+        <p>macOS build and runtime support, the mywgfx WebGPU compute renderer, Emscripten browser port, and web interface.</p>
       </div>
+      <p class="credits-note">Based on the original DOOM source code by id Software.</p>
       <button id="credits-close" type="button">Close</button>
     </section>
   </div>
