@@ -522,8 +522,6 @@ W_CacheLumpNum
   int		tag )
 {
 
-    void*	ptr;
-
     if ((unsigned)lump >= numlumps)
 	I_Error ("W_CacheLumpNum: %i >= numlumps",lump);
 /*
@@ -537,13 +535,13 @@ W_CacheLumpNum
 	W_ReadLump (lump, lumpcache[lump]);
 	*/
 
-    if (!lumpcache[lump] || !((memblock_t*)lumpcache[lump])->user)
+    if (!lumpcache[lump])
 
     {
 	// read the lump in
 
 //printf ("cache miss on lump %i\n",lump);
-	ptr = Z_Malloc (W_LumpLength (lump), tag, &lumpcache[lump]);
+	Z_Malloc (W_LumpLength (lump), tag, &lumpcache[lump]);
 	W_ReadLump (lump, lumpcache[lump]);
     }
     else
@@ -630,4 +628,3 @@ void W_Profile (void)
     }
     fclose (f);
 }
-
