@@ -1,4 +1,4 @@
-﻿{
+{
     "version": 3,
     "configurePresets": [
         {
@@ -28,7 +28,7 @@
                 "strategy": "external"
             },
           "cacheVariables": {
-            "CMAKE_BUILD_TYPE": "Debug",
+            "CMAKE_BUILD_TYPE": "Debug"
           }
         },
         {
@@ -36,8 +36,7 @@
             "displayName": "x64 Release",
             "inherits": "x64-debug",
           "cacheVariables": {
-            "CMAKE_BUILD_TYPE": "Release",
-
+            "CMAKE_BUILD_TYPE": "Release"
           }
         },
         {

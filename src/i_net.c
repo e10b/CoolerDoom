@@ -31,7 +31,11 @@ rcsid[] = "$Id: m_bbox.c,v 1.1 1997/02/03 22:45:10 b1 Exp $";
 //#include <netinet/in.h>
 //#include <arpa/inet.h>
 #include <errno.h>
+#ifdef _WIN32
 #include <io.h>
+#else
+#include <unistd.h>
+#endif
 //#include <netdb.h>
 //#include <sys/ioctl.h>
 

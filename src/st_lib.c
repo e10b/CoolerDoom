@@ -57,7 +57,11 @@ patch_t*		sttminus;
 
 void STlib_init(void)
 {
-    sttminus = (patch_t *) W_CacheLumpName("STTMINUS", PU_STATIC);
+    int lump = W_CheckNumForName("STTMINUS");
+
+    sttminus = lump >= 0
+	? (patch_t *) W_CacheLumpNum(lump, PU_STATIC)
+	: NULL;
 }
 
 
@@ -143,7 +147,7 @@ STlib_drawNum
     }
 
     // draw a minus sign if necessary
-    if (neg)
+    if (neg && sttminus)
 	V_DrawPatch(x - 8, n->y, FG, sttminus);
 }
 
@@ -291,4 +295,3 @@ STlib_updateBinIcon
     }
 
 }
-

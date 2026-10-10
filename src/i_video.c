@@ -25,7 +25,11 @@ static const char
 rcsid[] = "$Id: i_x.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 
 #include <stdlib.h>
+#ifdef _WIN32
 #include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "i_system.h"
 #include <stdarg.h>
@@ -173,8 +177,8 @@ void I_ShutdownGraphics(void)
 
   // Paranoia.
   //image->data = NULL;
-  SDL_DestroyWindow(mainWindow);
   SDL_DestroyRenderer(mainRenderer);
+  SDL_DestroyWindow(mainWindow);
 
 }
 
@@ -465,14 +469,21 @@ void I_InitGraphics(void)
 	// check for command-line geometry
 
 	// open the display
-	SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO );
-    UISurface = SDL_CreateSurfaceFrom(320, 200, SDL_PIXELFORMAT_INDEX8, UI_image, NULL);
-    SDL_CreateWindowAndRenderer("Custom Doom", X_width*3, X_height*3,  SDL_WINDOW_FULLSCREEN, &mainWindow,&mainRenderer);
+	if (!SDL_Init(SDL_INIT_EVENTS | SDL_INIT_VIDEO))
+		I_Error("SDL video initialization failed: %s", SDL_GetError());
+
+    UISurface = SDL_CreateSurfaceFrom(320, 200, SDL_PIXELFORMAT_INDEX8, UI_image, 320);
+	mainWindow = SDL_CreateWindow("Custom Doom", X_width * 3, X_height * 3,
+						  SDL_WINDOW_RESIZABLE);
+	if (!mainWindow)
+		I_Error("Could not create game window: %s", SDL_GetError());
+
 	mainSurface = SDL_GetWindowSurface(mainWindow);
-//SDL_SetS
+	if (!mainSurface)
+		I_Error("Could not get game window surface: %s", SDL_GetError());
+
 	imageSurface = SDL_CreateSurface(X_width, X_height, SDL_PIXELFORMAT_INDEX8 );
     // use the default visual
-    renderTexture = SDL_CreateTexture(mainRenderer,SDL_PIXELFORMAT_INDEX8,SDL_TEXTUREACCESS_STREAMING,X_width,X_height);
 	SDL_ShowWindow(mainWindow);
     // wait until it is OK to draw
     SDL_SetSurfaceBlendMode(imageSurface, SDL_BLENDMODE_NONE);
@@ -487,9 +498,6 @@ imageSurface->pixels = (void*) screens[0];
 void I_UpdateScreen(void)
 {
 
- //    SDL_BlitSurface(imageSurface,NULL,mainSurface,NULL);
-    SDL_Rect destRect = { viewwidth,viewheight };
-    
      SDL_BlitSurfaceScaled(imageSurface, NULL, mainSurface, NULL, SDL_SCALEMODE_PIXELART);
   //   SDL_BlitSurfaceScaled(UISurface, NULL, mainSurface, &destRect, SDL_SCALEMODE_PIXELART);
 
@@ -499,5 +507,4 @@ SDL_UpdateWindowSurface(mainWindow);
 
 
 }
-
 

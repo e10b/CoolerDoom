@@ -2054,8 +2054,16 @@ void M_DrawerMain(void)
     for (i = 0; i < max; i++)
     {
         if (currentMenu->menuitems[i].name[0])
-            V_DrawPatchDirect(x, y, 0,
-                W_CacheLumpName(currentMenu->menuitems[i].name, PU_CACHE));
+	{
+	    int lump = W_CheckNumForName(currentMenu->menuitems[i].name);
+
+	    if (lump >= 0)
+		V_DrawPatchDirect(x, y, 0, W_CacheLumpNum(lump, PU_CACHE));
+	    else if (!strcmp(currentMenu->menuitems[i].name, "M_NMARE"))
+		M_WriteText(x, y, "NIGHTMARE!");
+	    else
+		M_WriteText(x, y, currentMenu->menuitems[i].name);
+	}
         y += LINEHEIGHT;
     }
 
@@ -2193,4 +2201,3 @@ void M_Init (void)
     }
 
 }
-

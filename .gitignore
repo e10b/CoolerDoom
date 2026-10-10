@@ -11,6 +11,10 @@
 *.sln.docstates
 *.env
 
+# Local game data and runtime configuration
+*.wad
+default.cfg
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

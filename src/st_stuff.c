@@ -313,6 +313,8 @@ static boolean		st_fragson;
 
 // main bar left
 static patch_t*		sbar;
+static patch_t*		sbarleft;
+static patch_t*		sbarright;
 
 // 0-9, tall numbers
 static patch_t*		tallnum[10];
@@ -501,7 +503,16 @@ void ST_refreshBackground(void)
 
     if (st_statusbaron)
     {
-	V_DrawPatch(ST_X, 0, BG, sbar);
+	if (sbar)
+	{
+	    V_DrawPatch(ST_X, 0, BG, sbar);
+	}
+	else
+	{
+	    // Older Doom shareware IWADs store the status bar in two pieces.
+	    V_DrawPatch(ST_X, 0, BG, sbarleft);
+	    V_DrawPatch(ST_X2, 0, BG, sbarright);
+	}
 
 	if (netgame)
 	    V_DrawPatch(ST_FX, 0, BG, faceback);
@@ -1173,8 +1184,19 @@ void ST_loadGraphics(void)
     sprintf(namebuf, "STFB%d", consoleplayer);
     faceback = (patch_t *) W_CacheLumpName(namebuf, PU_STATIC);
 
-    // status bar background bits
-    sbar = (patch_t *) W_CacheLumpName("STBAR", PU_STATIC);
+    // Status bar background. Older shareware IWADs predate the combined
+    // STBAR lump and provide the same image as left/right pieces.
+    if (W_CheckNumForName("STBAR") >= 0)
+    {
+	sbar = (patch_t *) W_CacheLumpName("STBAR", PU_STATIC);
+	sbarleft = sbarright = NULL;
+    }
+    else
+    {
+	sbar = NULL;
+	sbarleft = (patch_t *) W_CacheLumpName("STMBARL", PU_STATIC);
+	sbarright = (patch_t *) W_CacheLumpName("STMBARR", PU_STATIC);
+    }
 
     // face states
     facenum = 0;
@@ -1232,7 +1254,15 @@ void ST_unloadGraphics(void)
     for (i=0;i<NUMCARDS;i++)
 	Z_ChangeTag(keys[i], PU_CACHE);
 
-    Z_ChangeTag(sbar, PU_CACHE);
+    if (sbar)
+	{
+	    Z_ChangeTag(sbar, PU_CACHE);
+	}
+    else
+    {
+	Z_ChangeTag(sbarleft, PU_CACHE);
+	Z_ChangeTag(sbarright, PU_CACHE);
+    }
     Z_ChangeTag(faceback, PU_CACHE);
 
     for (i=0;i<ST_NUMFACES;i++)
