@@ -78,6 +78,94 @@
       width: 18px;
       height: 18px;
     }
+
+    #credits-toggle {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      height: 32px;
+      padding: 0 11px;
+      border: 1px solid #383838;
+      border-radius: 5px;
+      background: #161616;
+      color: #aaa;
+      font: 13px system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    #credits-toggle:hover,
+    #credits-toggle[aria-expanded="true"] {
+      border-color: #555;
+      background: #222;
+      color: #ddd;
+    }
+
+    #credits-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    #credits-overlay[hidden] {
+      display: none;
+    }
+
+    #credits-dialog {
+      width: min(460px, calc(100vw - 48px));
+      box-sizing: border-box;
+      padding: 24px;
+      border: 1px solid #343434;
+      border-radius: 6px;
+      background: #141414;
+      color: #ccc;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+      font: 14px/1.5 system-ui, sans-serif;
+    }
+
+    #credits-dialog h1 {
+      margin: 0 0 20px;
+      color: #eee;
+      font-size: 19px;
+      font-weight: 600;
+    }
+
+    .credit + .credit {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid #2d2d2d;
+    }
+
+    .credit h2 {
+      margin: 0 0 4px;
+      color: #e0e0e0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .credit p {
+      margin: 0;
+      color: #aaa;
+    }
+
+    #credits-close {
+      margin-top: 22px;
+      padding: 6px 12px;
+      border: 1px solid #3c3c3c;
+      border-radius: 4px;
+      background: #202020;
+      color: #ccc;
+      font: 13px system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    #credits-close:hover {
+      border-color: #555;
+      background: #292929;
+      color: #eee;
+    }
   </style>
 </head>
 <body>
@@ -88,10 +176,29 @@
       <path d="M5 7l4 4-4 4M11 17h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </button>
+  <button id="credits-toggle" type="button" aria-controls="credits-overlay" aria-expanded="false">Credits</button>
+  <div id="credits-overlay" hidden>
+    <section id="credits-dialog" role="dialog" aria-modal="true" aria-labelledby="credits-title">
+      <h1 id="credits-title">Credits</h1>
+      <div class="credit">
+        <h2>DOOM — id Software</h2>
+        <p>The original game, engine, levels, artwork, sound, and the source code that made this port possible.</p>
+      </div>
+      <div class="credit">
+        <h2>CoolerDoom — Ethan “e10b” Herman</h2>
+        <p>Project creator and direction, macOS and SDL 3 support, WebGPU compute rendering, and the browser port.</p>
+      </div>
+      <button id="credits-close" type="button">Close</button>
+    </section>
+  </div>
   <script>
     const canvas = document.getElementById("canvas");
     const consoleOutput = document.getElementById("console");
     const consoleToggle = document.getElementById("console-toggle");
+    const creditsToggle = document.getElementById("credits-toggle");
+    const creditsOverlay = document.getElementById("credits-overlay");
+    const creditsDialog = document.getElementById("credits-dialog");
+    const creditsClose = document.getElementById("credits-close");
 
     function writeConsole(args, writer) {
       const text = args.join(" ");
@@ -112,6 +219,28 @@
       consoleOutput.hidden = !opening;
       consoleToggle.setAttribute("aria-expanded", String(opening));
       if (!opening) canvas.focus();
+    });
+
+    function closeCredits() {
+      creditsOverlay.hidden = true;
+      creditsToggle.setAttribute("aria-expanded", "false");
+      canvas.focus();
+    }
+
+    creditsToggle.addEventListener("click", () => {
+      creditsOverlay.hidden = false;
+      creditsToggle.setAttribute("aria-expanded", "true");
+      creditsClose.focus();
+    });
+    creditsClose.addEventListener("click", closeCredits);
+    creditsOverlay.addEventListener("click", event => {
+      if (event.target === creditsOverlay) closeCredits();
+    });
+    creditsDialog.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        closeCredits();
+      }
     });
     Module.canvas.addEventListener("pointerdown", () => Module.canvas.focus());
     Module.canvas.focus();
