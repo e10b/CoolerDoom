@@ -489,7 +489,9 @@ void I_InitGraphics(void)
     // wait until it is OK to draw
     SDL_SetSurfaceBlendMode(imageSurface, SDL_BLENDMODE_NONE);
     
+#ifndef __EMSCRIPTEN__
     SDL_SetWindowRelativeMouseMode(mainWindow, true);
+#endif
 imageSurface->pixels = (void*) screens[0];
 //SDL_SetWindowSize(mainWindow,X_width*3, X_height*3);
 

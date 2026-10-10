@@ -88,8 +88,11 @@ if(EMSCRIPTEN)
     set_target_properties(CustomDoom PROPERTIES
         OUTPUT_NAME index
         SUFFIX ".html"
+        LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
     )
     target_link_options(CustomDoom PRIVATE
+        "--shell-file"
+        "${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html"
         "--preload-file"
         "${DOOM_WAD}@/doom.wad"
         "-sALLOW_MEMORY_GROWTH=1"
