@@ -22,6 +22,16 @@ ambiguous palette-value comparisons during composition. Frames containing a
 visible fuzz/invisibility sprite use a narrow CPU wall replay because Doom's
 classic fuzz effect samples neighboring framebuffer pixels.
 
+Every 120th rendered wall frame runs a deterministic correctness sample. The
+engine independently reconstructs the expected indexed frame on the CPU, copies
+the post-compute index buffer into a map-readable staging buffer, and compares
+all 64,000 pixels after queue completion. Reports include the mismatch count,
+the first differing coordinates and palette indices, CPU-reference time,
+CPU-side upload time, command submission time, queue completion/synchronization
+latency, and mapping/readback latency. Queue completion is deliberately not
+described as pure shader time: browser scheduling and synchronization are part
+of that wall-clock measurement.
+
 ## Lineage
 
 - **DOOM** — the original engine and GPL source release by id Software.
