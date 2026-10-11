@@ -149,6 +149,7 @@ void R_DrawColumn (void)
     // Inner loop that does the actual texture mapping,
     //  e.g. a DDA-lile scaling.
     // This is as fast as it gets.
+    I_WGPUCPUWallLoopStart();
     do 
     {
 	// Re-map color indices from wall texture column
@@ -159,6 +160,7 @@ void R_DrawColumn (void)
 	frac += fracstep;
 	
     } while (count--); 
+    I_WGPUCPUWallLoopEnd();
 } 
 
 
@@ -258,14 +260,18 @@ void R_DrawColumnLow (void)
     {
 	int offset = (int)(dest - screens[0]);
 	int y = offset / SCREENWIDTH;
-	if (I_WGPUQueueWallColumn(offset % SCREENWIDTH, y, y + count, frac,
-				fracstep, dc_source, dc_colormap)
-	    && I_WGPUQueueWallColumn(offset % SCREENWIDTH + 1, y, y + count, frac,
-				   fracstep, dc_source, dc_colormap))
+	boolean queued1 = I_WGPUQueueWallColumn(offset % SCREENWIDTH, y,
+					     y + count, frac, fracstep,
+					     dc_source, dc_colormap);
+	boolean queued2 = I_WGPUQueueWallColumn(offset % SCREENWIDTH + 1, y,
+					     y + count, frac, fracstep,
+					     dc_source, dc_colormap);
+	if (queued1 && queued2)
 	    return;
 	I_WGPUMarkPostWallRect(offset % SCREENWIDTH, y, 2, count + 1);
     }
     
+    I_WGPUCPUWallLoopStart();
     do 
     {
 	// Hack. Does not work corretly.
@@ -275,6 +281,7 @@ void R_DrawColumnLow (void)
 	frac += fracstep; 
 
     } while (count--);
+    I_WGPUCPUWallLoopEnd();
 }
 
 

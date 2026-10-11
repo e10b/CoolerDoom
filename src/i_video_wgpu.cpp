@@ -7,6 +7,9 @@
 #include <sdl2webgpu.h>
 
 #include "i_video_wgpu.h"
+extern "C" {
+#include "m_argv.h"
+}
 
 #include <algorithm>
 #include <array>
@@ -47,9 +50,9 @@ bool gWallSnapshotReady = false;
 bool gPostWallPhase = false;
 bool gCPUWallsReady = false;
 bool gReportedWallRasterizer = false;
-bool gValidationPending = false;
+bool gValidationMode = false;
+bool gShuttingDown = false;
 uint64_t gValidationFrame = 0;
-uint64_t gPendingValidationFrame = 0;
 
 wgfx::Compute* gCompute = nullptr;
 wgfx::Compute* gWallCompute = nullptr;
@@ -66,9 +69,6 @@ wgfx::Uniform* gPostWallMaskBuffer = nullptr;
 wgpu::Texture gFrameTexture = nullptr;
 wgpu::TextureView gFrameView = nullptr;
 wgpu::Sampler gFrameSampler = nullptr;
-wgpu::Buffer gValidationReadback = nullptr;
-std::unique_ptr<wgpu::QueueWorkDoneCallback> gWorkDoneCallback;
-std::unique_ptr<wgpu::BufferMapCallback> gMapCallback;
 wgpu::RenderPipeline gPresentPipeline = nullptr;
 wgpu::BindGroupLayout gPresentBindGroupLayout = nullptr;
 wgpu::BindGroup gPresentBindGroup = nullptr;
@@ -106,12 +106,38 @@ uint64_t gWallBucketMicros = 0;
 std::array<uint32_t, 321> gWallOffsets{};
 std::array<uint32_t, kMaskWords> gPostWallMask{};
 std::array<uint32_t, kPaletteEntries> gPackedPalette{};
-std::vector<uint32_t> gCPUReference;
-std::chrono::steady_clock::time_point gGPUStart;
-std::chrono::steady_clock::time_point gMapStart;
-uint64_t gCPUReferenceMicros = 0;
-uint64_t gUploadMicros = 0;
-uint64_t gSubmitMicros = 0;
+std::chrono::steady_clock::time_point gCPUWallStart;
+uint64_t gCPUWallMicros = 0;
+uint64_t gCPUWallLoopNanos = 0;
+std::chrono::steady_clock::time_point gCPUWallLoopStart;
+
+struct ValidationSample
+{
+    uint64_t frame = 0;
+    uint64_t cpuWallMicros = 0;
+    uint64_t cpuWallLoopNanos = 0;
+    uint64_t referenceCopyMicros = 0;
+    uint64_t uploadMicros = 0;
+    uint64_t submitMicros = 0;
+    std::chrono::steady_clock::time_point gpuStart;
+    std::chrono::steady_clock::time_point mapStart;
+    std::vector<uint32_t> expected;
+    wgpu::Buffer readback = nullptr;
+    std::unique_ptr<wgpu::QueueWorkDoneCallback> workDoneCallback;
+    std::unique_ptr<wgpu::BufferMapCallback> mapCallback;
+    bool cancelled = false;
+    bool finished = false;
+
+    ~ValidationSample()
+    {
+        if (readback)
+        {
+            readback.destroy();
+            readback.release();
+        }
+    }
+};
+std::vector<std::shared_ptr<ValidationSample>> gValidationSamples;
 
 constexpr const char* kComputeShader = R"WGSL(
 @group(0) @binding(0) var<storage, read_write> indices: array<u32>;
@@ -356,6 +382,7 @@ bool CreatePresentPipeline()
 extern "C" bool I_WGPUInit(SDL_Window* window, uint32_t sourceWidth,
                              uint32_t sourceHeight)
 {
+    gShuttingDown = false;
     if (sourceWidth != 320 || sourceHeight != 200)
     {
         std::cerr << "Compute presenter currently expects Doom's 320x200 framebuffer\n";
@@ -367,7 +394,6 @@ extern "C" bool I_WGPUInit(SDL_Window* window, uint32_t sourceWidth,
     const uint32_t pixelCount = sourceWidth * sourceHeight;
     gFrameIndices.resize(pixelCount);
     gWallSnapshot.resize(pixelCount);
-    gCPUReference.resize(pixelCount);
     gWallColumns.reserve(kMaxWallColumns);
     gWallSources.reserve(kMaxWallColumns * kWallSourceWords);
     gWallColormaps.reserve(kMaxWallColumns * kWallColormapWords);
@@ -379,12 +405,10 @@ extern "C" bool I_WGPUInit(SDL_Window* window, uint32_t sourceWidth,
     if (!wgfx::device || !wgfx::queue)
         return false;
 
-    wgpu::BufferDescriptor readbackDescriptor{};
-    readbackDescriptor.size = pixelCount * sizeof(uint32_t);
-    readbackDescriptor.usage = wgpu::BufferUsage::CopyDst |
-                               wgpu::BufferUsage::MapRead;
-    readbackDescriptor.mappedAtCreation = false;
-    gValidationReadback = wgfx::device.createBuffer(readbackDescriptor);
+    gValidationMode = M_CheckParm(const_cast<char*>("-wgpuvalidate")) != 0;
+    if (gValidationMode)
+        std::cout << "WebGPU validation mode: original software renderer and GPU "
+                     "will be compared every eligible frame\n";
 
     gCompute = wgfx::loadCompute(kComputeShader);
     gIndices = wgfx::createStorage(0, gFrameIndices.size() * sizeof(uint32_t),
@@ -436,9 +460,12 @@ extern "C" void I_WGPUBeginWallFrame(const uint8_t* framebuffer)
     gWallSnapshotReady = false;
     gPostWallPhase = false;
     gCPUWallsReady = false;
+    gCPUWallLoopNanos = 0;
     gCollectWallColumns = gReady && framebuffer;
     if (gCollectWallColumns)
     {
+        if (gValidationMode)
+            gCPUWallStart = std::chrono::steady_clock::now();
         for (uint32_t i = 0; i < gSourceWidth * gSourceHeight; ++i)
             gWallSnapshot[i] = framebuffer[i];
     }
@@ -489,7 +516,9 @@ extern "C" bool I_WGPUQueueWallColumn(int x, int yl, int yh, int32_t frac,
                             static_cast<uint32_t>(fracstep), sourceIndex,
                             colormapIndex});
     ++gWallColumnCount;
-    return true;
+    // Validation deliberately continues through DOOM's original software
+    // pixel loop, producing a reference independent of this command packing.
+    return !gValidationMode;
 }
 
 extern "C" void I_WGPUEndWallFrame(void)
@@ -511,6 +540,12 @@ extern "C" void I_WGPUEndWallFrame(void)
     gWallBucketMicros = std::chrono::duration_cast<std::chrono::microseconds>(
         std::chrono::steady_clock::now() - bucketStart).count();
     gWallSnapshotReady = true;
+    if (gValidationMode)
+    {
+        gCPUWallMicros = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - gCPUWallStart).count();
+        gCPUWallsReady = true;
+    }
 }
 
 extern "C" void I_WGPUMarkPostWallRect(int x, int y, int width, int height)
@@ -566,57 +601,70 @@ extern "C" void I_WGPURequireCPUWalls(uint8_t* framebuffer)
     }
 }
 
-static void BuildCPUReference(const uint8_t* framebuffer)
+extern "C" void I_WGPUCPUWallLoopStart(void)
 {
-    const auto start = std::chrono::steady_clock::now();
-    for (uint32_t i = 0; i < gSourceWidth * gSourceHeight; ++i)
-        gCPUReference[i] = gWallSnapshot[i];
-
-    // Replay the exact fixed-point wall algorithm into a private buffer.
-    for (const WallColumn& column : gWallColumns)
-    {
-        int32_t frac = static_cast<int32_t>(column.frac);
-        const int32_t step = static_cast<int32_t>(column.fracstep);
-        for (uint32_t y = column.yl; y <= column.yh; ++y)
-        {
-            const uint32_t textureIndex = (frac >> 16) & 127;
-            const uint32_t sourceWord = gWallSources[
-                column.sourceIndex * kWallSourceWords + (textureIndex >> 2)];
-            const uint32_t sourceIndex =
-                (sourceWord >> ((textureIndex & 3) * 8)) & 0xff;
-            const uint32_t mapWord = gWallColormaps[
-                column.colormapIndex * kWallColormapWords + (sourceIndex >> 2)];
-            gCPUReference[y * gSourceWidth + column.x] =
-                (mapWord >> ((sourceIndex & 3) * 8)) & 0xff;
-            frac += step;
-        }
-    }
-    for (uint32_t pixel = 0; pixel < gSourceWidth * gSourceHeight; ++pixel)
-        if (gPostWallMask[pixel >> 5u] & (1u << (pixel & 31u)))
-            gCPUReference[pixel] = framebuffer[pixel];
-
-    gCPUReferenceMicros = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now() - start).count();
+    if (gValidationMode && gCollectWallColumns)
+        gCPUWallLoopStart = std::chrono::steady_clock::now();
 }
 
-static void ReportValidation(wgpu::BufferMapAsyncStatus status,
-                             uint64_t gpuMicros)
+extern "C" void I_WGPUCPUWallLoopEnd(void)
+{
+    if (gValidationMode && gCollectWallColumns)
+        gCPUWallLoopNanos +=
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - gCPUWallLoopStart).count();
+}
+
+static std::shared_ptr<ValidationSample> CreateValidationSample(
+    const uint8_t* framebuffer)
+{
+    auto sample = std::make_shared<ValidationSample>();
+    sample->frame = ++gValidationFrame;
+    sample->cpuWallMicros = gCPUWallMicros;
+    sample->cpuWallLoopNanos = gCPUWallLoopNanos;
+    sample->expected.resize(gSourceWidth * gSourceHeight);
+    const auto copyStart = std::chrono::steady_clock::now();
+    for (uint32_t i = 0; i < sample->expected.size(); ++i)
+        sample->expected[i] = framebuffer[i];
+    sample->referenceCopyMicros =
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - copyStart).count();
+
+    wgpu::BufferDescriptor descriptor{};
+    descriptor.size = sample->expected.size() * sizeof(uint32_t);
+    descriptor.usage = wgpu::BufferUsage::CopyDst | wgpu::BufferUsage::MapRead;
+    descriptor.mappedAtCreation = false;
+    sample->readback = wgfx::device.createBuffer(descriptor);
+    gValidationSamples.push_back(sample);
+    return sample;
+}
+
+static void ReportValidation(const std::shared_ptr<ValidationSample>& sample,
+                             wgpu::BufferMapAsyncStatus status,
+                             uint64_t queueMicros)
 {
     const auto mappedAt = std::chrono::steady_clock::now();
+    if (sample->cancelled || gShuttingDown)
+    {
+        if (status == wgpu::BufferMapAsyncStatus::Success)
+            sample->readback.unmap();
+        sample->finished = true;
+        return;
+    }
     if (status != wgpu::BufferMapAsyncStatus::Success)
     {
         std::cerr << "WebGPU validation readback mapping failed\n";
-        gValidationPending = false;
+        sample->finished = true;
         return;
     }
 
     const uint32_t* actual = static_cast<const uint32_t*>(
-        gValidationReadback.getConstMappedRange(
-            0, gCPUReference.size() * sizeof(uint32_t)));
+        sample->readback.getConstMappedRange(
+            0, sample->expected.size() * sizeof(uint32_t)));
     uint32_t mismatches = 0;
     std::array<uint32_t, 8> firstMismatches{};
-    for (uint32_t pixel = 0; pixel < gCPUReference.size(); ++pixel)
-        if ((actual[pixel] & 0xffu) != (gCPUReference[pixel] & 0xffu))
+    for (uint32_t pixel = 0; pixel < sample->expected.size(); ++pixel)
+        if ((actual[pixel] & 0xffu) != (sample->expected[pixel] & 0xffu))
         {
             if (mismatches < firstMismatches.size())
                 firstMismatches[mismatches] = pixel;
@@ -624,24 +672,32 @@ static void ReportValidation(wgpu::BufferMapAsyncStatus status,
         }
 
     const uint64_t mapMicros =
-        std::chrono::duration_cast<std::chrono::microseconds>(mappedAt - gMapStart)
+        std::chrono::duration_cast<std::chrono::microseconds>(mappedAt - sample->mapStart)
             .count();
-    std::cout << "WebGPU validation frame " << gPendingValidationFrame << ": "
-              << mismatches << " / " << gCPUReference.size()
-              << " indexed pixels differ; CPU reference " << gCPUReferenceMicros
-              << " us, uploads " << gUploadMicros << " us, submit "
-              << gSubmitMicros << " us, queue completion/sync " << gpuMicros
+    const uint64_t cpuRasterMicros = sample->cpuWallLoopNanos / 1000u;
+    const uint64_t gpuEndToEndMicros =
+        (sample->cpuWallMicros > cpuRasterMicros
+             ? sample->cpuWallMicros - cpuRasterMicros
+             : 0u) + sample->uploadMicros + sample->submitMicros + queueMicros;
+    std::cout << "WebGPU validation frame " << sample->frame << ": "
+              << mismatches << " / " << sample->expected.size()
+              << " indexed pixels differ; CPU wall path " << sample->cpuWallMicros
+              << " us (raster loops " << cpuRasterMicros
+              << " us), estimated GPU wall path " << gpuEndToEndMicros
+              << " us, reference copy " << sample->referenceCopyMicros
+              << " us, uploads " << sample->uploadMicros << " us, submit "
+              << sample->submitMicros << " us, queue completion/sync " << queueMicros
               << " us, map/readback " << mapMicros << " us\n";
     for (uint32_t i = 0; i < std::min<uint32_t>(mismatches, firstMismatches.size()); ++i)
     {
         const uint32_t pixel = firstMismatches[i];
         std::cout << "  mismatch (" << pixel % gSourceWidth << ","
                   << pixel / gSourceWidth << "): CPU "
-                  << (gCPUReference[pixel] & 0xffu) << ", GPU "
+                  << (sample->expected[pixel] & 0xffu) << ", GPU "
                   << (actual[pixel] & 0xffu) << "\n";
     }
-    gValidationReadback.unmap();
-    gValidationPending = false;
+    sample->readback.unmap();
+    sample->finished = true;
 }
 
 extern "C" void I_WGPUSetPalette(const uint8_t* palette)
@@ -667,14 +723,16 @@ extern "C" void I_WGPUPresent(const uint8_t* framebuffer)
     if (!gReady || !framebuffer)
         return;
 
-    const bool validateThisFrame = gWallSnapshotReady && !gWallColumns.empty() &&
-        !gValidationPending && ((++gValidationFrame % 120u) == 1u);
+    gValidationSamples.erase(
+        std::remove_if(gValidationSamples.begin(), gValidationSamples.end(),
+            [](const std::shared_ptr<ValidationSample>& sample)
+            { return sample->finished; }),
+        gValidationSamples.end());
+    const bool validateThisFrame = gValidationMode && gWallSnapshotReady &&
+                                   !gWallColumns.empty();
+    std::shared_ptr<ValidationSample> validationSample;
     if (validateThisFrame)
-    {
-        BuildCPUReference(framebuffer);
-        gValidationPending = true;
-        gPendingValidationFrame = gValidationFrame;
-    }
+        validationSample = CreateValidationSample(framebuffer);
 
     const auto uploadStart = std::chrono::steady_clock::now();
     const uint32_t pixelCount = gSourceWidth * gSourceHeight;
@@ -727,8 +785,9 @@ extern "C" void I_WGPUPresent(const uint8_t* framebuffer)
         gWallCompute->updateStorageBuffer(
             gPostWallMaskBuffer, gPostWallMask.data(), sizeof(gPostWallMask));
     }
-    if (validateThisFrame)
-        gUploadMicros = std::chrono::duration_cast<std::chrono::microseconds>(
+    if (validationSample)
+        validationSample->uploadMicros =
+            std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::steady_clock::now() - uploadStart).count();
 
     int windowWidth = 0;
@@ -747,10 +806,69 @@ extern "C" void I_WGPUPresent(const uint8_t* framebuffer)
         wallPass.prepare();
         wallPass.draw(gWallCompute, (gSourceWidth + 7) / 8, 1, 1);
         wallPass.end();
-        if (validateThisFrame)
+        if (validationSample)
+        {
             wgfx::encoder.copyBufferToBuffer(
-                gIndices->buffer, 0, gValidationReadback, 0,
+                gIndices->buffer, 0, validationSample->readback, 0,
                 pixelCount * sizeof(uint32_t));
+
+            // Submit wall work separately so queue completion measures the
+            // upload + wall dispatch + readback-copy path, not presentation.
+            wgpu::CommandBufferDescriptor commandDescriptor{};
+            commandDescriptor.label = "Validated wall rasterization";
+            wgpu::CommandBuffer wallCommands =
+                wgfx::encoder.finish(commandDescriptor);
+            wgfx::encoder.release();
+            wgfx::encoder = nullptr;
+            validationSample->gpuStart = std::chrono::steady_clock::now();
+            const auto wallSubmitStart = validationSample->gpuStart;
+            wgfx::queue.submit(1, &wallCommands);
+            validationSample->submitMicros =
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::steady_clock::now() - wallSubmitStart).count();
+            wallCommands.release();
+
+            std::weak_ptr<ValidationSample> weakSample = validationSample;
+            validationSample->workDoneCallback = wgfx::queue.onSubmittedWorkDone(
+                [weakSample](wgpu::QueueWorkDoneStatus status)
+                {
+                    const auto sample = weakSample.lock();
+                    if (!sample)
+                        return;
+                    const auto completedAt = std::chrono::steady_clock::now();
+                    const uint64_t queueMicros =
+                        std::chrono::duration_cast<std::chrono::microseconds>(
+                            completedAt - sample->gpuStart).count();
+                    if (status != wgpu::QueueWorkDoneStatus::Success)
+                    {
+                        if (!sample->cancelled)
+                            std::cerr << "WebGPU validation queue completion failed\n";
+                        sample->finished = true;
+                        return;
+                    }
+                    if (sample->cancelled || gShuttingDown)
+                    {
+                        sample->finished = true;
+                        return;
+                    }
+                    sample->mapStart = completedAt;
+                    std::weak_ptr<ValidationSample> mapWeakSample = sample;
+                    sample->mapCallback = sample->readback.mapAsync(
+                        wgpu::MapMode::Read, 0,
+                        sample->expected.size() * sizeof(uint32_t),
+                        [mapWeakSample, queueMicros](
+                            wgpu::BufferMapAsyncStatus mapStatus)
+                        {
+                            if (const auto mappedSample = mapWeakSample.lock())
+                                ReportValidation(mappedSample, mapStatus,
+                                                 queueMicros);
+                        });
+                });
+
+            wgpu::CommandEncoderDescriptor encoderDescriptor{};
+            encoderDescriptor.label = "Palette and presentation";
+            wgfx::encoder = wgfx::device.createCommandEncoder(encoderDescriptor);
+        }
     }
 
     wgfx::ComputePass computePass;
@@ -790,44 +908,16 @@ extern "C" void I_WGPUPresent(const uint8_t* framebuffer)
     pass.end();
     pass.release();
 
-    const auto submitStart = std::chrono::steady_clock::now();
-    if (validateThisFrame)
-        gGPUStart = submitStart;
     wgfx::frame();
-    if (validateThisFrame)
-        gSubmitMicros = std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::steady_clock::now() - submitStart).count();
-    if (validateThisFrame)
-    {
-        gWorkDoneCallback = wgfx::queue.onSubmittedWorkDone(
-            [](wgpu::QueueWorkDoneStatus status)
-            {
-                const auto completedAt = std::chrono::steady_clock::now();
-                const uint64_t gpuMicros =
-                    std::chrono::duration_cast<std::chrono::microseconds>(
-                        completedAt - gGPUStart).count();
-                if (status != wgpu::QueueWorkDoneStatus::Success)
-                {
-                    std::cerr << "WebGPU validation queue completion failed\n";
-                    gValidationPending = false;
-                    return;
-                }
-                gMapStart = completedAt;
-                gMapCallback = gValidationReadback.mapAsync(
-                    wgpu::MapMode::Read, 0,
-                    gCPUReference.size() * sizeof(uint32_t),
-                    [gpuMicros](wgpu::BufferMapAsyncStatus mapStatus)
-                    {
-                        ReportValidation(mapStatus, gpuMicros);
-                    });
-            });
-    }
     gWallSnapshotReady = false;
     gPostWallPhase = false;
 }
 
 extern "C" void I_WGPUShutdown(void)
 {
+    gShuttingDown = true;
+    for (const auto& sample : gValidationSamples)
+        sample->cancelled = true;
     gReady = false;
     if (gPresentBindGroup) gPresentBindGroup.release();
     if (gPresentBindGroupLayout) gPresentBindGroupLayout.release();
@@ -835,9 +925,4 @@ extern "C" void I_WGPUShutdown(void)
     if (gFrameSampler) gFrameSampler.release();
     if (gFrameView) gFrameView.release();
     if (gFrameTexture) gFrameTexture.release();
-    if (gValidationReadback)
-    {
-        gValidationReadback.destroy();
-        gValidationReadback.release();
-    }
 }

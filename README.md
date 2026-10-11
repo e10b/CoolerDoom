@@ -22,15 +22,28 @@ ambiguous palette-value comparisons during composition. Frames containing a
 visible fuzz/invisibility sprite use a narrow CPU wall replay because Doom's
 classic fuzz effect samples neighboring framebuffer pixels.
 
-Every 120th rendered wall frame runs a deterministic correctness sample. The
-engine independently reconstructs the expected indexed frame on the CPU, copies
-the post-compute index buffer into a map-readable staging buffer, and compares
-all 64,000 pixels after queue completion. Reports include the mismatch count,
-the first differing coordinates and palette indices, CPU-reference time,
-CPU-side upload time, command submission time, queue completion/synchronization
-latency, and mapping/readback latency. Queue completion is deliberately not
+Pass `-wgpuvalidate` to enable comprehensive validation (`?wgpuvalidate` in the
+browser). In this mode every eligible frame continues through DOOM's original
+software wall loops, preserving that completed indexed framebuffer as the
+independent reference. WebGPU separately consumes the generated command stream,
+copies its post-compute index buffer into a per-frame staging buffer, and compares
+all 64,000 pixels after queue completion. This catches command-generation,
+resource-packing, shader, and composition errors rather than merely comparing
+two implementations that share prepared texture data.
+
+Reports include mismatch count, the first differing coordinates and palette
+indices, the complete CPU BSP/command/software-wall phase, time spent specifically
+inside the original wall raster loops, an estimated equivalent GPU wall path
+(CPU traversal/command preparation without those loops, plus upload, submission,
+and wall-only queue completion), reference-copy time, and mapping/readback. The
+wall compute and readback copy are submitted separately from palette conversion
+and presentation so the completion boundary does not include those later passes.
+Samples own their reference data, staging buffer, and callback
+state. Shutdown and queue/device failure cancel samples without releasing memory
+still reachable by asynchronous callbacks. Queue completion is deliberately not
 described as pure shader time: browser scheduling and synchronization are part
-of that wall-clock measurement.
+of that wall-clock measurement. For a reproducible run, record a demo with this
+engine and replay it with `-wgpuvalidate -playdemo <name>`.
 
 ## Lineage
 

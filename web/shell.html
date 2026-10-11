@@ -353,6 +353,9 @@
 
     var Module = {
       canvas,
+      arguments: new URLSearchParams(location.search).has("wgpuvalidate")
+        ? ["-wgpuvalidate"]
+        : [],
       print: (...args) => writeConsole(args, console.log),
       printErr: (...args) => writeConsole(args, console.error),
       setStatus: () => {}
