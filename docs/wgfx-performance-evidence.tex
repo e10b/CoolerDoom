@@ -20,8 +20,8 @@
 \setlength{\parindent}{0pt}
 
 \title{\textbf{wgfx Performance Relative to Raw WebGPU}\\
-\large Order-Controlled Microbenchmarks and an End-to-End wDoom Case Study}
-\author{e10b / wDoom project}
+\large Order-Controlled Microbenchmark Evidence}
+\author{e10b / wgfx project}
 \date{10 October 2026}
 
 \begin{document}
@@ -35,12 +35,7 @@ differences for compute encoding and submission, storage updates, bind-group
 creation, and render encoding are small, inconsistent in sign, or within the
 observed run-to-run variability. For the operations tested, no repeatable
 abstraction penalty is resolved: \texttt{wgfx} is effectively at performance
-parity with raw WebGPU. A separate end-to-end wDoom experiment did identify a
-real framework bottleneck---an unconditional completion wait after every
-frame. Replacing it with bounded nonblocking submission nearly doubled warmed
-throughput while preserving pixel-perfect output. This distinction is
-important: the wrapper calls were not costly, but one synchronization policy
-was.
+parity with raw WebGPU.
 \end{abstract}
 
 \section{Claim}
@@ -124,64 +119,6 @@ faster. Creation is relatively noisy, uses few samples, and is not a steady-stat
 frame-loop operation. It is evidence against claiming a stable penalty, not
 evidence of acceleration.
 
-\section{The bottleneck that was real}
-
-The original \texttt{wgfx::frame()} implementation submitted and presented a
-frame, then called both nonblocking and blocking device polling. Waiting for GPU
-completion after every frame serialized CPU and GPU work. This was a policy
-cost, not ordinary wrapper-call overhead.
-
-An optional bounded nonblocking mode was added. It permits at most three
-submitted frames, services completion callbacks without waiting when possible,
-and waits only when the in-flight bound is full. Queue ordering makes reuse of
-persistent buffers safe, and explicit draining protects reporting and shutdown.
-
-In five alternating blocking/nonblocking wDoom demo-1 runs, the medians were:
-
-\begin{table}[ht]
-\centering
-\begin{tabular}{@{}lrrr@{}}
-\toprule
-Metric & Blocking & Nonblocking & Change \\
-\midrule
-Throughput & 416.85 FPS & 786.62 FPS & $+88.7\%$ \\
-Mean CPU frame time & \SI{2.399}{\milli\second} &
-  \SI{1.271}{\milli\second} & $-47.0\%$ \\
-Queue-completion latency & \SI{1.196}{\milli\second} &
-  \SI{1.329}{\milli\second} & $+11.1\%$ \\
-Maximum observed peak RSS & \SI{144.7}{\mebi\byte} &
-  \SI{152.1}{\mebi\byte} & $+5.1\%$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The throughput improvement is large enough to identify the unconditional wait
-as a genuine framework-level bottleneck. The modest latency and memory increases
-are expected consequences of allowing several submissions to remain in flight.
-
-\section{Correctness and end-to-end renderer comparison}
-
-All four embedded Ultimate DOOM demos were replayed with nonblocking submission
-and every-frame validation. The GPU result was compared against the deterministic
-software-renderer reference:
-
-\begin{itemize}
-  \item 8,738 eligible frames completed;
-  \item 559,232,000 indexed pixels compared;
-  \item zero pixel mismatches;
-  \item zero readback failures; and
-  \item zero pending callbacks at completion.
-\end{itemize}
-
-With validation disabled, GPU walls completed the four-demo corpus in
-\SI{8.660}{\second}, or 1,009.0 FPS aggregate. A matched run of the original CPU
-wall loops, using the same Release binary and nonblocking presentation policy,
-completed it in \SI{6.732}{\second}, or 1,297.9 FPS. Thus the synchronization
-fix substantially narrowed the prior deficit, but the GPU wall renderer remains
-22.3\% slower than the software wall loops in this workload. That remaining gap
-does not contradict wrapper parity: it lies in renderer command preparation,
-data transfers, and GPU execution rather than generic wgfx forwarding.
-
 \section{Limitations}
 
 \begin{itemize}
@@ -198,12 +135,10 @@ data transfers, and GPU execution rather than generic wgfx forwarding.
 
 The evidence supports saying that \texttt{wgfx} is about as fast as direct
 WebGPU for the core operations tested. Once test-order bias was removed, no
-repeatable encoding or submission overhead remained. Profiling did uncover a
-real synchronization mistake in the framework, and correcting it produced an
-88.7\% median throughput gain without changing shaders, caches, rendering data,
-or output pixels. That is stronger evidence than a synthetic parity claim
-alone: the study distinguished negligible abstraction cost from a consequential
-policy cost, fixed the latter, and verified both performance and correctness.
+repeatable encoding or submission overhead remained. The order-controlled
+results cluster within a few percent of raw WebGPU and change sign across
+operations and runs. At this measurement resolution, those differences are
+noise rather than evidence of a systematic wrapper cost.
 
 \section*{Reproducibility artifacts}
 
@@ -213,8 +148,6 @@ The repository contains the benchmark source, full methodology, and CSV data:
   \item \texttt{deps/wgfx/benchmarks/wgfx\_benchmark.cpp}
   \item \texttt{deps/wgfx/PERFORMANCE.md}
   \item \texttt{deps/wgfx/benchmarks/results/m3-pro-order-controlled-summary.csv}
-  \item \texttt{benchmarks/wgfx-frame-sync-2026-10-10.csv}
-  \item \texttt{benchmarks/wgfx-four-demo-nonblocking-2026-10-10.csv}
 \end{itemize}
 
 \end{document}
