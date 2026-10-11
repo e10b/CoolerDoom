@@ -84,6 +84,44 @@ leaves validation and readback disabled and changes only `-cpuwalls`; both runs
 still use the same WebGPU palette conversion, presentation, and native queue
 synchronization.
 
+### wgfx frame synchronization A/B
+
+wgfx now offers an optional bounded nonblocking frame policy. wDoom enables it
+with `-wgpunonblocking`; the default remains the original submit/present/poll
+and wait behavior. The nonblocking policy retains at most three submitted
+frames, services completion callbacks without waiting when possible, and waits
+only when that bound is reached. Queue ordering makes repeated writes to the
+same persistent buffers safe. Shutdown and benchmark reporting explicitly
+drain pending work before resources are released.
+
+The same Release build and demo 1 were measured five times per configuration
+in alternating, reversed pairs (`AB / BA / AB / BA / AB`). Shaders, resource
+caches, wall path, WAD, sound settings, and disabled validation setting were
+identical; only `-wgpunonblocking` changed. The first pair was a large system
+outlier, so medians are the primary summary.
+The complete run-level measurements are in
+[`benchmarks/wgfx-frame-sync-2026-10-10.csv`](benchmarks/wgfx-frame-sync-2026-10-10.csv).
+
+| metric | blocking median | nonblocking median | change |
+| --- | ---: | ---: | ---: |
+| FPS | 416.85 | 786.62 | +88.7% |
+| mean CPU frame time | 2.399 ms | 1.271 ms | -47.0% |
+| GPU queue completion latency | 1.196 ms | 1.329 ms | +11.1% |
+| peak RSS (maximum observed run) | 144.7 MiB | 152.1 MiB | +5.1% |
+
+An additional nonblocking every-frame validation replay completed all 1,710
+eligible demo frames with zero mismatched pixels, readback failures, or pending
+callbacks. The nearly doubled warmed throughput establishes that per-frame
+blocking in wgfx was a framework-level bottleneck for this workload, not merely
+microseconds of forwarding overhead.
+
+```sh
+./wDoom -iwad /path/to/DOOM.WAD -nosound -nomusic \
+  -wgpubenchmark -timedemo demo1
+./wDoom -iwad /path/to/DOOM.WAD -nosound -nomusic \
+  -wgpubenchmark -wgpunonblocking -timedemo demo1
+```
+
 ```sh
 ./wDoom -iwad /path/to/DOOM.WAD -wgpuvalidate -timedemo demo1
 ./wDoom -iwad /path/to/DOOM.WAD -timedemo demo1

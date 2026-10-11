@@ -13,14 +13,20 @@ extern "C" {
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <numeric>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#ifndef __EMSCRIPTEN__
+#include <sys/resource.h>
+#endif
 
 namespace
 {
@@ -52,6 +58,8 @@ bool gCPUWallsReady = false;
 bool gReportedWallRasterizer = false;
 bool gValidationMode = false;
 bool gCPUWallMode = false;
+bool gBenchmarkMode = false;
+bool gNonBlockingFrames = false;
 bool gShuttingDown = false;
 uint64_t gValidationFrame = 0;
 uint64_t gValidationCompletedFrames = 0;
@@ -59,6 +67,9 @@ uint64_t gValidationFailedFrames = 0;
 uint64_t gValidationComparedPixels = 0;
 uint64_t gValidationMismatchPixels = 0;
 uint64_t gValidationReadbackFailures = 0;
+std::chrono::steady_clock::time_point gBenchmarkStart;
+std::chrono::steady_clock::time_point gBenchmarkFrameStart;
+std::vector<uint64_t> gBenchmarkFrameNanoseconds;
 
 wgfx::Compute* gCompute = nullptr;
 wgfx::Compute* gWallCompute = nullptr;
@@ -418,6 +429,8 @@ extern "C" bool I_WGPUInit(SDL_Window* window, uint32_t sourceWidth,
 
     gValidationMode = M_CheckParm(const_cast<char*>("-wgpuvalidate")) != 0;
     gCPUWallMode = M_CheckParm(const_cast<char*>("-cpuwalls")) != 0;
+    gBenchmarkMode = M_CheckParm(const_cast<char*>("-wgpubenchmark")) != 0;
+    gNonBlockingFrames = M_CheckParm(const_cast<char*>("-wgpunonblocking")) != 0;
     if (gCPUWallMode && gValidationMode)
     {
         std::cerr << "-cpuwalls and -wgpuvalidate are mutually exclusive\n";
@@ -425,11 +438,14 @@ extern "C" bool I_WGPUInit(SDL_Window* window, uint32_t sourceWidth,
     }
     if (gCPUWallMode)
         std::cout << "CPU wall benchmark mode: original software wall loops active\n";
+    if (gNonBlockingFrames)
+        std::cout << "wgfx nonblocking frame mode: at most 3 submissions in flight\n";
     if (gValidationMode)
         std::cout << "WebGPU validation mode: original software renderer and GPU "
                      "will be compared every eligible frame\n";
 
     gCompute = wgfx::loadCompute(kComputeShader);
+    wgfx::configureFrameExecution(gNonBlockingFrames, gBenchmarkMode, 3);
     gIndices = wgfx::createStorage(0, gFrameIndices.size() * sizeof(uint32_t),
                                    gFrameIndices.data(), false);
     gPalette = wgfx::createStorage(1, gPackedPalette.size() * sizeof(uint32_t),
@@ -764,6 +780,71 @@ extern "C" void I_WGPUReportValidationSummary(void)
               << "\n";
 }
 
+extern "C" void I_WGPUBenchmarkFrameStart(void)
+{
+    if (!gBenchmarkMode)
+        return;
+    if (gBenchmarkFrameNanoseconds.empty())
+        gBenchmarkStart = std::chrono::steady_clock::now();
+    gBenchmarkFrameStart = std::chrono::steady_clock::now();
+}
+
+extern "C" void I_WGPUBenchmarkFrameEnd(void)
+{
+    if (!gBenchmarkMode)
+        return;
+    gBenchmarkFrameNanoseconds.push_back(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now() - gBenchmarkFrameStart).count());
+}
+
+extern "C" void I_WGPUReportBenchmarkSummary(void)
+{
+    if (!gBenchmarkMode)
+        return;
+    wgfx::drainFrames();
+    const auto endedAt = std::chrono::steady_clock::now();
+    const wgfx::FrameMetrics gpu = wgfx::getFrameMetrics();
+    std::vector<uint64_t> sortedFrames = gBenchmarkFrameNanoseconds;
+    std::sort(sortedFrames.begin(), sortedFrames.end());
+    const uint64_t frameCount = sortedFrames.size();
+    const uint64_t totalCpuNanoseconds = std::accumulate(
+        sortedFrames.begin(), sortedFrames.end(), uint64_t{0});
+    const double wallSeconds = std::chrono::duration<double>(
+        endedAt - gBenchmarkStart).count();
+    const double meanCpuMilliseconds = frameCount
+        ? static_cast<double>(totalCpuNanoseconds) / frameCount / 1.0e6 : 0.0;
+    const double medianCpuMilliseconds = frameCount
+        ? sortedFrames[frameCount / 2] / 1.0e6 : 0.0;
+    const double p95CpuMilliseconds = frameCount
+        ? sortedFrames[static_cast<size_t>(std::ceil(frameCount * 0.95)) - 1] / 1.0e6
+        : 0.0;
+    const double meanGpuMilliseconds = gpu.completed
+        ? static_cast<double>(gpu.totalCompletionNanoseconds) / gpu.completed / 1.0e6
+        : 0.0;
+    uint64_t peakMemoryBytes = 0;
+#ifndef __EMSCRIPTEN__
+    struct rusage usage {};
+    if (getrusage(RUSAGE_SELF, &usage) == 0)
+        peakMemoryBytes = static_cast<uint64_t>(usage.ru_maxrss);
+#endif
+    std::ostringstream report;
+    report << "WGPU_BENCHMARK mode="
+           << (gNonBlockingFrames ? "nonblocking" : "blocking")
+           << " frames=" << frameCount << " fps="
+           << (wallSeconds > 0.0 ? frameCount / wallSeconds : 0.0)
+           << " cpu_mean_ms=" << meanCpuMilliseconds
+           << " cpu_median_ms=" << medianCpuMilliseconds
+           << " cpu_p95_ms=" << p95CpuMilliseconds
+           << " gpu_completed=" << gpu.completed
+           << " gpu_latency_mean_ms=" << meanGpuMilliseconds
+           << " gpu_latency_max_ms="
+           << gpu.maximumCompletionNanoseconds / 1.0e6
+           << " peak_in_flight=" << gpu.peakFramesInFlight
+           << " peak_rss_bytes=" << peakMemoryBytes << "\n";
+    std::cout << report.str() << std::flush;
+}
+
 extern "C" void I_WGPUSetPalette(const uint8_t* palette)
 {
     if (!palette)
@@ -983,6 +1064,9 @@ extern "C" void I_WGPUPresent(const uint8_t* framebuffer)
 extern "C" void I_WGPUShutdown(void)
 {
     gShuttingDown = true;
+    // Retire completion callbacks before releasing resources referenced by
+    // submitted command buffers.
+    wgfx::drainFrames();
     for (const auto& sample : gValidationSamples)
         sample->cancelled = true;
     gReady = false;

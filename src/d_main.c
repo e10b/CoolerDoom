@@ -70,6 +70,7 @@ static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 #include "i_system.h"
 #include "i_sound.h"
 #include "i_video.h"
+#include "i_video_wgpu.h"
 
 #include "g_game.h"
 
@@ -359,6 +360,7 @@ extern  boolean         demorecording;
 
 static void D_DoomFrame (void)
 {
+    I_WGPUBenchmarkFrameStart();
     if (singletics)
     {
 	D_ProcessEvents ();
@@ -382,6 +384,7 @@ static void D_DoomFrame (void)
     D_Display ();
     I_UpdateSound();
     I_SubmitSound();
+    I_WGPUBenchmarkFrameEnd();
 }
 
 void D_DoomLoop (void)

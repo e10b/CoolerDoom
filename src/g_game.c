@@ -1687,6 +1687,7 @@ boolean G_CheckDemoStatus (void)
     {
 	endtime = I_GetTime ();
 	I_WGPUReportValidationSummary();
+	I_WGPUReportBenchmarkSummary();
 	I_Error ("timed %i gametics in %i realtics",gametic
 		 , endtime-starttime);
     }
@@ -1721,4 +1722,3 @@ boolean G_CheckDemoStatus (void)
 
     return false;
 }
-
