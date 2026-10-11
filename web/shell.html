@@ -46,6 +46,27 @@
       letter-spacing: 0.14em;
     }
 
+    #site-credit {
+      position: fixed;
+      z-index: 130;
+      bottom: 21px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #777;
+      font: 11px system-ui, sans-serif;
+      white-space: nowrap;
+    }
+
+    #site-credit a {
+      color: #999;
+      text-decoration: none;
+    }
+
+    #site-credit a:hover {
+      color: #ddd;
+      text-decoration: underline;
+    }
+
     #title-intro {
       position: fixed;
       z-index: 100;
@@ -247,6 +268,7 @@
 </head>
 <body>
   <h1 id="site-title">WDOOM</h1>
+  <div id="site-credit">wDoom — <a href="https://github.com/e10b" target="_blank" rel="noreferrer">@e10b</a> · CoolDoom — <a href="https://github.com/brubid" target="_blank" rel="noreferrer">@brubid</a></div>
   <div id="title-intro" aria-label="wDoom title animation">
     <div>
       <img id="title-frame" src="title/1.jpeg" alt="wDoom">
