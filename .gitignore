@@ -49,6 +49,7 @@ obj/x86/
 bld/
 [Oo]bj/
 [Oo]ut/
+.vercel-cache/
 [Ll]og/
 [Ll]ogs/
 

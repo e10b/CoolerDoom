@@ -169,6 +169,21 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory out/build/web
 Open <http://127.0.0.1:8765/index.html> in a WebGPU-capable browser. The build
 packages the repository's verified shareware IWAD as `/doom1.wad`.
 
+### Deploy on Vercel
+
+The repository can be imported directly into Vercel. Select the wDoom GitHub
+repository, leave the project root at the repository root, and deploy. The
+checked-in `vercel.json` runs `scripts/vercel-build.sh`, which installs the
+pinned Emscripten 3.1.61 SDK, initializes the public submodules, builds the
+browser target, and publishes the static-only `out/vercel` directory.
+
+No Vercel environment variables or framework preset are required. The initial
+deployment downloads the SDK and build dependencies, so it takes longer than a
+normal static-site deployment. Later builds can reuse Vercel's build cache.
+
+The deployed site contains only the GPLv2 engine and the separately licensed,
+original shareware `DOOM1.WAD`; it does not publish the local commercial IWAD.
+
 ## License and game data
 
 wDoom is free software distributed under the **GNU General Public License,

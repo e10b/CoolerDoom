@@ -1,7 +1,7 @@
 [submodule "deps/wgfx"]
 	path = deps/wgfx
-	url = git@github.com:e10b/mywgfx.git
-	branch = main
+	url = https://github.com/e10b/mywgfx.git
+	branch = wgfx-benchmark
 [submodule "deps/webgpu"]
 	path = deps/webgpu
 	url = https://github.com/eliemichel/WebGPU-distribution.git
