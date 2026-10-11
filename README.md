@@ -7,10 +7,12 @@ the platform and input layer.
 
 wDoom does more than upload Doom's finished framebuffer. During BSP traversal,
 the engine records compact visible-wall commands with screen bounds, 16.16
-texture coordinates, and indices into deduplicated texture-column and colormap
-tables. Commands are stably grouped by screen column, and a 321-entry offset
-table lets each WGSL invocation process only the commands for its own column in
-the original drawing order.
+texture coordinates, and indices into content-addressed texture-column and
+colormap tables. The owned byte keys remain correct even if the engine later
+reuses an address for different data. These tables persist on the GPU, so each
+frame uploads only newly encountered entries. Commands are appended directly to
+per-column buckets, and a 321-entry offset table lets each WGSL invocation
+process only its own commands in the original drawing order without sorting.
 
 The CPU BSP remains authoritative for visibility, but normal wall calls return
 before Doom's software pixel loop: the compute pass independently rasterizes

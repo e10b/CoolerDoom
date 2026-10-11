@@ -10,7 +10,9 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -70,10 +72,30 @@ std::vector<uint32_t> gWallSnapshot;
 std::vector<WallColumn> gWallColumns;
 std::vector<uint32_t> gWallSources;
 std::vector<uint32_t> gWallColormaps;
-std::vector<const uint8_t*> gWallSourcePointers;
-std::vector<const uint8_t*> gWallColormapPointers;
-std::unordered_map<const uint8_t*, uint32_t> gWallSourceIndices;
-std::unordered_map<const uint8_t*, uint32_t> gWallColormapIndices;
+template <size_t N> struct ByteBlock
+{
+    std::array<uint8_t, N> bytes;
+    bool operator==(const ByteBlock& other) const { return bytes == other.bytes; }
+};
+template <size_t N> struct ByteBlockHash
+{
+    size_t operator()(const ByteBlock<N>& block) const
+    {
+        size_t hash = sizeof(size_t) == 8 ? 1469598103934665603ull : 2166136261u;
+        for (uint8_t byte : block.bytes)
+            hash = (hash ^ byte) * (sizeof(size_t) == 8 ? 1099511628211ull : 16777619u);
+        return hash;
+    }
+};
+using SourceBlock = ByteBlock<128>;
+using ColormapBlock = ByteBlock<256>;
+std::unordered_map<SourceBlock, uint32_t, ByteBlockHash<128>> gWallSourceIndices;
+std::unordered_map<ColormapBlock, uint32_t, ByteBlockHash<256>> gWallColormapIndices;
+std::array<std::vector<WallColumn>, 320> gWallBuckets;
+size_t gWallColumnCount = 0;
+size_t gUploadedSourceWords = 0;
+size_t gUploadedColormapWords = 0;
+uint64_t gWallBucketMicros = 0;
 std::array<uint32_t, 321> gWallOffsets{};
 std::array<uint32_t, kMaskWords> gPostWallMask{};
 std::array<uint32_t, kPaletteEntries> gPackedPalette{};
@@ -384,12 +406,11 @@ extern "C" bool I_WGPUInit(SDL_Window* window, uint32_t sourceWidth,
 extern "C" void I_WGPUBeginWallFrame(const uint8_t* framebuffer)
 {
     gWallColumns.clear();
-    gWallSources.clear();
-    gWallColormaps.clear();
-    gWallSourcePointers.clear();
-    gWallColormapPointers.clear();
-    gWallSourceIndices.clear();
-    gWallColormapIndices.clear();
+    // Texture columns and colormaps are immutable content-addressed resources.
+    // Keep them across frames and upload only entries discovered this frame.
+    for (auto& bucket : gWallBuckets)
+        bucket.clear();
+    gWallColumnCount = 0;
     gPostWallMask.fill(0);
     gWallSnapshotReady = false;
     gPostWallPhase = false;
@@ -402,18 +423,20 @@ extern "C" void I_WGPUBeginWallFrame(const uint8_t* framebuffer)
     }
 }
 
-static uint32_t InternBytes(const uint8_t* bytes, uint32_t wordCount,
-                            std::unordered_map<const uint8_t*, uint32_t>& indices,
-                            std::vector<const uint8_t*>& pointers,
+template <size_t N>
+static uint32_t InternBytes(const uint8_t* bytes,
+                            std::unordered_map<ByteBlock<N>, uint32_t,
+                                               ByteBlockHash<N>>& indices,
                             std::vector<uint32_t>& packed)
 {
-    const auto found = indices.find(bytes);
+    ByteBlock<N> block{};
+    std::memcpy(block.bytes.data(), bytes, N);
+    const auto found = indices.find(block);
     if (found != indices.end())
         return found->second;
-    const uint32_t index = static_cast<uint32_t>(pointers.size());
-    indices.emplace(bytes, index);
-    pointers.push_back(bytes);
-    for (uint32_t word = 0; word < wordCount; ++word)
+    const uint32_t index = static_cast<uint32_t>(indices.size());
+    indices.emplace(block, index);
+    for (uint32_t word = 0; word < N / 4; ++word)
     {
         const uint32_t byte = word * 4;
         packed.push_back(uint32_t(bytes[byte]) |
@@ -432,18 +455,19 @@ extern "C" bool I_WGPUQueueWallColumn(int x, int yl, int yh, int32_t frac,
     if (!gCollectWallColumns || !source || !colormap || x < 0 || yl < 0 ||
         yh < yl || static_cast<uint32_t>(x) >= gSourceWidth ||
         static_cast<uint32_t>(yl) >= gSourceHeight ||
-        gWallColumns.size() >= kMaxWallColumns)
+        gWallColumnCount >= kMaxWallColumns)
         return false;
 
     yh = std::min(yh, static_cast<int>(gSourceHeight) - 1);
-    const uint32_t sourceIndex = InternBytes(source, kWallSourceWords,
-        gWallSourceIndices, gWallSourcePointers, gWallSources);
-    const uint32_t colormapIndex = InternBytes(colormap, kWallColormapWords,
-        gWallColormapIndices, gWallColormapPointers, gWallColormaps);
-    gWallColumns.push_back({static_cast<uint32_t>(x), static_cast<uint32_t>(yl),
+    const uint32_t sourceIndex = InternBytes<128>(source,
+        gWallSourceIndices, gWallSources);
+    const uint32_t colormapIndex = InternBytes<256>(colormap,
+        gWallColormapIndices, gWallColormaps);
+    gWallBuckets[x].push_back({static_cast<uint32_t>(x), static_cast<uint32_t>(yl),
                             static_cast<uint32_t>(yh), static_cast<uint32_t>(frac),
                             static_cast<uint32_t>(fracstep), sourceIndex,
                             colormapIndex});
+    ++gWallColumnCount;
     return true;
 }
 
@@ -451,18 +475,20 @@ extern "C" void I_WGPUEndWallFrame(void)
 {
     gCollectWallColumns = false;
     gPostWallPhase = true;
-    if (!gReady || gWallColumns.empty())
+    if (!gReady || gWallColumnCount == 0)
         return;
 
-    std::stable_sort(gWallColumns.begin(), gWallColumns.end(),
-        [](const WallColumn& a, const WallColumn& b) { return a.x < b.x; });
-    size_t command = 0;
-    for (uint32_t x = 0; x <= gSourceWidth; ++x)
+    const auto bucketStart = std::chrono::steady_clock::now();
+    gWallColumns.reserve(gWallColumnCount);
+    for (uint32_t x = 0; x < gSourceWidth; ++x)
     {
-        while (command < gWallColumns.size() && gWallColumns[command].x < x)
-            ++command;
-        gWallOffsets[x] = static_cast<uint32_t>(command);
+        gWallOffsets[x] = static_cast<uint32_t>(gWallColumns.size());
+        gWallColumns.insert(gWallColumns.end(), gWallBuckets[x].begin(),
+                            gWallBuckets[x].end());
     }
+    gWallOffsets[gSourceWidth] = static_cast<uint32_t>(gWallColumns.size());
+    gWallBucketMicros = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - bucketStart).count();
     gWallSnapshotReady = true;
 }
 
@@ -492,12 +518,19 @@ static void ReplayWallColumns(uint8_t* framebuffer)
     {
         int32_t frac = static_cast<int32_t>(column.frac);
         const int32_t step = static_cast<int32_t>(column.fracstep);
-        const uint8_t* source = gWallSourcePointers[column.sourceIndex];
-        const uint8_t* colormap = gWallColormapPointers[column.colormapIndex];
         for (uint32_t y = column.yl; y <= column.yh; ++y)
         {
+            const uint32_t textureIndex = (frac >> 16) & 127;
+            const uint32_t sourceWord =
+                gWallSources[column.sourceIndex * kWallSourceWords +
+                             (textureIndex >> 2)];
+            const uint32_t sourceIndex =
+                (sourceWord >> ((textureIndex & 3) * 8)) & 0xff;
+            const uint32_t mapWord =
+                gWallColormaps[column.colormapIndex * kWallColormapWords +
+                               (sourceIndex >> 2)];
             framebuffer[y * gSourceWidth + column.x] =
-                colormap[source[(frac >> 16) & 127]];
+                (mapWord >> ((sourceIndex & 3) * 8)) & 0xff;
             frac += step;
         }
     }
@@ -550,10 +583,11 @@ extern "C" void I_WGPUPresent(const uint8_t* framebuffer)
                 gWallColormaps.size() * sizeof(uint32_t) +
                 sizeof(gWallOffsets) + sizeof(gPostWallMask);
             std::cout << "WebGPU wall rasterizer active: " << gWallColumns.size()
-                      << " columns, " << gWallSourcePointers.size()
-                      << " texture columns, " << gWallColormapPointers.size()
+                      << " columns, " << gWallSourceIndices.size()
+                      << " texture columns, " << gWallColormapIndices.size()
                       << " colormaps, " << (uploadBytes + 1023) / 1024
-                      << " KiB of wall-command data in first rendered frame\n";
+                      << " KiB of wall-command data, " << gWallBucketMicros
+                      << " us bucket flatten in first rendered frame\n";
             gReportedWallRasterizer = true;
         }
         gWallCompute->updateStorageBuffer(
@@ -562,12 +596,23 @@ extern "C" void I_WGPUPresent(const uint8_t* framebuffer)
         gWallCompute->updateStorageBuffer(
             gWallCommandsBuffer, gWallColumns.data(),
             gWallColumns.size() * sizeof(WallColumn));
-        gWallCompute->updateStorageBuffer(
-            gWallSourcesBuffer, gWallSources.data(),
-            gWallSources.size() * sizeof(uint32_t));
-        gWallCompute->updateStorageBuffer(
-            gWallColormapsBuffer, gWallColormaps.data(),
-            gWallColormaps.size() * sizeof(uint32_t));
+        if (gWallSources.size() > gUploadedSourceWords)
+        {
+            gWallCompute->updateStorageBuffer(
+                gWallSourcesBuffer, gWallSources.data() + gUploadedSourceWords,
+                (gWallSources.size() - gUploadedSourceWords) * sizeof(uint32_t),
+                gUploadedSourceWords * sizeof(uint32_t));
+            gUploadedSourceWords = gWallSources.size();
+        }
+        if (gWallColormaps.size() > gUploadedColormapWords)
+        {
+            gWallCompute->updateStorageBuffer(
+                gWallColormapsBuffer,
+                gWallColormaps.data() + gUploadedColormapWords,
+                (gWallColormaps.size() - gUploadedColormapWords) * sizeof(uint32_t),
+                gUploadedColormapWords * sizeof(uint32_t));
+            gUploadedColormapWords = gWallColormaps.size();
+        }
         gWallCompute->updateStorageBuffer(
             gWallOffsetsBuffer, gWallOffsets.data(), sizeof(gWallOffsets));
         gWallCompute->updateStorageBuffer(
