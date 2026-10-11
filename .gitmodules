@@ -1,7 +1,7 @@
 [submodule "deps/wgfx"]
 	path = deps/wgfx
-	url = https://github.com/e10b/mywgfx.git
-	branch = wgfx-benchmark
+	url = https://github.com/e10b/wgfx.git
+	branch = wdoom-compat
 [submodule "deps/webgpu"]
 	path = deps/webgpu
 	url = https://github.com/eliemichel/WebGPU-distribution.git
