@@ -115,6 +115,22 @@ callbacks. The nearly doubled warmed throughput establishes that per-frame
 blocking in wgfx was a framework-level bottleneck for this workload, not merely
 microseconds of forwarding overhead.
 
+The complete four-demo Ultimate DOOM corpus was then replayed with nonblocking
+submission. Every-frame validation passed all 8,738 eligible frames: 559,232,000
+indexed pixels compared, zero mismatches, zero readback failures, and zero
+pending callbacks. Its validation-instrumented elapsed time was 10.045 seconds
+(869.9 FPS aggregate). With validation disabled, GPU walls took 8.660 seconds
+(1,009.0 FPS aggregate).
+
+A matched validation-off run of the original CPU wall loops used the same
+Release binary and nonblocking presentation policy. It took 6.732 seconds
+(1,297.9 FPS aggregate). The synchronization fix therefore materially narrows
+the earlier GPU deficit, but does **not** reverse it: GPU walls remain 22.3%
+slower than CPU walls over this corpus. The remaining work is now in command
+preparation, transfers, and GPU wall execution rather than wgfx's former
+per-frame completion wait. Full per-demo data is in
+[`benchmarks/wgfx-four-demo-nonblocking-2026-10-10.csv`](benchmarks/wgfx-four-demo-nonblocking-2026-10-10.csv).
+
 ```sh
 ./wDoom -iwad /path/to/DOOM.WAD -nosound -nomusic \
   -wgpubenchmark -timedemo demo1
