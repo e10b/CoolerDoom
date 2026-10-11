@@ -175,8 +175,9 @@ The repository can be imported directly into Vercel. Select the wDoom GitHub
 repository, leave the production branch on `main`, keep the project root at the
 repository root, and deploy. The
 checked-in `vercel.json` runs `scripts/vercel-build.sh`, which installs the
-pinned Emscripten 3.1.61 SDK, initializes the public submodules, builds the
-browser target, and publishes the static-only `out/vercel` directory.
+pinned Emscripten 3.1.61 SDK plus pinned CMake and Ninja build tools,
+initializes the public submodules, builds the browser target, and publishes the
+static-only `out/vercel` directory.
 
 No Vercel environment variables or framework preset are required. The initial
 deployment downloads the SDK and build dependencies, so it takes longer than a
