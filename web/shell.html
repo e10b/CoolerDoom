@@ -57,6 +57,16 @@
       height: auto;
     }
 
+    #title-prompt {
+      display: block;
+      margin-top: 18px;
+      color: #888;
+      font: 12px system-ui, sans-serif;
+      letter-spacing: 0.08em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
     #console {
       position: fixed;
       right: 16px;
@@ -221,9 +231,12 @@
 </head>
 <body>
   <div id="title-intro" aria-label="wDoom title animation">
-    <img id="title-frame" src="title/1.jpeg" alt="wDoom">
+    <div>
+      <img id="title-frame" src="title/1.jpeg" alt="wDoom">
+      <span id="title-prompt">Press any key to start</span>
+    </div>
   </div>
-  <audio id="title-audio" src="title/a.flac" preload="auto" autoplay></audio>
+  <audio id="title-audio" src="title/a.flac" preload="auto"></audio>
   <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
   <pre id="console" aria-live="polite" hidden></pre>
   <button id="console-toggle" type="button" title="Console" aria-label="Toggle debug console" aria-controls="console" aria-expanded="false">
@@ -251,6 +264,7 @@
     const canvas = document.getElementById("canvas");
     const titleIntro = document.getElementById("title-intro");
     const titleFrame = document.getElementById("title-frame");
+    const titlePrompt = document.getElementById("title-prompt");
     const titleAudio = document.getElementById("title-audio");
     const consoleOutput = document.getElementById("console");
     const consoleToggle = document.getElementById("console-toggle");
@@ -265,17 +279,18 @@
       image.addEventListener("error", resolve, { once: true });
       image.src = source;
     })));
-    function tryStartTitleAudio() {
+    titleAudio.volume = 0.5;
+    let titleStarted = false;
+
+    async function playTitleIntro(event) {
+      if (titleStarted) return;
+      titleStarted = true;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      titlePrompt.hidden = true;
+
       const playback = titleAudio.play();
       if (playback) playback.catch(() => {});
-    }
-
-    titleAudio.volume = 0.5;
-    document.addEventListener("pointerdown", tryStartTitleAudio, { once: true });
-    document.addEventListener("keydown", tryStartTitleAudio, { once: true });
-    tryStartTitleAudio();
-
-    async function playTitleIntro() {
       await titleFramesReady;
 
       titleFrames.forEach((source, index) => {
@@ -287,7 +302,7 @@
       }, 1000);
     }
 
-    playTitleIntro();
+    document.addEventListener("keydown", playTitleIntro, { capture: true, once: true });
 
     function writeConsole(args, writer) {
       const text = args.join(" ");
