@@ -914,9 +914,9 @@ void R_RenderPlayerView (player_t* player)
     NetUpdate ();
 
     // The head node is the last node output.
-    I_WGPUBeginWallFrame();
+    I_WGPUBeginWallFrame(screens[0]);
     R_RenderBSPNode (numnodes-1);
-    I_WGPUEndWallFrame(screens[0]);
+    I_WGPUEndWallFrame();
 
     // Check for new console commands.
     NetUpdate ();

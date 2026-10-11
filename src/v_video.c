@@ -38,6 +38,7 @@ rcsid[] = "$Id: v_video.c,v 1.5 1997/02/03 22:45:13 b1 Exp $";
 #include "m_swap.h"
 
 #include "v_video.h"
+#include "i_video_wgpu.h"
 
 
 // Each screen is [SCREENWIDTH*SCREENHEIGHT]; 
@@ -183,6 +184,8 @@ V_CopyRect
     }
 #endif 
     V_MarkRect(destx, desty, width, height);
+    if (!destscrn)
+	I_WGPUMarkPostWallRect(destx, desty, width, height);
 
     src = screens[srcscrn] + SCREENWIDTH * srcy + srcx;
     dest = screens[destscrn] + SCREENWIDTH * desty + destx;
@@ -250,6 +253,9 @@ V_DrawPatch
             source = (byte*)column + 3;
             dest = desttop + column->topdelta * SCREENWIDTH;
             count = column->length;
+            if (!scrn)
+		I_WGPUMarkPostWallColumn(x, y + column->topdelta,
+					 y + column->topdelta + count - 1);
 
             while (count--)
             {
@@ -315,6 +321,9 @@ V_DrawPatchFlipped
             source = (byte*)column + 3;
             dest = desttop + column->topdelta * SCREENWIDTH;
             count = column->length;
+            if (!scrn)
+		I_WGPUMarkPostWallColumn(x, y + column->topdelta,
+					 y + column->topdelta + count - 1);
 
             while (count--)
             {
@@ -424,6 +433,8 @@ V_DrawBlock
 #endif 
 
     V_MarkRect(x, y, width, height);
+    if (!scrn)
+	I_WGPUMarkPostWallRect(x, y, width, height);
 
     dest = screens[scrn] + y * SCREENWIDTH + x;
 

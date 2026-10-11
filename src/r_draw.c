@@ -138,9 +138,12 @@ void R_DrawColumn (void)
 
     {
 	int offset = (int)(dest - screens[0]);
-	I_WGPUQueueWallColumn(offset % SCREENWIDTH, offset / SCREENWIDTH,
+	if (I_WGPUQueueWallColumn(offset % SCREENWIDTH, offset / SCREENWIDTH,
 			       offset / SCREENWIDTH + count, frac, fracstep,
-			       dc_source, dc_colormap);
+			       dc_source, dc_colormap))
+	    return;
+	I_WGPUMarkPostWallColumn(offset % SCREENWIDTH, offset / SCREENWIDTH,
+				 offset / SCREENWIDTH + count);
     }
 
     // Inner loop that does the actual texture mapping,
@@ -255,10 +258,12 @@ void R_DrawColumnLow (void)
     {
 	int offset = (int)(dest - screens[0]);
 	int y = offset / SCREENWIDTH;
-	I_WGPUQueueWallColumn(offset % SCREENWIDTH, y, y + count, frac,
-			       fracstep, dc_source, dc_colormap);
-	I_WGPUQueueWallColumn(offset % SCREENWIDTH + 1, y, y + count, frac,
-			       fracstep, dc_source, dc_colormap);
+	if (I_WGPUQueueWallColumn(offset % SCREENWIDTH, y, y + count, frac,
+				fracstep, dc_source, dc_colormap)
+	    && I_WGPUQueueWallColumn(offset % SCREENWIDTH + 1, y, y + count, frac,
+				   fracstep, dc_source, dc_colormap))
+	    return;
+	I_WGPUMarkPostWallRect(offset % SCREENWIDTH, y, 2, count + 1);
     }
     
     do 
@@ -362,6 +367,10 @@ void R_DrawFuzzColumn (void)
     // Does not work with blocky mode.
     dest = ylookup[dc_yl] + columnofs[dc_x];
 
+    I_WGPUMarkPostWallColumn((int)(dest - screens[0]) % SCREENWIDTH,
+			     (int)(dest - screens[0]) / SCREENWIDTH,
+			     (int)(dest - screens[0]) / SCREENWIDTH + count);
+
     // Looks familiar.
     fracstep = dc_iscale; 
     frac = dc_texturemid + (dc_yl-centery)*fracstep; 
@@ -446,6 +455,10 @@ void R_DrawTranslatedColumn (void)
     
     // FIXME. As above.
     dest = ylookup[dc_yl] + columnofs[dc_x]; 
+
+    I_WGPUMarkPostWallColumn((int)(dest - screens[0]) % SCREENWIDTH,
+			     (int)(dest - screens[0]) / SCREENWIDTH,
+			     (int)(dest - screens[0]) / SCREENWIDTH + count);
 
     // Looks familiar.
     fracstep = dc_iscale; 
@@ -569,6 +582,10 @@ void R_DrawSpan (void)
 //    yfrac += finesine[(time+yfrac) >> ANGLETOFINESHIFT] << 8;
  //   xfrac += finesine[(time + xfrac) >> ANGLETOFINESHIFT] << 8;
     dest = ylookup[ds_y] + columnofs[ds_x1];
+
+    I_WGPUMarkPostWallRect((int)(dest - screens[0]) % SCREENWIDTH,
+			   (int)(dest - screens[0]) / SCREENWIDTH,
+			   ds_x2 - ds_x1 + 1, 1);
 
     // We do not check for zero spans here?
     count = ds_x2 - ds_x1; 
@@ -712,6 +729,10 @@ void R_DrawSpanLow (void)
     ds_x2 <<= 1;
     
     dest = ylookup[ds_y] + columnofs[ds_x1];
+
+    I_WGPUMarkPostWallRect((int)(dest - screens[0]) % SCREENWIDTH,
+			   (int)(dest - screens[0]) / SCREENWIDTH,
+			   ds_x2 - ds_x1 + 1, 1);
   
     
     count = ds_x2 - ds_x1; 

@@ -38,6 +38,8 @@ rcsid[] = "$Id: r_things.c,v 1.5 1997/02/03 16:47:56 b1 Exp $";
 #include "w_wad.h"
 
 #include "r_local.h"
+#include "i_video_wgpu.h"
+#include "v_video.h"
 
 #include "doomstat.h"
 
@@ -980,6 +982,15 @@ void R_DrawMasked (void)
 
     R_SortVisSprites ();
 
+    // Fuzz sprites sample neighbouring framebuffer pixels. Materialize the
+    // queued walls only on frames that need that software dependency.
+    for (spr = vsprsortedhead.next ; spr != &vsprsortedhead ; spr=spr->next)
+	if (!spr->colormap)
+	{
+	    I_WGPURequireCPUWalls(screens[0]);
+	    break;
+	}
+
     if (vissprite_p > vissprites)
     {
 	// draw all vissprites back to front
@@ -1002,6 +1013,4 @@ void R_DrawMasked (void)
     if (!viewangleoffset)
 	R_DrawPlayerSprites ();
 }
-
-
 

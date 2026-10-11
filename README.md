@@ -6,16 +6,19 @@ the platform and input layer.
 ## WebGPU rendering
 
 wDoom does more than upload Doom's finished framebuffer. During BSP traversal,
-the engine records the visible wall columns with their screen bounds, 16.16
-texture coordinates, texture texels, and Doom colormap. A WGSL compute pass
-replays the original fixed-point wall-column rasterizer on the GPU before the
-palette conversion and presentation passes.
+the engine records compact visible-wall commands with screen bounds, 16.16
+texture coordinates, and indices into deduplicated texture-column and colormap
+tables. Commands are stably grouped by screen column, and a 321-entry offset
+table lets each WGSL invocation process only the commands for its own column in
+the original drawing order.
 
-The CPU BSP remains authoritative for visibility and currently keeps a mirrored
-software result as a compatibility fallback. The compositor preserves pixels
-drawn later by floors, ceilings, masked textures, sprites, weapons, the HUD,
-and status bar. This makes wall rasterization a real GPU rendering stage while
-retaining Doom's original rendering order and indexed-color behavior.
+The CPU BSP remains authoritative for visibility, but normal wall calls return
+before Doom's software pixel loop: the compute pass independently rasterizes
+them. A per-pixel bit mask identifies pixels subsequently owned by floors,
+ceilings, masked textures, sprites, weapons, the HUD, or the status bar, avoiding
+ambiguous palette-value comparisons during composition. Frames containing a
+visible fuzz/invisibility sprite use a narrow CPU wall replay because Doom's
+classic fuzz effect samples neighboring framebuffer pixels.
 
 ## Lineage
 
