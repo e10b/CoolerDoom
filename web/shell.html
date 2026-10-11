@@ -270,6 +270,7 @@
       if (playback) playback.catch(() => {});
     }
 
+    titleAudio.volume = 0.5;
     document.addEventListener("pointerdown", tryStartTitleAudio, { once: true });
     document.addEventListener("keydown", tryStartTitleAudio, { once: true });
     tryStartTitleAudio();
