@@ -45,6 +45,51 @@ described as pure shader time: browser scheduling and synchronization are part
 of that wall-clock measurement. For a reproducible run, record a demo with this
 engine and replay it with `-wgpuvalidate -playdemo <name>`.
 
+Validation ends with an aggregate `PASS`/`FAIL` line containing submitted,
+completed, and failed frame counts, total compared and mismatched pixels,
+readback failures, and callbacks still pending. A run passes only if every
+submitted frame completed, no pixel differed, and no asynchronous work remains.
+
+For an end-to-end performance comparison, replay the same demo twice with
+`-timedemo`: once normally for GPU walls and once with `-cpuwalls` for DOOM's
+original software wall loops. Both modes retain the same WebGPU palette and
+presentation path, while the timedemo result includes command preparation,
+uploads, submission, and the native backend's queue synchronization. Do not
+combine `-cpuwalls` with `-wgpuvalidate`.
+
+### Measured baseline
+
+On 2026-10-10, the native wgpu backend was tested on an Apple M3 Pro (14 GPU
+cores), arm64 macOS 15.6.1, using the locally supplied Ultimate DOOM v1.9 IWAD
+(`6fdf361847b46228cfebd9f3af09cd844282ac75f3edbb61ca4cb27103ce2e7f`). The
+commercial IWAD is test input only and is not distributed by this repository.
+
+All four complete embedded demos passed `-wgpuvalidate -timedemo`: 8,738 of
+8,738 eligible frames completed, 559,232,000 indexed framebuffer pixels were
+compared, and there were zero mismatches, readback failures, or pending
+callbacks. This establishes equivalence for that deterministic demo corpus; it
+is not a proof covering every possible game state.
+
+Five end-to-end runs of demo 1 produced these realtic counts (35 realtics per
+second):
+
+| wall path | five runs | mean | mean throughput |
+| --- | --- | ---: | ---: |
+| WebGPU | 251, 261, 294, 195, 232 | 246.6 | 242.7 frames/s |
+| original CPU | 169, 170, 168, 163, 163 | 166.6 | 359.2 frames/s |
+
+For this baseline the WebGPU path is **not faster**: it takes 48.0% longer
+end-to-end and delivers 32.4% less throughput. The comparison deliberately
+leaves validation and readback disabled and changes only `-cpuwalls`; both runs
+still use the same WebGPU palette conversion, presentation, and native queue
+synchronization.
+
+```sh
+./wDoom -iwad /path/to/DOOM.WAD -wgpuvalidate -timedemo demo1
+./wDoom -iwad /path/to/DOOM.WAD -timedemo demo1
+./wDoom -iwad /path/to/DOOM.WAD -cpuwalls -timedemo demo1
+```
+
 ## Lineage
 
 - **DOOM** — the original engine and GPL source release by id Software.

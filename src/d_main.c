@@ -656,10 +656,22 @@ void IdentifyVersion (void)
 	return;
     }
     int gameCount = 0;
-    printf("Select an IWAD: \n");
+    int iwadParm = M_CheckParm("-iwad");
+    boolean explicitIwad = false;
     char* iwadStr[7];
+    if (iwadParm)
+    {
+        if (iwadParm >= myargc - 1)
+            I_Error("-iwad requires a path");
+        if (!SDL_GetPathInfo(myargv[iwadParm + 1], NULL))
+            I_Error("IWAD not found: %s", myargv[iwadParm + 1]);
+        iwadStr[gameCount++] = myargv[iwadParm + 1];
+        explicitIwad = true;
+    }
+    else
+        printf("Select an IWAD: \n");
    // if ( !access (doom2fwad,R_OK) )
-   if(SDL_GetPathInfo(doom2fwad,NULL))
+   if(!explicitIwad && SDL_GetPathInfo(doom2fwad,NULL))
     {
 	//gamemode = commercial;
 	// C'est ridicule!
@@ -673,7 +685,7 @@ void IdentifyVersion (void)
 	//return;
     }
 
-   if(SDL_GetPathInfo(doom2wad,NULL))
+   if(!explicitIwad && SDL_GetPathInfo(doom2wad,NULL))
     {
 //	gamemode = commercial;
 //	D_AddFile (doom2wad);
@@ -683,7 +695,7 @@ void IdentifyVersion (void)
 //	return;
     }
 
-   if(SDL_GetPathInfo(plutoniawad,NULL))
+   if(!explicitIwad && SDL_GetPathInfo(plutoniawad,NULL))
     {
    //   gamemode = commercial;
     //  D_AddFile (plutoniawad);
@@ -692,7 +704,7 @@ void IdentifyVersion (void)
     //  return;
     }
 
-   if(SDL_GetPathInfo(tntwad,NULL))
+   if(!explicitIwad && SDL_GetPathInfo(tntwad,NULL))
     {
   //    gamemode = commercial;
   //    D_AddFile (tntwad);
@@ -701,7 +713,7 @@ void IdentifyVersion (void)
    //   return;
     }
 
-   if(SDL_GetPathInfo(doomuwad,NULL))
+   if(!explicitIwad && SDL_GetPathInfo(doomuwad,NULL))
     {
     //  gamemode = retail;
    //   D_AddFile (doomuwad);
@@ -710,7 +722,7 @@ void IdentifyVersion (void)
    //   return;
     }
 
-   if(SDL_GetPathInfo(doomwad,NULL))
+   if(!explicitIwad && SDL_GetPathInfo(doomwad,NULL))
     {
    //   gamemode = registered;
     //  D_AddFile (doomwad);
@@ -719,7 +731,7 @@ void IdentifyVersion (void)
     //  return;
     }
 
-   if(SDL_GetPathInfo(doom1wad,NULL))
+   if(!explicitIwad && SDL_GetPathInfo(doom1wad,NULL))
     {
    //   gamemode = shareware;
     //  D_AddFile (doom1wad);
@@ -735,20 +747,46 @@ void IdentifyVersion (void)
     gameChoice = 0;
     printf("Using packaged IWAD: %s\n", iwadStr[gameChoice]);
 #else
-    for(int i =0; i<gameCount;i++)
+    if (explicitIwad)
+    {
+        gameChoice = 0;
+        printf("Using requested IWAD: %s\n", iwadStr[gameChoice]);
+    }
+    else for(int i =0; i<gameCount;i++)
     {
         printf("%i. %s \n",i+1, iwadStr[i]);
     }
-    while(true)
+    while(!explicitIwad)
     {
         printf("\nEnter IWAD choice (%i-%i) : ", 1, gameCount);
-        scanf("%d",&gameChoice);
+        if (scanf("%d",&gameChoice) != 1)
+            I_Error("Could not read IWAD selection");
         if(gameChoice >= 1 && gameChoice <= gameCount)
             break;
     }
-    gameChoice--;
+    if (!explicitIwad)
+        gameChoice--;
 #endif
     D_AddFile(iwadStr[gameChoice]);
+    if (explicitIwad)
+    {
+        const char* name = strrchr(iwadStr[gameChoice], '/');
+        name = name ? name + 1 : iwadStr[gameChoice];
+        if (!SDL_strcasecmp(name, "doom2.wad") ||
+            !SDL_strcasecmp(name, "tnt.wad") ||
+            !SDL_strcasecmp(name, "plutonia.wad") ||
+            !SDL_strcasecmp(name, "doom2f.wad"))
+            gamemode = commercial;
+        else if (!SDL_strcasecmp(name, "doom1.wad"))
+            gamemode = shareware;
+        else if (!SDL_strcasecmp(name, "doomu.wad"))
+            gamemode = retail;
+        else if (!SDL_strcasecmp(name, "doom.wad"))
+            gamemode = registered;
+        else
+            I_Error("Cannot determine game mode from IWAD name: %s", name);
+        return;
+    }
     if(strcmp(iwadStr[gameChoice],doom2fwad)== 0)
     {
 

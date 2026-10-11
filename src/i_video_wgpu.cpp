@@ -51,8 +51,14 @@ bool gPostWallPhase = false;
 bool gCPUWallsReady = false;
 bool gReportedWallRasterizer = false;
 bool gValidationMode = false;
+bool gCPUWallMode = false;
 bool gShuttingDown = false;
 uint64_t gValidationFrame = 0;
+uint64_t gValidationCompletedFrames = 0;
+uint64_t gValidationFailedFrames = 0;
+uint64_t gValidationComparedPixels = 0;
+uint64_t gValidationMismatchPixels = 0;
+uint64_t gValidationReadbackFailures = 0;
 
 wgfx::Compute* gCompute = nullptr;
 wgfx::Compute* gWallCompute = nullptr;
@@ -181,8 +187,13 @@ struct WallColumn {
 const SOURCE_WIDTH: u32 = 320u;
 const SOURCE_HEIGHT: u32 = 200u;
 
-fn packedByte(words: ptr<storage, array<u32>, read>, base: u32, index: u32) -> u32 {
-    let packed = (*words)[base + (index >> 2u)];
+fn sourceByte(base: u32, index: u32) -> u32 {
+    let packed = sources[base + (index >> 2u)];
+    return (packed >> ((index & 3u) * 8u)) & 0xffu;
+}
+
+fn colormapByte(base: u32, index: u32) -> u32 {
+    let packed = colormaps[base + (index >> 2u)];
     return (packed >> ((index & 3u) * 8u)) & 0xffu;
 }
 
@@ -209,8 +220,8 @@ fn main(@builtin(global_invocation_id) id: vec3<u32>) {
         let colormapBase = command.colormapIndex * 64u;
         for (var y = command.yl; y <= command.yh && y < SOURCE_HEIGHT; y++) {
             let textureIndex = u32(frac >> 16) & 127u;
-            let sourceIndex = packedByte(&sources, sourceBase, textureIndex);
-            candidate[y] = packedByte(&colormaps, colormapBase, sourceIndex);
+            let sourceIndex = sourceByte(sourceBase, textureIndex);
+            candidate[y] = colormapByte(colormapBase, sourceIndex);
             frac += fracstep;
         }
     }
@@ -406,6 +417,14 @@ extern "C" bool I_WGPUInit(SDL_Window* window, uint32_t sourceWidth,
         return false;
 
     gValidationMode = M_CheckParm(const_cast<char*>("-wgpuvalidate")) != 0;
+    gCPUWallMode = M_CheckParm(const_cast<char*>("-cpuwalls")) != 0;
+    if (gCPUWallMode && gValidationMode)
+    {
+        std::cerr << "-cpuwalls and -wgpuvalidate are mutually exclusive\n";
+        return false;
+    }
+    if (gCPUWallMode)
+        std::cout << "CPU wall benchmark mode: original software wall loops active\n";
     if (gValidationMode)
         std::cout << "WebGPU validation mode: original software renderer and GPU "
                      "will be compared every eligible frame\n";
@@ -461,7 +480,7 @@ extern "C" void I_WGPUBeginWallFrame(const uint8_t* framebuffer)
     gPostWallPhase = false;
     gCPUWallsReady = false;
     gCPUWallLoopNanos = 0;
-    gCollectWallColumns = gReady && framebuffer;
+    gCollectWallColumns = gReady && framebuffer && !gCPUWallMode;
     if (gCollectWallColumns)
     {
         if (gValidationMode)
@@ -654,6 +673,7 @@ static void ReportValidation(const std::shared_ptr<ValidationSample>& sample,
     if (status != wgpu::BufferMapAsyncStatus::Success)
     {
         std::cerr << "WebGPU validation readback mapping failed\n";
+        ++gValidationReadbackFailures;
         sample->finished = true;
         return;
     }
@@ -670,6 +690,12 @@ static void ReportValidation(const std::shared_ptr<ValidationSample>& sample,
                 firstMismatches[mismatches] = pixel;
             ++mismatches;
         }
+
+    ++gValidationCompletedFrames;
+    gValidationComparedPixels += sample->expected.size();
+    gValidationMismatchPixels += mismatches;
+    if (mismatches != 0)
+        ++gValidationFailedFrames;
 
     const uint64_t mapMicros =
         std::chrono::duration_cast<std::chrono::microseconds>(mappedAt - sample->mapStart)
@@ -698,6 +724,44 @@ static void ReportValidation(const std::shared_ptr<ValidationSample>& sample,
     }
     sample->readback.unmap();
     sample->finished = true;
+}
+
+extern "C" void I_WGPUReportValidationSummary(void)
+{
+    if (!gValidationMode)
+        return;
+
+#ifdef WEBGPU_BACKEND_WGPU
+    // Native validation may block at demo end so the aggregate cannot omit
+    // callbacks which are still in flight.
+    for (int poll = 0; poll < 8; ++poll)
+    {
+        const bool pending = std::any_of(
+            gValidationSamples.begin(), gValidationSamples.end(),
+            [](const std::shared_ptr<ValidationSample>& sample)
+            { return !sample->finished; });
+        if (!pending)
+            break;
+        wgfx::device.poll(true);
+    }
+#endif
+
+    const uint64_t pending = std::count_if(
+        gValidationSamples.begin(), gValidationSamples.end(),
+        [](const std::shared_ptr<ValidationSample>& sample)
+        { return !sample->finished; });
+    const bool passed = gValidationCompletedFrames == gValidationFrame &&
+        gValidationFailedFrames == 0 && gValidationReadbackFailures == 0 &&
+        pending == 0;
+    std::cout << "WebGPU validation summary: "
+              << (passed ? "PASS" : "FAIL") << "; submitted "
+              << gValidationFrame << " frames, completed "
+              << gValidationCompletedFrames << ", failed "
+              << gValidationFailedFrames << ", compared "
+              << gValidationComparedPixels << " pixels, mismatched "
+              << gValidationMismatchPixels << ", readback failures "
+              << gValidationReadbackFailures << ", pending " << pending
+              << "\n";
 }
 
 extern "C" void I_WGPUSetPalette(const uint8_t* palette)
@@ -842,7 +906,10 @@ extern "C" void I_WGPUPresent(const uint8_t* framebuffer)
                     if (status != wgpu::QueueWorkDoneStatus::Success)
                     {
                         if (!sample->cancelled)
+                        {
                             std::cerr << "WebGPU validation queue completion failed\n";
+                            ++gValidationReadbackFailures;
+                        }
                         sample->finished = true;
                         return;
                     }

@@ -41,6 +41,7 @@ rcsid[] = "$Id: g_game.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 #include "m_menu.h"
 #include "m_random.h"
 #include "i_system.h"
+#include "i_video_wgpu.h"
 
 #include "p_setup.h"
 #include "p_saveg.h"
@@ -1685,6 +1686,7 @@ boolean G_CheckDemoStatus (void)
     if (timingdemo)
     {
 	endtime = I_GetTime ();
+	I_WGPUReportValidationSummary();
 	I_Error ("timed %i gametics in %i realtics",gametic
 		 , endtime-starttime);
     }
@@ -1719,5 +1721,4 @@ boolean G_CheckDemoStatus (void)
 
     return false;
 }
-
 

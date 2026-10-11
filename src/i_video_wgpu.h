@@ -23,6 +23,7 @@ void I_WGPUMarkPostWallColumn(int x, int yl, int yh);
 void I_WGPURequireCPUWalls(uint8_t* indexed_framebuffer);
 void I_WGPUCPUWallLoopStart(void);
 void I_WGPUCPUWallLoopEnd(void);
+void I_WGPUReportValidationSummary(void);
 void I_WGPUPresent(const uint8_t* indexed_framebuffer);
 void I_WGPUShutdown(void);
 
