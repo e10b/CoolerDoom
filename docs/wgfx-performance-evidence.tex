@@ -86,38 +86,60 @@ accelerates WebGPU.}
 \toprule
 Operation & Raw WebGPU & wgfx & Relative difference \\
 \midrule
-Compute encoding, one dispatch & \SI{5.763}{\micro\second} &
-  \SI{5.779}{\micro\second} & $+0.3\%$ \\
-Storage update, \SI{4}{\kibi\byte} & \SI{2.814}{\micro\second} &
-  \SI{2.898}{\micro\second} & $+3.0\%$ \\
-Bind-group recreation & \SI{1.767}{\micro\second} &
-  \SI{1.708}{\micro\second} & $-3.3\%$ \\
-Compute-pipeline creation & \SI{116.575}{\micro\second} &
-  \SI{98.259}{\micro\second} & $-15.7\%$ \\
-Encode + queue submit, one dispatch & \SI{16.625}{\micro\second} &
-  \SI{16.359}{\micro\second} & $-1.6\%$ \\
-Render encoding, one draw & \SI{12.192}{\micro\second} &
-  \SI{11.983}{\micro\second} & $-1.7\%$ \\
-Render encoding, 100 draws & \SI{22.033}{\micro\second} &
-  \SI{22.550}{\micro\second} & $+2.3\%$ \\
-Render encoding, 1,000 draws & \SI{127.008}{\micro\second} &
-  \SI{129.558}{\micro\second} & $+2.0\%$ \\
+Compute encoding, one dispatch & \SI{6.142}{\micro\second} &
+  \SI{6.138}{\micro\second} & $-0.1\%$ \\
+Storage update, \SI{4}{\kibi\byte} & \SI{2.856}{\micro\second} &
+  \SI{2.921}{\micro\second} & $+2.3\%$ \\
+Bind-group recreation & \SI{1.766}{\micro\second} &
+  \SI{1.717}{\micro\second} & $-2.8\%$ \\
+Compute-pipeline creation & \SI{96.925}{\micro\second} &
+  \SI{93.584}{\micro\second} & $-3.4\%$ \\
+Encode + queue submit, one dispatch & \SI{21.321}{\micro\second} &
+  \SI{21.869}{\micro\second} & $+2.6\%$ \\
+Submit + completion, one dispatch & \SI{1.197}{\milli\second} &
+  \SI{1.215}{\milli\second} & $+1.5\%$ \\
+Render encoding, one draw & \SI{17.667}{\micro\second} &
+  \SI{16.708}{\micro\second} & $-5.4\%$ \\
+Render encoding, 100 draws & \SI{33.717}{\micro\second} &
+  \SI{34.108}{\micro\second} & $+1.2\%$ \\
+Render encoding, 1,000 draws & \SI{154.442}{\micro\second} &
+  \SI{158.950}{\micro\second} & $+2.9\%$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 The most suspicious original result was encode plus submission at
-$+22.4\%$ for wgfx. That benchmark always ran raw first and wgfx second. After
-reversing the order on every sample and increasing the sample count, the result
-became $-1.6\%$. Across the five runs, its relative difference ranged from
-$-3.8\%$ to $+1.3\%$. The sign changes, and the magnitude is small; therefore
-there is no resolved submission overhead. The 1,000-draw render discrepancy
-similarly contracted from an order-sensitive $-11.6\%$ to $+2.0\%$.
+$+22.4\%$ for wgfx. That benchmark always ran raw first and wgfx second. Against
+canonical wgfx, after reversing order on every sample and increasing the sample
+count, the result became $+2.6\%$. Compute encoding alone measures $-0.1\%$,
+submit plus completion measures $+1.5\%$, and 1,000-draw rendering measures
+$+2.9\%$. These values resolve no material steady-state wrapper overhead.
 
-Pipeline creation's larger negative value is not interpreted as wgfx being
-faster. Creation is relatively noisy, uses few samples, and is not a steady-state
-frame-loop operation. It is evidence against claiming a stable penalty, not
-evidence of acceleration.
+Negative values are not interpreted as wgfx being faster. Creation is relatively
+noisy and is not a steady-state frame-loop operation. Profiling also found and
+removed unconditional diagnostic output from resource creation and repaired
+replaced bind-group and pipeline-layout handle ownership before the final runs.
+A separate 256 KiB storage create/destroy case retains a 22.3\% wrapper cost;
+that resource-lifecycle result is disclosed in the CSV but is distinct from the
+steady-state forwarding and encoding claim.
+
+\section{Application exercise: wDoom}
+
+The microbenchmarks are accompanied by a real consumer, wDoom, which uses wgfx
+to drive a WebGPU compute implementation of DOOM wall-column rasterization.
+DOOM's CPU performs BSP traversal and emits visible wall commands; the compute
+shader consumes compact per-column command ranges and indexed texture and
+colormap resources. This exercises persistent storage buffers, repeated buffer
+updates, bind groups, compute dispatch, queue submission, and presentation in a
+complete application rather than an isolated loop.
+
+Correctness was checked with a deterministic software-renderer reference and
+GPU buffer readback across all four embedded Ultimate DOOM demos. The run
+completed 8,738 eligible frames and compared 559,232,000 indexed pixels with
+zero pixel mismatches, zero readback failures, and zero callbacks pending at
+completion. This does not independently measure wrapper overhead, but it shows
+that the benchmarked wgfx operations are used successfully in a substantial,
+pixel-validated rendering workload.
 
 \section{Limitations}
 
@@ -145,9 +167,10 @@ noise rather than evidence of a systematic wrapper cost.
 The repository contains the benchmark source, full methodology, and CSV data:
 
 \begin{itemize}
-  \item \texttt{deps/wgfx/benchmarks/wgfx\_benchmark.cpp}
-  \item \texttt{deps/wgfx/PERFORMANCE.md}
-  \item \texttt{deps/wgfx/benchmarks/results/m3-pro-order-controlled-summary.csv}
+  \item \texttt{benchmarks/wgfx\_benchmark.cpp}
+  \item \texttt{PERFORMANCE.md}
+  \item \texttt{benchmarks/results/m3-pro-order-controlled-summary.csv}
+  \item wDoom's \texttt{wgpu} branch and four-demo validation corpus
 \end{itemize}
 
 \end{document}
