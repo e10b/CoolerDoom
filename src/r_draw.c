@@ -42,6 +42,7 @@ rcsid[] = "$Id: r_draw.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 #include "r_plane.h"
 // Needs access to LFB (guess what).
 #include "v_video.h"
+#include "i_video_wgpu.h"
 
 // State.
 #include "doomstat.h"
@@ -134,6 +135,13 @@ void R_DrawColumn (void)
     //  which is the only mapping to be done.
     fracstep = dc_iscale; 
     frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+
+    {
+	int offset = (int)(dest - screens[0]);
+	I_WGPUQueueWallColumn(offset % SCREENWIDTH, offset / SCREENWIDTH,
+			       offset / SCREENWIDTH + count, frac, fracstep,
+			       dc_source, dc_colormap);
+    }
 
     // Inner loop that does the actual texture mapping,
     //  e.g. a DDA-lile scaling.
@@ -243,6 +251,15 @@ void R_DrawColumnLow (void)
     
     fracstep = dc_iscale; 
     frac = dc_texturemid + (dc_yl-centery)*fracstep;
+
+    {
+	int offset = (int)(dest - screens[0]);
+	int y = offset / SCREENWIDTH;
+	I_WGPUQueueWallColumn(offset % SCREENWIDTH, y, y + count, frac,
+			       fracstep, dc_source, dc_colormap);
+	I_WGPUQueueWallColumn(offset % SCREENWIDTH + 1, y, y + count, frac,
+			       fracstep, dc_source, dc_colormap);
+    }
     
     do 
     {

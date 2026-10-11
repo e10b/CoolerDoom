@@ -39,6 +39,8 @@ static const char rcsid[] = "$Id: r_main.c,v 1.5 1997/02/03 22:45:12 b1 Exp $";
 
 #include "r_local.h"
 #include "r_sky.h"
+#include "v_video.h"
+#include "i_video_wgpu.h"
 
 
 
@@ -912,7 +914,9 @@ void R_RenderPlayerView (player_t* player)
     NetUpdate ();
 
     // The head node is the last node output.
+    I_WGPUBeginWallFrame();
     R_RenderBSPNode (numnodes-1);
+    I_WGPUEndWallFrame(screens[0]);
 
     // Check for new console commands.
     NetUpdate ();

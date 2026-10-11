@@ -3,6 +3,20 @@
 Classic Doom rendered through a WebGPU compute shader, with SDL 3 handling
 the platform and input layer.
 
+## WebGPU rendering
+
+wDoom does more than upload Doom's finished framebuffer. During BSP traversal,
+the engine records the visible wall columns with their screen bounds, 16.16
+texture coordinates, texture texels, and Doom colormap. A WGSL compute pass
+replays the original fixed-point wall-column rasterizer on the GPU before the
+palette conversion and presentation passes.
+
+The CPU BSP remains authoritative for visibility and currently keeps a mirrored
+software result as a compatibility fallback. The compositor preserves pixels
+drawn later by floors, ceilings, masked textures, sprites, weapons, the HUD,
+and status bar. This makes wall rasterization a real GPU rendering stage while
+retaining Doom's original rendering order and indexed-color behavior.
+
 ## Lineage
 
 - **DOOM** — the original engine and GPL source release by id Software.
