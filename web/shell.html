@@ -45,8 +45,6 @@
       padding: 0;
       border: 0;
       background: #000;
-      color: #888;
-      cursor: pointer;
     }
 
     #title-intro[hidden] {
@@ -57,18 +55,6 @@
       display: block;
       width: min(600px, calc(100vw - 48px));
       height: auto;
-    }
-
-    #title-prompt {
-      display: block;
-      margin-top: 18px;
-      font: 12px system-ui, sans-serif;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    #title-prompt[hidden] {
-      display: none;
     }
 
     #console {
@@ -234,12 +220,9 @@
   </style>
 </head>
 <body>
-  <button id="title-intro" type="button" aria-label="Start wDoom">
-    <span>
-      <img id="title-frame" src="title/1.jpeg" alt="wDoom">
-      <span id="title-prompt" hidden>Click to start</span>
-    </span>
-  </button>
+  <div id="title-intro" aria-label="wDoom title animation">
+    <img id="title-frame" src="title/1.jpeg" alt="wDoom">
+  </div>
   <audio id="title-audio" src="title/a.flac" preload="auto" autoplay></audio>
   <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
   <pre id="console" aria-live="polite" hidden></pre>
@@ -268,7 +251,6 @@
     const canvas = document.getElementById("canvas");
     const titleIntro = document.getElementById("title-intro");
     const titleFrame = document.getElementById("title-frame");
-    const titlePrompt = document.getElementById("title-prompt");
     const titleAudio = document.getElementById("title-audio");
     const consoleOutput = document.getElementById("console");
     const consoleToggle = document.getElementById("console-toggle");
@@ -283,33 +265,27 @@
       image.addEventListener("error", resolve, { once: true });
       image.src = source;
     })));
-    let titleStarted = false;
+    function tryStartTitleAudio() {
+      const playback = titleAudio.play();
+      if (playback) playback.catch(() => {});
+    }
+
+    document.addEventListener("pointerdown", tryStartTitleAudio, { once: true });
+    document.addEventListener("keydown", tryStartTitleAudio, { once: true });
+    tryStartTitleAudio();
 
     async function playTitleIntro() {
-      if (titleStarted) return;
-      titleStarted = true;
-      titlePrompt.hidden = true;
-
-      try {
-        await titleAudio.play();
-      } catch {
-        titleStarted = false;
-        titlePrompt.hidden = false;
-        return;
-      }
-
       await titleFramesReady;
 
       titleFrames.forEach((source, index) => {
-        window.setTimeout(() => { titleFrame.src = source; }, index * 400);
+        window.setTimeout(() => { titleFrame.src = source; }, index * 200);
       });
       window.setTimeout(() => {
         titleIntro.hidden = true;
         canvas.focus();
-      }, 2000);
+      }, 1000);
     }
 
-    titleIntro.addEventListener("click", playTitleIntro);
     playTitleIntro();
 
     function writeConsole(args, writer) {
