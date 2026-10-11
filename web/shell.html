@@ -34,6 +34,18 @@
       image-rendering: pixelated;
     }
 
+    #site-title {
+      position: fixed;
+      z-index: 130;
+      top: 16px;
+      left: 50%;
+      margin: 0;
+      transform: translateX(-50%);
+      color: #aaa;
+      font: 600 13px system-ui, sans-serif;
+      letter-spacing: 0.14em;
+    }
+
     #title-intro {
       position: fixed;
       z-index: 100;
@@ -234,10 +246,11 @@
   </style>
 </head>
 <body>
+  <h1 id="site-title">WDOOM</h1>
   <div id="title-intro" aria-label="wDoom title animation">
     <div>
       <img id="title-frame" src="title/1.jpeg" alt="wDoom">
-      <span id="title-prompt">Press any key to start</span>
+      <span id="title-prompt">Press any key or click to start</span>
     </div>
   </div>
   <audio id="title-audio" src="title/a.flac" preload="auto"></audio>
@@ -307,6 +320,7 @@
     }
 
     document.addEventListener("keydown", playTitleIntro, { capture: true, once: true });
+    titleIntro.addEventListener("pointerdown", playTitleIntro, { once: true });
 
     function writeConsole(args, writer) {
       const text = args.join(" ");
