@@ -172,7 +172,8 @@ packages the repository's verified shareware IWAD as `/doom1.wad`.
 ### Deploy on Vercel
 
 The repository can be imported directly into Vercel. Select the wDoom GitHub
-repository, leave the project root at the repository root, and deploy. The
+repository, set the production branch to `wgpu`, leave the project root at the
+repository root, and deploy. The
 checked-in `vercel.json` runs `scripts/vercel-build.sh`, which installs the
 pinned Emscripten 3.1.61 SDK, initializes the public submodules, builds the
 browser target, and publishes the static-only `out/vercel` directory.
