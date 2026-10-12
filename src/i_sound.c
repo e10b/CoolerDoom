@@ -65,6 +65,7 @@
 #include "m_argv.h"
 #include "m_misc.h"
 #include "w_wad.h"
+#include "musdriver.h"
 
 #include "doomdef.h"
 SDL_AudioStream* mainAudio;
@@ -106,10 +107,10 @@ static int mixbuffer_ready = 0;
 // It is 2 for 16bit, and 2 for two channels.
 #define BUFMUL                  4
 #define MIXBUFFERSIZE		(SAMPLECOUNT*BUFMUL)
-#define AUDIO_QUEUE_BLOCKS      4
+#define AUDIO_QUEUE_BLOCKS      8
 #define AUDIO_QUEUE_TARGET      (MIXBUFFERSIZE*AUDIO_QUEUE_BLOCKS)
 
-#define SAMPLERATE		11025    	// Hz
+#define SAMPLERATE		22050    	// Hz
 #define SAMPLESIZE		2   	// 16bit
 
 // The actual lengths of all sound effects.
@@ -198,6 +199,14 @@ static int music_channel_volume[16];
 static int music_channel_program[16];
 static int music_channel_velocity[16];
 static uint32_t music_noise = 1;
+
+// Authentic DMX/OPL playback. The older lightweight synth helpers below are
+// retained temporarily for source-history clarity but are no longer used by
+// the mixer or public music API.
+static mus_driver_t opl_music_driver;
+static int16_t opl_work_buffer[2048];
+static int16_t opl_music_buffer[SAMPLECOUNT * 2];
+static void* opl_registered_song;
 
 static int MusicRead16(const unsigned char* p)
 {
@@ -632,7 +641,9 @@ addsfx
 
     // Set stepping???
     // Kinda getting the impression this is never used.
-    channelstep[slot] = step;
+    // WAD sound effects are 11025 Hz; the shared output stream runs at
+    // 22050 Hz so OPL music retains the bandwidth of a DOS Sound Blaster.
+    channelstep[slot] = (step * 11025u) / SAMPLERATE;
     // ???
     channelstepremainder[slot] = 0;
     // Should be gametic, I presume.
@@ -850,6 +861,7 @@ void I_UpdateSound( void )
   signed short*		leftout;
   signed short*		rightout;
   signed short*		leftend;
+  signed short*		musicout;
   // Step in mixbuffer, left and right, thus two.
   int				step;
 
@@ -865,6 +877,17 @@ void I_UpdateSound( void )
     // Determine end, for left channel only
     //  (right channel is implicit).
     leftend = mixbuffer + SAMPLECOUNT*step;
+    musicout = opl_music_buffer;
+
+    if (music_active && !music_paused)
+    {
+      if (!musdriver_generate(&opl_music_driver, opl_music_buffer,
+                              SAMPLECOUNT, snd_MusicVolume / 15.0f))
+        memset(opl_music_buffer, 0, sizeof(opl_music_buffer));
+      music_active = opl_music_driver.playing;
+    }
+    else
+      memset(opl_music_buffer, 0, sizeof(opl_music_buffer));
 
     // Mix sounds into the mixing buffer.
     // Loop over step*SAMPLECOUNT,
@@ -904,10 +927,9 @@ void I_UpdateSound( void )
 	    }
 	}
 
-	// Music shares the same SDL stream as the sound effects.
-	sample = MusicRenderSample();
-	dl += (int)sample;
-	dr += (int)sample;
+	// Cycle-accurate OPL output shares the SDL stream with sound effects.
+	dl += *musicout++;
+	dr += *musicout++;
 
 	// Clamp to range. Left hardware channel.
 	// Has been char instead of short.
@@ -1091,19 +1113,36 @@ SDL_ResumeAudioStreamDevice(mainAudio);
 //
 void I_InitMusic(void)
 {
-  music_score_start = NULL;
-  music_score_end = NULL;
-  music_position = NULL;
+  int lump;
+  unsigned char* genmidi;
+  uint32_t required = musdriver_opl_buf_size(SAMPLERATE, SAMPLECOUNT);
+
+  if (required > sizeof(opl_work_buffer))
+    I_Error("OPL work buffer is too small (%u > %u)", required,
+            (unsigned int)sizeof(opl_work_buffer));
+
+  memset(&opl_music_driver, 0, sizeof(opl_music_driver));
+  musdriver_init(&opl_music_driver, opl_work_buffer, SAMPLERATE,
+                 SAMPLECOUNT, 8000);
+  lump = W_GetNumForName("GENMIDI");
+  genmidi = (unsigned char*)W_CacheLumpNum(lump, PU_STATIC);
+  if (W_LumpLength(lump) < 8 + 175 * 36 ||
+      memcmp(genmidi, "#OPL_II#", 8) != 0)
+    I_Error("GENMIDI is not a valid DMX OPL instrument bank");
+  musplay_op2bank(&opl_music_driver.player, (char*)genmidi + 8);
+  Z_ChangeTag(genmidi, PU_CACHE);
+
+  opl_registered_song = NULL;
   music_active = 0;
   music_paused = 0;
-  MusicResetVoices();
+  fprintf(stderr, "I_InitMusic: authentic DMX/OPL playback ready\n");
 }
 
 void I_ShutdownMusic(void)
 {
   music_active = 0;
-  music_score_start = NULL;
-  music_score_end = NULL;
+  musdriver_stop(&opl_music_driver);
+  opl_registered_song = NULL;
 }
 
 void I_PlaySong(int handle, int looping)
@@ -1111,12 +1150,12 @@ void I_PlaySong(int handle, int looping)
   (void)handle;
   music_looping = looping;
   music_paused = 0;
-  music_active = music_score_start != NULL;
+  music_active = opl_registered_song != NULL;
   if (music_active)
   {
     // Do not replay samples queued from the previous level's song.
     I_ClearSound();
-    MusicRestart();
+    musdriver_start(&opl_music_driver, opl_registered_song, looping);
   }
 }
 
@@ -1135,41 +1174,33 @@ void I_ResumeSong (int handle)
 void I_StopSong(int handle)
 {
   (void)handle;
+  musdriver_stop(&opl_music_driver);
   music_active = 0;
   music_looping = 0;
-  MusicResetVoices();
 }
 
 void I_UnRegisterSong(int handle)
 {
   (void)handle;
+  musdriver_stop(&opl_music_driver);
   music_active = 0;
-  music_score_start = NULL;
-  music_score_end = NULL;
+  opl_registered_song = NULL;
 }
 
 int I_RegisterSong(void* data)
 {
   const unsigned char* bytes = (const unsigned char*)data;
-  int score_length;
-  int score_offset;
   music_active = 0;
-  music_score_start = NULL;
-  music_score_end = NULL;
+  opl_registered_song = NULL;
   if (!bytes || memcmp(bytes, "MUS\x1a", 4) != 0)
   {
     fprintf(stderr, "I_RegisterSong: unsupported music format\n");
     return 0;
   }
-  score_length = MusicRead16(bytes + 4);
-  score_offset = MusicRead16(bytes + 6);
-  if (score_length <= 0 || score_offset < 16)
+  if (MusicRead16(bytes + 4) <= 0 || MusicRead16(bytes + 6) < 16)
     return 0;
-  music_score_start = bytes + score_offset;
-  music_score_end = music_score_start + score_length;
-  MusicRestart();
-  fprintf(stderr, "I_RegisterSong: MUS playback ready (%d-byte score)\n",
-          score_length);
+  opl_registered_song = data;
+  fprintf(stderr, "I_RegisterSong: DMX/OPL MUS score ready\n");
   return 1;
 }
 
@@ -1177,7 +1208,7 @@ int I_RegisterSong(void* data)
 int I_QrySongPlaying(int handle)
 {
   (void)handle;
-  return music_active;
+  return music_active && opl_music_driver.playing;
 }
 
 

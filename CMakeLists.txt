@@ -40,6 +40,13 @@ FetchContent_MakeAvailable(stb)
 add_subdirectory(deps/webgpu)
 add_subdirectory(deps/wgfx)
 
+# Authentic DOS-style MUS playback: LittleMUS drives the WAD's GENMIDI
+# instrument bank through the cycle-accurate Nuked OPL3 emulator.
+add_library(NukedOPL3 STATIC deps/nuked-opl3/opl3.c)
+target_include_directories(NukedOPL3 PUBLIC deps/nuked-opl3)
+add_subdirectory(deps/littlemus)
+target_link_libraries(LittleMUS PUBLIC NukedOPL3)
+
 add_library(sdl2webgpu STATIC compat/sdl2webgpu.c)
 target_include_directories(sdl2webgpu PUBLIC compat)
 target_link_libraries(sdl2webgpu PUBLIC ${DOOM_SDL_TARGET} webgpu)
@@ -78,6 +85,7 @@ target_link_libraries(wDoom PRIVATE
     wgfx::wgfx
     webgpu
     sdl2webgpu
+    LittleMUS
     ${DOOM_SDL_TARGET}
 )
 target_compile_features(wDoom PRIVATE cxx_std_17)

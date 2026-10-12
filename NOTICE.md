@@ -20,6 +20,11 @@ for the complete terms and the Git history for file-by-file modification
 history, authorship, and dates. Third-party dependencies retain their own
 copyright notices and compatible licenses.
 
+Authentic OPL music playback uses LittleMUS, Copyright © 2025 Andrew Towers,
+under the MIT License, and Nuked OPL3, Copyright © 2013–2020 Nuke.YKT, under
+the GNU Lesser General Public License v2.1. Their complete license texts and
+source are retained in `deps/littlemus` and `deps/nuked-opl3`.
+
 The bundled `doom1.wad` is the original, unmodified DOOM shareware v1.0
 Episode 1 IWAD, Copyright © 1993 id Software, Inc. It is not licensed under the
 GPL. Its separate terms are in [LICENSE-DOOM1](LICENSE-DOOM1); access to or use

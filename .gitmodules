@@ -5,3 +5,9 @@
 [submodule "deps/webgpu"]
 	path = deps/webgpu
 	url = https://github.com/eliemichel/WebGPU-distribution.git
+[submodule "deps/littlemus"]
+	path = deps/littlemus
+	url = https://github.com/raffecat/LittleMUS.git
+[submodule "deps/nuked-opl3"]
+	path = deps/nuked-opl3
+	url = https://github.com/nukeykt/Nuked-OPL3.git
