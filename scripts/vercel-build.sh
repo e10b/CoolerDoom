@@ -24,6 +24,11 @@ fi
 # emsdk_env defines the compiler/tool paths used by emcmake.
 export EMSDK_QUIET=1
 source "${emsdk_root}/emsdk_env.sh"
+python_bin="${EMSDK_PYTHON:-$(command -v python3)}"
+if [[ -z "${python_bin}" || ! -x "${python_bin}" ]]; then
+    echo "An executable Python 3 interpreter is required." >&2
+    exit 1
+fi
 
 # Vercel's generic Linux image can expose a non-executable CMake. Install
 # official pinned binaries when the host tools cannot actually be run.
@@ -43,7 +48,7 @@ if ! cmake --version >/dev/null 2>&1 || ! ninja --version >/dev/null 2>&1; then
     curl --fail --location --retry 3 \
         https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip \
         --output "${tools_root}/ninja.zip"
-    "${EMSDK_PYTHON}" -c \
+    "${python_bin}" -c \
         'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])' \
         "${tools_root}/ninja.zip" "${tools_root}/bin"
     chmod +x "${tools_root}/bin/ninja"
