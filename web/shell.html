@@ -427,8 +427,8 @@
       requestedArguments = kind.signature === "IWAD"
         ? ["-iwad", kind.path]
         : ["-file", kind.path];
-      titlePrompt.textContent = `Loaded ${file.name}`;
-      playTitleIntro(event);
+      titlePrompt.textContent = `Loaded ${file.name} — click or press any key to start`;
+      byowButton.textContent = "Choose another WAD";
     });
 
     function writeConsole(args, writer) {
