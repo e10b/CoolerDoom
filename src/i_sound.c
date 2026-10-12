@@ -92,6 +92,7 @@ void I_SoundDelTimer( void );
 // synchronous mix buffer updates and asynchronous
 // audio writes. Probably redundant with gametic.
 static int flag = 0;
+static int mixbuffer_ready = 0;
 
 // The number of internal mixing channels,
 //  the samples calculated for each mixing step,
@@ -105,6 +106,8 @@ static int flag = 0;
 // It is 2 for 16bit, and 2 for two channels.
 #define BUFMUL                  4
 #define MIXBUFFERSIZE		(SAMPLECOUNT*BUFMUL)
+#define AUDIO_QUEUE_BLOCKS      4
+#define AUDIO_QUEUE_TARGET      (MIXBUFFERSIZE*AUDIO_QUEUE_BLOCKS)
 
 #define SAMPLERATE		11025    	// Hz
 #define SAMPLESIZE		2   	// 16bit
@@ -832,6 +835,10 @@ void I_UpdateSound( void )
   static int misses = 0;
 #endif
 
+  mixbuffer_ready = 0;
+  if (mainAudio && SDL_GetAudioStreamQueued(mainAudio) >= AUDIO_QUEUE_TARGET)
+    return;
+
 
   // Mix current sound data.
   // Data, from raw sound, for right and left.
@@ -944,6 +951,7 @@ void I_UpdateSound( void )
 
     // Increment flag for update.
     flag++;
+    mixbuffer_ready = 1;
 
 
 }
@@ -960,33 +968,32 @@ void I_UpdateSound( void )
 void
 I_SubmitSound(void)
 {
-  // Write it to DSP device.
- // write(audio_fd, mixbuffer, SAMPLECOUNT*BUFMUL);
+  if (!mainAudio)
+    return;
 
-    currentAudioTime = SDL_GetTicks();
-    if(currentAudioTime-oldAudioTime >= 30)
-    {
-    //    I_ClearSound();
-   //     oldAudioTime = SDL_GetTicks();
-    }
-        SDL_PutAudioStreamData(mainAudio, mixbuffer, MIXBUFFERSIZE);
-
-
-    if(SDL_GetAudioStreamQueued(mainAudio) < SAMPLECOUNT)
-    {
-//I_ClearSound();
-     //
-  //  SDL_PutAudioStreamData(mainAudio, mixbuffer, MIXBUFFERSIZE);
-
-    }
-
-
+  // Feed audio according to device demand, not render FPS. A small bounded
+  // queue prevents both transition underruns and stale audio accumulating
+  // when WebGPU renders faster than the sample clock.
+  if (mixbuffer_ready)
+  {
+    SDL_PutAudioStreamData(mainAudio, mixbuffer, MIXBUFFERSIZE);
+    mixbuffer_ready = 0;
+  }
+  while (SDL_GetAudioStreamQueued(mainAudio) < AUDIO_QUEUE_TARGET)
+  {
+    I_UpdateSound();
+    if (!mixbuffer_ready)
+      break;
+    SDL_PutAudioStreamData(mainAudio, mixbuffer, MIXBUFFERSIZE);
+    mixbuffer_ready = 0;
+  }
 }
 void
 I_ClearSound(void)
 {
-
-  SDL_ClearAudioStream(mainAudio);
+  if (mainAudio)
+    SDL_ClearAudioStream(mainAudio);
+  mixbuffer_ready = 0;
 }
 
 
@@ -1105,7 +1112,12 @@ void I_PlaySong(int handle, int looping)
   music_looping = looping;
   music_paused = 0;
   music_active = music_score_start != NULL;
-  if (music_active) MusicRestart();
+  if (music_active)
+  {
+    // Do not replay samples queued from the previous level's song.
+    I_ClearSound();
+    MusicRestart();
+  }
 }
 
 void I_PauseSong (int handle)
