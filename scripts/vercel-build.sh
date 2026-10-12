@@ -14,6 +14,12 @@ git -C "${repo_root}" submodule update --init --recursive --depth 1
 
 if [[ ! -x "${emsdk_root}/emsdk" ]]; then
     mkdir -p "$(dirname "${emsdk_root}")"
+    # Vercel may restore a cache captured while a previous clone was still
+    # incomplete. A clone cannot reuse that non-empty destination, so discard
+    # only the invalid emsdk checkout and recreate it.
+    if [[ -e "${emsdk_root}" ]]; then
+        rm -rf -- "${emsdk_root}"
+    fi
     git clone --depth 1 --branch 3.1.61 \
         https://github.com/emscripten-core/emsdk.git "${emsdk_root}"
 fi
