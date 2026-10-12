@@ -100,6 +100,24 @@
       text-transform: uppercase;
     }
 
+    #byow-button {
+      display: block;
+      margin: 12px auto 0;
+      padding: 7px 12px;
+      border: 1px solid #383838;
+      border-radius: 5px;
+      background: #161616;
+      color: #aaa;
+      font: 12px system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    #byow-button:hover {
+      border-color: #555;
+      background: #222;
+      color: #ddd;
+    }
+
     #console {
       position: fixed;
       z-index: 110;
@@ -273,6 +291,8 @@
     <div>
       <img id="title-frame" src="title/1.jpeg" alt="wDoom">
       <span id="title-prompt">Press any key or click to start</span>
+      <button id="byow-button" type="button" title="Load your own IWAD or PWAD">BYOW</button>
+      <input id="wad-file" type="file" accept=".wad,application/octet-stream" hidden>
     </div>
   </div>
   <audio id="title-audio" src="title/a.flac" preload="auto"></audio>
@@ -305,6 +325,8 @@
     const titleFrame = document.getElementById("title-frame");
     const titlePrompt = document.getElementById("title-prompt");
     const titleAudio = document.getElementById("title-audio");
+    const byowButton = document.getElementById("byow-button");
+    const wadFile = document.getElementById("wad-file");
     const consoleOutput = document.getElementById("console");
     const consoleToggle = document.getElementById("console-toggle");
     const creditsToggle = document.getElementById("credits-toggle");
@@ -320,6 +342,41 @@
     })));
     titleAudio.volume = 0.25;
     let titleStarted = false;
+    let runtimeReady = false;
+    let requestedArguments = null;
+    let markRuntimeReady;
+    const runtimeReadyPromise = new Promise(resolve => { markRuntimeReady = resolve; });
+
+    function wadKind(bytes) {
+      if (bytes.length < 12) return null;
+      const signature = String.fromCharCode(...bytes.subarray(0, 4));
+      if (signature === "PWAD") return { signature, path: "/byow.wad" };
+      if (signature !== "IWAD") return null;
+
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const count = view.getUint32(4, true);
+      const directory = view.getUint32(8, true);
+      if (directory + count * 16 > bytes.length) return null;
+      const names = new Set();
+      for (let index = 0; index < count; index++) {
+        const start = directory + index * 16 + 8;
+        let name = "";
+        for (let offset = 0; offset < 8 && bytes[start + offset]; offset++)
+          name += String.fromCharCode(bytes[start + offset]);
+        names.add(name.toUpperCase());
+      }
+      if (names.has("MAP01")) return { signature, path: "/doom2.wad" };
+      if (names.has("E4M1")) return { signature, path: "/doomu.wad" };
+      if (names.has("E2M1")) return { signature, path: "/doom.wad" };
+      return { signature, path: "/doom1.wad" };
+    }
+
+    function startEngine() {
+      if (!runtimeReady || !requestedArguments) return;
+      const args = requestedArguments;
+      requestedArguments = null;
+      Module.callMain(args);
+    }
 
     async function playTitleIntro(event) {
       if (titleStarted) return;
@@ -327,6 +384,7 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       titlePrompt.hidden = true;
+      byowButton.hidden = true;
 
       const playback = titleAudio.play();
       if (playback) playback.catch(() => {});
@@ -339,10 +397,39 @@
         titleIntro.hidden = true;
         canvas.focus();
       }, 1000);
+
+      if (!requestedArguments) requestedArguments = Module.arguments.slice();
+      startEngine();
     }
 
-    document.addEventListener("keydown", playTitleIntro, { capture: true, once: true });
+    document.addEventListener("keydown", event => {
+      if (!titleStarted && event.target !== byowButton && event.target !== wadFile)
+        playTitleIntro(event);
+    }, { capture: true });
     titleIntro.addEventListener("pointerdown", playTitleIntro, { once: true });
+
+    byowButton.addEventListener("pointerdown", event => event.stopPropagation());
+    byowButton.addEventListener("click", event => {
+      event.stopPropagation();
+      wadFile.click();
+    });
+    wadFile.addEventListener("change", async () => {
+      const file = wadFile.files[0];
+      if (!file || titleStarted) return;
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const kind = wadKind(bytes);
+      if (!kind) {
+        titlePrompt.textContent = "That file is not a valid WAD";
+        return;
+      }
+      await runtimeReadyPromise;
+      Module.FS.writeFile(kind.path, bytes);
+      requestedArguments = kind.signature === "IWAD"
+        ? ["-iwad", kind.path]
+        : ["-file", kind.path];
+      titlePrompt.textContent = `Loaded ${file.name}`;
+      playTitleIntro(event);
+    });
 
     function writeConsole(args, writer) {
       const text = args.join(" ");
@@ -353,12 +440,18 @@
 
     var Module = {
       canvas,
+      noInitialRun: true,
       arguments: new URLSearchParams(location.search).has("wgpuvalidate")
         ? ["-wgpuvalidate"]
         : [],
       print: (...args) => writeConsole(args, console.log),
       printErr: (...args) => writeConsole(args, console.error),
-      setStatus: () => {}
+      setStatus: () => {},
+      onRuntimeInitialized: () => {
+        runtimeReady = true;
+        markRuntimeReady();
+        startEngine();
+      }
     };
 
     consoleToggle.addEventListener("click", () => {

@@ -662,7 +662,7 @@ WI_drawNum
     }
 
     // draw a minus sign if necessary
-    if (neg)
+    if (neg && wiminus)
 	V_DrawPatch(x-=8, y, FB, wiminus);
 
     return x;
@@ -1628,7 +1628,11 @@ void WI_loadData(void)
     }
 
     // More hacks on minus sign.
-    wiminus = W_CacheLumpName("WIMINUS", PU_STATIC); 
+    // The original shareware v1.0 IWAD does not contain WIMINUS. Negative
+    // values are only relevant to multiplayer frags, so omit the glyph when
+    // it is unavailable instead of aborting the intermission.
+    i = W_CheckNumForName("WIMINUS");
+    wiminus = i >= 0 ? W_CacheLumpNum(i, PU_STATIC) : NULL;
 
     for (i=0;i<10;i++)
     {
@@ -1714,7 +1718,8 @@ void WI_unloadData(void)
     int		i;
     int		j;
 
-    Z_ChangeTag(wiminus, PU_CACHE);
+    if (wiminus)
+        Z_ChangeTag(wiminus, PU_CACHE);
 
     for (i=0 ; i<10 ; i++)
 	Z_ChangeTag(num[i], PU_CACHE);

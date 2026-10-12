@@ -121,6 +121,7 @@ if(EMSCRIPTEN)
         "-sALLOW_MEMORY_GROWTH=1"
         "-sASYNCIFY=1"
         "-sEXIT_RUNTIME=0"
+        "-sEXPORTED_RUNTIME_METHODS=FS,callMain"
     )
 endif()
 
