@@ -601,7 +601,7 @@ void R_DrawSpan (void)
     {
 	// Current texture index in u,v.
         fixed_t WarpX =0, WarpY =0;
-        if (warping)
+        if (warping==1)
         {
 
    
