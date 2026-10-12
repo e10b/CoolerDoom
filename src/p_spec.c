@@ -51,7 +51,7 @@ rcsid[] = "$Id: p_spec.c,v 1.6 1997/02/03 22:45:12 b1 Exp $";
 
 // Data.
 #include "sounds.h"
-#include <SDL3/sdl.h>
+#include <SDL3/SDL.h>
 
 //
 // Animating textures and planes
