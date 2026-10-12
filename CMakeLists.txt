@@ -83,6 +83,20 @@ target_link_libraries(wDoom PRIVATE
 target_compile_features(wDoom PRIVATE cxx_std_17)
 
 if(EMSCRIPTEN)
+    if(DEFINED ENV{VERCEL_GIT_COMMIT_SHA} AND NOT "$ENV{VERCEL_GIT_COMMIT_SHA}" STREQUAL "")
+        set(WDOOM_BUILD_VERSION "$ENV{VERCEL_GIT_COMMIT_SHA}")
+    else()
+        execute_process(
+            COMMAND git rev-parse --short HEAD
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            OUTPUT_VARIABLE WDOOM_BUILD_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+        if(NOT WDOOM_BUILD_VERSION)
+            set(WDOOM_BUILD_VERSION "development")
+        endif()
+    endif()
     set(DOOM1_WAD "${CMAKE_CURRENT_SOURCE_DIR}/doom1.wad")
     set(DOOM1_WAD_SHA256 "c4e9e6e6cc24a1c5a21c382c396ee3e2d5513d3f196ff464dcdfb2a003fbcc2e")
     if(NOT EXISTS "${DOOM1_WAD}")
@@ -122,6 +136,13 @@ if(EMSCRIPTEN)
         "-sASYNCIFY=1"
         "-sEXIT_RUNTIME=0"
         "-sEXPORTED_RUNTIME_METHODS=FS,callMain"
+    )
+    add_custom_command(TARGET wDoom POST_BUILD
+        COMMAND "${CMAKE_COMMAND}"
+            -DHTML=$<TARGET_FILE:wDoom>
+            -DVERSION=${WDOOM_BUILD_VERSION}
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/stamp-web-build.cmake"
+        COMMENT "Stamping web asset URLs with build ${WDOOM_BUILD_VERSION}"
     )
 endif()
 

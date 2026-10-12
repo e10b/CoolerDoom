@@ -441,6 +441,7 @@
     var Module = {
       canvas,
       noInitialRun: true,
+      locateFile: path => `${path}?v=__WDOOM_BUILD_VERSION__`,
       arguments: new URLSearchParams(location.search).has("wgpuvalidate")
         ? ["-wgpuvalidate"]
         : [],
