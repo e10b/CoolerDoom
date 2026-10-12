@@ -41,6 +41,7 @@ rcsid[] = "$Id: g_game.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 #include "m_menu.h"
 #include "m_random.h"
 #include "i_system.h"
+#include "i_sound.h"
 #include "i_video_wgpu.h"
 
 #include "p_setup.h"
@@ -634,6 +635,19 @@ void G_Ticker (void)
     // do things to change the game state
     while (gameaction != ga_nothing)
     {
+	gameaction_t transition_action = gameaction;
+	boolean audio_transition =
+	    transition_action == ga_loadlevel ||
+	    transition_action == ga_newgame ||
+	    transition_action == ga_loadgame ||
+	    transition_action == ga_playdemo ||
+	    transition_action == ga_completed ||
+	    transition_action == ga_victory ||
+	    transition_action == ga_worlddone;
+
+	if (audio_transition)
+	    I_BeginSoundTransition();
+
 	switch (gameaction)
 	{
 	  case ga_loadlevel:
@@ -677,6 +691,9 @@ void G_Ticker (void)
 	      printf("ga_nothing\n");
 	    break;
 	}
+
+	if (audio_transition)
+	    I_EndSoundTransition();
     }
 
     // get commands, check consistancy,

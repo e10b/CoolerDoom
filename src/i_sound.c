@@ -109,6 +109,7 @@ static int mixbuffer_ready = 0;
 #define MIXBUFFERSIZE		(SAMPLECOUNT*BUFMUL)
 #define AUDIO_QUEUE_BLOCKS      8
 #define AUDIO_QUEUE_TARGET      (MIXBUFFERSIZE*AUDIO_QUEUE_BLOCKS)
+#define TRANSITION_QUEUE_MS     1000
 
 #define SAMPLERATE		22050    	// Hz
 #define SAMPLESIZE		2   	// 16bit
@@ -1029,6 +1030,52 @@ I_ClearSound(void)
   if (mainAudio)
     SDL_ClearAudioStream(mainAudio);
   mixbuffer_ready = 0;
+}
+
+// Emscripten mixes on the browser main thread. Level/intermission setup can
+// block that thread long enough for Chrome's audio stream to underrun and
+// repeat its final fragment. Queue a temporary runway before synchronous
+// transition work, then discard any unused runway and return to the normal
+// low-latency queue afterward.
+void I_BeginSoundTransition(void)
+{
+#ifdef __EMSCRIPTEN__
+  int transition_target;
+
+  if (!mainAudio)
+    return;
+
+  transition_target = (SAMPLERATE * BUFMUL * TRANSITION_QUEUE_MS) / 1000;
+  while (SDL_GetAudioStreamQueued(mainAudio) < transition_target)
+  {
+    // Bypass I_UpdateSound's normal queue ceiling while constructing the
+    // one-off transition runway.
+    mixbuffer_ready = 0;
+    {
+      SDL_AudioStream* saved_audio = mainAudio;
+      mainAudio = NULL;
+      I_UpdateSound();
+      mainAudio = saved_audio;
+    }
+    if (!mixbuffer_ready)
+      break;
+    SDL_PutAudioStreamData(mainAudio, mixbuffer, MIXBUFFERSIZE);
+    mixbuffer_ready = 0;
+  }
+#endif
+}
+
+void I_EndSoundTransition(void)
+{
+#ifdef __EMSCRIPTEN__
+  if (!mainAudio)
+    return;
+
+  SDL_ClearAudioStream(mainAudio);
+  mixbuffer_ready = 0;
+  opl_fade_in_samples = SAMPLERATE / 50;
+  I_SubmitSound();
+#endif
 }
 
 
