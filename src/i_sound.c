@@ -207,6 +207,7 @@ static mus_driver_t opl_music_driver;
 static int16_t opl_work_buffer[2048];
 static int16_t opl_music_buffer[SAMPLECOUNT * 2];
 static void* opl_registered_song;
+static int opl_fade_in_samples;
 
 static int MusicRead16(const unsigned char* p)
 {
@@ -881,9 +882,21 @@ void I_UpdateSound( void )
 
     if (music_active && !music_paused)
     {
+      int frame;
       if (!musdriver_generate(&opl_music_driver, opl_music_buffer,
                               SAMPLECOUNT, snd_MusicVolume / 15.0f))
         memset(opl_music_buffer, 0, sizeof(opl_music_buffer));
+      for (frame = 0; frame < SAMPLECOUNT && opl_fade_in_samples > 0;
+           ++frame, --opl_fade_in_samples)
+      {
+        int elapsed = SAMPLERATE / 50 - opl_fade_in_samples;
+        opl_music_buffer[frame * 2] =
+          (signed short)((opl_music_buffer[frame * 2] * elapsed) /
+                         (SAMPLERATE / 50));
+        opl_music_buffer[frame * 2 + 1] =
+          (signed short)((opl_music_buffer[frame * 2 + 1] * elapsed) /
+                         (SAMPLERATE / 50));
+      }
       music_active = opl_music_driver.playing;
     }
     else
@@ -1133,6 +1146,7 @@ void I_InitMusic(void)
   Z_ChangeTag(genmidi, PU_CACHE);
 
   opl_registered_song = NULL;
+  opl_fade_in_samples = 0;
   music_active = 0;
   music_paused = 0;
   fprintf(stderr, "I_InitMusic: authentic DMX/OPL playback ready\n");
@@ -1153,9 +1167,11 @@ void I_PlaySong(int handle, int looping)
   music_active = opl_registered_song != NULL;
   if (music_active)
   {
-    // Do not replay samples queued from the previous level's song.
-    I_ClearSound();
+    // Let the already queued tail finish, then ramp the new OPL output in.
+    // Clearing the SDL stream here produced a discontinuity during level
+    // transitions in browsers.
     musdriver_start(&opl_music_driver, opl_registered_song, looping);
+    opl_fade_in_samples = SAMPLERATE / 50;
   }
 }
 

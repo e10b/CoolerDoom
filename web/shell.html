@@ -30,7 +30,7 @@
       border: 0;
       outline: 0;
       background: #000;
-      cursor: none;
+      cursor: default;
       image-rendering: pixelated;
     }
 
@@ -485,8 +485,28 @@
         closeCredits();
       }
     });
-    Module.canvas.addEventListener("pointerdown", () => Module.canvas.focus());
-    Module.canvas.focus();
+    Module.canvas.addEventListener("pointerdown", event => {
+      if (event.button !== 0 || !titleIntro.hidden || !creditsOverlay.hidden)
+        return;
+      Module.canvas.focus();
+      if (document.pointerLockElement !== Module.canvas) {
+        const lockRequest = Module.canvas.requestPointerLock();
+        if (lockRequest) lockRequest.catch(() => {});
+      }
+    });
+    document.addEventListener("pointerlockchange", () => {
+      if (document.pointerLockElement === Module.canvas)
+        Module.canvas.focus();
+      else
+        Module.canvas.blur();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && document.pointerLockElement === Module.canvas) {
+        document.exitPointerLock();
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+    }, { capture: true });
   </script>
   {{{ SCRIPT }}}
 </body>
