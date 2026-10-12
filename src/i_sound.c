@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdint.h>
+#include <string.h>
 
 #include <math.h>
 
@@ -161,6 +163,278 @@ int*		channelrightvol_lookup[NUM_CHANNELS];
 
 
 int currentAudioTime, oldAudioTime;
+
+// Lightweight MUS synthesizer. DOOM stores music as sequenced MUS events,
+// rather than sampled audio; keeping the sequencer in the existing SDL mix
+// path makes it work identically in native and Emscripten builds.
+#define MUSIC_VOICES 48
+#define MUS_TICK_RATE 140
+
+typedef struct
+{
+  int active;
+  int channel;
+  int note;
+  int velocity;
+  int releasing;
+  int percussion;
+  double phase;
+  double step;
+  double level;
+} music_voice_t;
+
+static music_voice_t music_voices[MUSIC_VOICES];
+static const unsigned char* music_score_start;
+static const unsigned char* music_score_end;
+static const unsigned char* music_position;
+static int music_active;
+static int music_paused;
+static int music_looping;
+static int music_samples_until_event;
+static int music_channel_volume[16];
+static int music_channel_program[16];
+static int music_channel_velocity[16];
+static uint32_t music_noise = 1;
+
+static int MusicRead16(const unsigned char* p)
+{
+  return p[0] | (p[1] << 8);
+}
+
+static void MusicResetVoices(void)
+{
+  int i;
+  memset(music_voices, 0, sizeof(music_voices));
+  for (i = 0; i < 16; ++i)
+  {
+    music_channel_volume[i] = 100;
+    music_channel_program[i] = 0;
+    music_channel_velocity[i] = 64;
+  }
+}
+
+static void MusicReleaseChannel(int channel)
+{
+  int i;
+  for (i = 0; i < MUSIC_VOICES; ++i)
+    if (music_voices[i].active && music_voices[i].channel == channel)
+      music_voices[i].releasing = 1;
+}
+
+static void MusicReleaseNote(int channel, int note)
+{
+  int i;
+  for (i = 0; i < MUSIC_VOICES; ++i)
+    if (music_voices[i].active && music_voices[i].channel == channel &&
+        music_voices[i].note == note)
+      music_voices[i].releasing = 1;
+}
+
+static void MusicStartNote(int channel, int note, int velocity)
+{
+  int i;
+  int slot = 0;
+  double frequency;
+  double quietest = 2.0;
+
+  for (i = 0; i < MUSIC_VOICES; ++i)
+  {
+    if (!music_voices[i].active)
+    {
+      slot = i;
+      break;
+    }
+    if (music_voices[i].level < quietest)
+    {
+      quietest = music_voices[i].level;
+      slot = i;
+    }
+  }
+
+  frequency = 440.0 * pow(2.0, (note - 69) / 12.0);
+  music_voices[slot].active = 1;
+  music_voices[slot].channel = channel;
+  music_voices[slot].note = note;
+  music_voices[slot].velocity = velocity;
+  music_voices[slot].releasing = 0;
+  music_voices[slot].percussion = channel == 15;
+  music_voices[slot].phase = 0.0;
+  music_voices[slot].step = frequency / SAMPLERATE;
+  music_voices[slot].level = 1.0;
+}
+
+static void MusicRestart(void)
+{
+  music_position = music_score_start;
+  music_samples_until_event = 0;
+  MusicResetVoices();
+}
+
+static int MusicReadByte(void)
+{
+  if (music_position >= music_score_end)
+    return -1;
+  return *music_position++;
+}
+
+static void MusicProcessEvents(void)
+{
+  while (music_active && music_samples_until_event <= 0)
+  {
+    int descriptor = MusicReadByte();
+    int channel;
+    int type;
+    int last;
+    int value;
+
+    if (descriptor < 0)
+    {
+      if (music_looping)
+        MusicRestart();
+      else
+        music_active = 0;
+      return;
+    }
+    else
+    {
+      channel = descriptor & 15;
+      type = (descriptor >> 4) & 7;
+      last = descriptor & 128;
+
+      switch (type)
+      {
+        case 0:
+          value = MusicReadByte();
+          if (value >= 0) MusicReleaseNote(channel, value & 127);
+          break;
+        case 1:
+          value = MusicReadByte();
+          if (value >= 0)
+          {
+            int note = value & 127;
+            if (value & 128)
+            {
+              value = MusicReadByte();
+              if (value >= 0) music_channel_velocity[channel] = value & 127;
+            }
+            MusicStartNote(channel, note, music_channel_velocity[channel]);
+          }
+          break;
+        case 2:
+          // Pitch wheel is deliberately ignored by this compact synth.
+          MusicReadByte();
+          break;
+        case 3:
+          value = MusicReadByte();
+          if (value == 10 || value == 11) MusicReleaseChannel(channel);
+          break;
+        case 4:
+        {
+          int controller = MusicReadByte();
+          value = MusicReadByte();
+          if (controller == 0 && value >= 0)
+            music_channel_program[channel] = value & 127;
+          else if (controller == 3 && value >= 0)
+            music_channel_volume[channel] = value & 127;
+          break;
+        }
+        case 6:
+          if (music_looping)
+          {
+            MusicRestart();
+            return;
+          }
+          music_active = 0;
+          return;
+        default:
+          music_active = 0;
+          return;
+      }
+
+      if (last)
+      {
+        int delay = 0;
+        do
+        {
+          value = MusicReadByte();
+          if (value < 0)
+          {
+            music_active = 0;
+            return;
+          }
+          delay = delay * 128 + (value & 127);
+        } while (value & 128);
+        music_samples_until_event += (delay * SAMPLERATE) / MUS_TICK_RATE;
+      }
+    }
+
+    if (type == 6)
+    {
+      if (music_looping)
+        MusicRestart();
+      else
+        music_active = 0;
+      return;
+    }
+  }
+}
+
+static int MusicRenderSample(void)
+{
+  int i;
+  double mixed = 0.0;
+
+  if (!music_active || music_paused || !music_score_start)
+    return 0;
+
+  MusicProcessEvents();
+  if (music_samples_until_event > 0)
+    --music_samples_until_event;
+
+  for (i = 0; i < MUSIC_VOICES; ++i)
+  {
+    music_voice_t* voice = &music_voices[i];
+    double wave;
+    double gain;
+    int program;
+    if (!voice->active) continue;
+
+    if (voice->percussion)
+    {
+      music_noise = music_noise * 1664525u + 1013904223u;
+      wave = ((music_noise >> 16) / 32768.0) - 1.0;
+      voice->level *= 0.997;
+    }
+    else
+    {
+      program = music_channel_program[voice->channel];
+      if ((program & 3) == 0)
+        wave = voice->phase < 0.5 ? 1.0 : -1.0;
+      else if ((program & 3) == 1)
+        wave = 1.0 - 4.0 * fabs(voice->phase - 0.5);
+      else if ((program & 3) == 2)
+        wave = 2.0 * voice->phase - 1.0;
+      else
+        wave = sin(voice->phase * 6.283185307179586);
+      voice->phase += voice->step;
+      voice->phase -= (int)voice->phase;
+    }
+
+    if (voice->releasing)
+      voice->level *= 0.996;
+    if (voice->level < 0.002)
+    {
+      voice->active = 0;
+      continue;
+    }
+
+    gain = (voice->velocity / 127.0) *
+           (music_channel_volume[voice->channel] / 127.0) *
+           (snd_MusicVolume / 15.0);
+    mixed += wave * voice->level * gain * 1500.0;
+  }
+  return (int)mixed;
+}
 //
 // Safe ioctl, convenience.
 //
@@ -623,6 +897,11 @@ void I_UpdateSound( void )
 	    }
 	}
 
+	// Music shares the same SDL stream as the sound effects.
+	sample = MusicRenderSample();
+	dl += (int)sample;
+	dr += (int)sample;
+
 	// Clamp to range. Left hardware channel.
 	// Has been char instead of short.
 	// if (dl > 127) *leftout = 127;
@@ -747,6 +1026,7 @@ void
 I_InitSound()
 {
 SDL_Init(SDL_INIT_AUDIO);
+  I_InitMusic();
   int i;
  SDL_AudioSpec input;
 
@@ -801,63 +1081,91 @@ SDL_ResumeAudioStreamDevice(mainAudio);
 
 //
 // MUSIC API.
-// Still no music done.
-// Remains. Dummies.
 //
-void I_InitMusic(void)		{ }
-void I_ShutdownMusic(void)	{ }
+void I_InitMusic(void)
+{
+  music_score_start = NULL;
+  music_score_end = NULL;
+  music_position = NULL;
+  music_active = 0;
+  music_paused = 0;
+  MusicResetVoices();
+}
 
-static int	looping=0;
-static int	musicdies=-1;
+void I_ShutdownMusic(void)
+{
+  music_active = 0;
+  music_score_start = NULL;
+  music_score_end = NULL;
+}
 
 void I_PlaySong(int handle, int looping)
 {
-  // UNUSED.
-  handle = looping = 0;
-  musicdies = gametic + TICRATE*30;
+  (void)handle;
+  music_looping = looping;
+  music_paused = 0;
+  music_active = music_score_start != NULL;
+  if (music_active) MusicRestart();
 }
 
 void I_PauseSong (int handle)
 {
-  // UNUSED.
-  handle = 0;
+  (void)handle;
+  music_paused = 1;
 }
 
 void I_ResumeSong (int handle)
 {
-  // UNUSED.
-  handle = 0;
+  (void)handle;
+  music_paused = 0;
 }
 
 void I_StopSong(int handle)
 {
-  // UNUSED.
-  handle = 0;
-
-  looping = 0;
-  musicdies = 0;
+  (void)handle;
+  music_active = 0;
+  music_looping = 0;
+  MusicResetVoices();
 }
 
 void I_UnRegisterSong(int handle)
 {
-  // UNUSED.
-  handle = 0;
+  (void)handle;
+  music_active = 0;
+  music_score_start = NULL;
+  music_score_end = NULL;
 }
 
 int I_RegisterSong(void* data)
 {
-  // UNUSED.
-  data = NULL;
-
+  const unsigned char* bytes = (const unsigned char*)data;
+  int score_length;
+  int score_offset;
+  music_active = 0;
+  music_score_start = NULL;
+  music_score_end = NULL;
+  if (!bytes || memcmp(bytes, "MUS\x1a", 4) != 0)
+  {
+    fprintf(stderr, "I_RegisterSong: unsupported music format\n");
+    return 0;
+  }
+  score_length = MusicRead16(bytes + 4);
+  score_offset = MusicRead16(bytes + 6);
+  if (score_length <= 0 || score_offset < 16)
+    return 0;
+  music_score_start = bytes + score_offset;
+  music_score_end = music_score_start + score_length;
+  MusicRestart();
+  fprintf(stderr, "I_RegisterSong: MUS playback ready (%d-byte score)\n",
+          score_length);
   return 1;
 }
 
 // Is the song playing?
 int I_QrySongPlaying(int handle)
 {
-  // UNUSED.
-  handle = 0;
-  return looping || musicdies > gametic;
+  (void)handle;
+  return music_active;
 }
 
 
