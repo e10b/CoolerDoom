@@ -40,6 +40,7 @@ rcsid[] = "$Id: r_plane.c,v 1.4 1997/02/03 16:47:55 b1 Exp $";
 
 #include "doomdef.h"
 #include "doomstat.h"
+#include "m_argv.h"
 
 #include "r_local.h"
 #include "r_sky.h"
@@ -99,6 +100,7 @@ fixed_t			cachedxstep[SCREENHEIGHT];
 fixed_t			cachedystep[SCREENHEIGHT];
 
 int warping;
+static boolean proceduralwater;
 
 //
 // R_InitPlanes
@@ -106,7 +108,7 @@ int warping;
 //
 void R_InitPlanes (void)
 {
-  // Doh!
+  proceduralwater = M_CheckParm("-water") != 0;
 }
 
 
@@ -444,8 +446,7 @@ void R_DrawPlanes (void)
 	{
 		if (animRanges[a][2] && flatIndex >= animRanges[a][1] && flatIndex <= animRanges[a][0])
 		{
-			//warping = 1;
-			warping = 2;
+			warping = proceduralwater ? 2 : 1;
 			break;
 		}
 			
@@ -453,7 +454,7 @@ void R_DrawPlanes (void)
 	// regular flat
 
 	if (warping == 2)
-	{ 
+	{
 		R_GenerateWater(120, 127, ds_source);
 	//	R_GenerateWater(240, 245, ds_source);
 	}
