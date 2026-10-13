@@ -3,6 +3,19 @@
   "framework": null,
   "buildCommand": "bash scripts/vercel-build.sh",
   "outputDirectory": "out/vercel",
+  "redirects": [
+    {
+      "source": "/water/",
+      "destination": "/water",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/water",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*\\.wasm)",

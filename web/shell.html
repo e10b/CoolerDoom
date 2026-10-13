@@ -375,6 +375,8 @@
       if (!runtimeReady || !requestedArguments) return;
       const args = requestedArguments;
       requestedArguments = null;
+      if (window.location.pathname.replace(/\/+$/, "") === "/water")
+        args.push("-water");
       Module.callMain(args);
     }
 
