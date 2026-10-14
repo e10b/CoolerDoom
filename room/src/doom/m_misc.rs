@@ -62,8 +62,6 @@ extern "C" {
     fn free(ptr: *mut c_void);
     /// libc `strdup`: allocate a malloc'd copy of a null-terminated string.
     fn strdup(s: *const c_char) -> *mut c_char;
-    /// libc per-thread errno location, used by [`errno`].
-    fn __errno_location() -> *mut c_int;
     /// libc `mkdir`: create `path` with the given permission bits.
     fn mkdir(path: *const c_char, mode: u32) -> c_int;
     /// libc `toupper`: convert an ASCII character to upper case.
@@ -86,23 +84,13 @@ extern "C" {
     fn strchr(s: *const c_char, c: c_int) -> *mut c_char;
     /// libc `strstr`: locate the first occurrence of a substring.
     fn strstr(haystack: *const c_char, needle: *const c_char) -> *mut c_char;
-    /// libc `sscanf`: variadic formatted input parser.
-    fn sscanf(s: *const c_char, format: *const c_char, ...) -> c_int;
-    /// libc `vsnprintf`: bounded formatted output with a `va_list`.
-    fn vsnprintf(s: *mut c_char, n: usize, format: *const c_char, arg: ...) -> c_int;
 }
 
 use crate::doom::z_zone::Z_Malloc;
 
 /// Returns the current value of libc `errno` for the calling thread.
-///
-/// # Safety
-///
-/// Must be called from a context where libc has been initialised. The
-/// caller must not retain the returned `int` across operations that may
-/// reset `errno`.
-unsafe fn errno() -> c_int {
-    *__errno_location()
+fn errno() -> c_int {
+    std::io::Error::last_os_error().raw_os_error().unwrap_or(0)
 }
 
 /// Create the directory at `path` with permissions `0o755`.
@@ -220,17 +208,33 @@ pub extern "C" fn M_TempFile(s: *mut c_char) -> *mut c_char {
 /// original returns a `boolean`; the Rust port keeps the `c_int` ABI.
 #[no_mangle]
 pub extern "C" fn M_StrToInt(str: *const c_char, result: *mut c_int) -> c_int {
+    if str.is_null() || result.is_null() {
+        return 0;
+    }
     unsafe {
-        if sscanf(str, c" 0x%x".as_ptr(), result) == 1 {
-            return 1;
+        let s = std::ffi::CStr::from_ptr(str).to_string_lossy();
+        let trimmed = s.trim();
+        if trimmed.is_empty() {
+            return 0;
         }
-        if sscanf(str, c" 0X%x".as_ptr(), result) == 1 {
-            return 1;
+
+        // Check hex prefix (0x or 0X)
+        if let Some(rest) = trimmed.strip_prefix("0x").or_else(|| trimmed.strip_prefix("0X")) {
+            if let Ok(val) = u32::from_str_radix(rest, 16) {
+                *result = val as c_int;
+                return 1;
+            }
         }
-        if sscanf(str, c" 0%o".as_ptr(), result) == 1 {
-            return 1;
+        // Check octal (starts with 0 and followed by octal digits)
+        if trimmed.starts_with('0') && trimmed.len() > 1 && trimmed[1..].chars().all(|c| ('0'..='7').contains(&c)) {
+            if let Ok(val) = u32::from_str_radix(&trimmed[1..], 8) {
+                *result = val as c_int;
+                return 1;
+            }
         }
-        if sscanf(str, c" %d".as_ptr(), result) == 1 {
+        // Fall back to decimal
+        if let Ok(val) = trimmed.parse::<c_int>() {
+            *result = val;
             return 1;
         }
         0

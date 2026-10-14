@@ -210,7 +210,8 @@ unsafe fn cmap_to_fb(out: *mut u8, inp: *mut u8, in_pixels: c_int) {
 
         let pix = ((c.r as u32) << s_Fb.red.offset)
             | ((c.g as u32) << s_Fb.green.offset)
-            | ((c.b as u32) << s_Fb.blue.offset);
+            | ((c.b as u32) << s_Fb.blue.offset)
+            | (0xFF_u32 << s_Fb.transp.offset);
 
         for _ in 0..fb_scaling {
             (out_ptr as *mut u32).write_unaligned(pix);
@@ -272,13 +273,13 @@ pub unsafe extern "C" fn I_InitGraphics() {
 
     // Default to rgba8888
     s_Fb.bits_per_pixel = 32;
-    s_Fb.blue.length = 8;
-    s_Fb.green.length = 8;
     s_Fb.red.length = 8;
+    s_Fb.green.length = 8;
+    s_Fb.blue.length = 8;
     s_Fb.transp.length = 8;
-    s_Fb.blue.offset = 0;
+    s_Fb.red.offset = 0;
     s_Fb.green.offset = 8;
-    s_Fb.red.offset = 16;
+    s_Fb.blue.offset = 16;
     s_Fb.transp.offset = 24;
 
     // Check for -gfxmode arg
@@ -289,13 +290,13 @@ pub unsafe extern "C" fn I_InitGraphics() {
             let mode_str = std::ffi::CStr::from_ptr(mode);
             if mode_str.to_bytes() == b"rgba8888" {
                 s_Fb.bits_per_pixel = 32;
-                s_Fb.blue.length = 8;
-                s_Fb.green.length = 8;
                 s_Fb.red.length = 8;
+                s_Fb.green.length = 8;
+                s_Fb.blue.length = 8;
                 s_Fb.transp.length = 8;
-                s_Fb.blue.offset = 0;
+                s_Fb.red.offset = 0;
                 s_Fb.green.offset = 8;
-                s_Fb.red.offset = 16;
+                s_Fb.blue.offset = 16;
                 s_Fb.transp.offset = 24;
             } else if mode_str.to_bytes() == b"rgb565" {
                 s_Fb.bits_per_pixel = 16;

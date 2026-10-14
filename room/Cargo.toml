@@ -11,6 +11,7 @@ readme = "../README.md"
 [lib]
 name = "room"
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "room"
@@ -25,7 +26,7 @@ rangecheck = []
 winit = "0.30"
 
 # Cross-platform GPU API.
-wgpu = { version = "29", features = ["wgsl"] }
+wgpu = { version = "29", features = ["wgsl", "webgl"] }
 
 # Blocking async executor – used to wait for wgpu futures.
 pollster = "0.4"
@@ -45,11 +46,28 @@ rustysynth = "1"
 # Simple logger backed by stderr.
 env_logger = "0.11"
 
-# libc bindings for C FFI (FILE, fopen, fclose, fseek, fread, printf, etc.)
-libc = "0.2"
-
 # Optional heap profiler (use with --features dhat-heap).
 dhat = { version = "0.3", optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# libc bindings for C FFI on native platforms
+libc = "0.2"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Minimal libc shim providing types and VFS for WebAssembly
+libc_wasm = { package = "libc-wasm", path = "../libc-wasm" }
+getrandom = { version = "0.4", features = ["wasm_js"] }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Window",
+    "Element",
+    "HtmlCanvasElement",
+    "console",
+] }
+web-time = "1.1"
+console_error_panic_hook = "0.1"
 
 [dev-dependencies]
 # C layout-guard tests: compiles test_helpers.c to verify C struct offsets

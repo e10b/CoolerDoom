@@ -39,10 +39,6 @@ const DIR_SEPARATOR: c_char = b'/' as c_char;
 const DIR_SEPARATOR_S: &[u8] = b"/\0";
 
 extern "C" {
-    /// C standard `printf`; used to emit diagnostic messages during IWAD
-    /// search.
-    fn printf(fmt: *const c_char, ...) -> c_int;
-
     /// Returns non-zero if `filename` names an existing regular file.
     fn M_FileExists(filename: *mut c_char) -> c_int;
 
@@ -283,7 +279,9 @@ unsafe fn CheckDirectoryHasIWAD(dir: *mut c_char, iwadname: *mut c_char) -> *mut
         M_StringJoinA(strs.as_ptr())
     };
 
-    printf(c"Trying IWAD file:%s\n".as_ptr(), filename);
+    if !filename.is_null() {
+        println!("Trying IWAD file:{}", std::ffi::CStr::from_ptr(filename).to_string_lossy());
+    }
 
     if M_FileExists(filename) != 0 {
         return filename;
@@ -476,7 +474,7 @@ pub unsafe extern "C" fn D_FindIWAD(mask: c_int, mission: *mut c_int) -> *mut c_
         *mission = IdentifyIWADByName(result, mask);
         result
     } else {
-        printf(c"-iwad not specified, trying a few iwad names\n".as_ptr());
+        println!("-iwad not specified, trying a few iwad names");
 
         let mut result: *mut c_char = ptr::null_mut();
 

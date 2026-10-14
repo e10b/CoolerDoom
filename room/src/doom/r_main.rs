@@ -942,19 +942,19 @@ pub unsafe extern "C" fn R_ExecuteSetViewSize() {
 #[no_mangle]
 pub unsafe extern "C" fn R_Init() {
     R_InitData();
-    libc::printf(c".".as_ptr());
+    print!(".");
     R_InitPointToAngle();
-    libc::printf(c".".as_ptr());
+    print!(".");
     R_InitTables();
-    libc::printf(c".".as_ptr());
+    print!(".");
     R_SetViewSize(screenblocks, detailLevel);
     R_InitPlanes();
-    libc::printf(c".".as_ptr());
+    print!(".");
     R_InitLightTables();
-    libc::printf(c".".as_ptr());
+    print!(".");
     crate::doom::r_sky::R_InitSkyMap();
     R_InitTranslationTables();
-    libc::printf(c".".as_ptr());
+    print!(".");
 
     framecount = 0;
 }

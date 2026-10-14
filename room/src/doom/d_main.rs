@@ -16,7 +16,6 @@ use crate::doom::i_timer::TICRATE;
 use crate::doom::i_video::I_StartFrame;
 use crate::doom::i_video::{SCREENHEIGHT, SCREENWIDTH};
 use crate::doom::m_config::M_SaveDefaults;
-use crate::doom::m_misc::M_snprintf_clamp;
 use crate::types::Boolean;
 use crate::{c_write, i_error};
 
@@ -487,7 +486,9 @@ use crate::doom::i_video::{
 };
 
 // i_timer.rs
-use crate::doom::i_timer::{I_InitTimer, I_Sleep};
+use crate::doom::i_timer::I_InitTimer;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::doom::i_timer::I_Sleep;
 
 // i_joystick.rs
 use crate::doom::i_joystick::{I_BindJoystickVariables, I_InitJoystick};
@@ -758,7 +759,13 @@ pub extern "C" fn D_Display() {
                 nowtime = I_GetTime();
                 tics = nowtime - wipestart;
                 if tics <= 0 {
+                    #[cfg(not(target_arch = "wasm32"))]
                     I_Sleep(1);
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        tics = 1;
+                        break;
+                    }
                 } else {
                     break;
                 }
@@ -899,10 +906,18 @@ extern "C" fn D_GrabMouseCallback() -> Boolean {
 #[no_mangle]
 pub extern "C" fn doomgeneric_Tick() {
     unsafe {
+        static mut TICK_COUNT: u32 = 0;
+        TICK_COUNT += 1;
+        let verbose = TICK_COUNT <= 3;
+        if verbose || TICK_COUNT % 60 == 0 {
+            log::info!("doomgeneric_Tick #{TICK_COUNT}");
+        }
         // Frame synchronous IO operations
         I_StartFrame();
+        if verbose { log::info!("doomgeneric_Tick #{TICK_COUNT}: after I_StartFrame"); }
 
         TryRunTics(); // will run at least one tic
+        if verbose { log::info!("doomgeneric_Tick #{TICK_COUNT}: after TryRunTics"); }
 
         // Update positional sounds
         let console = consoleplayer;
@@ -912,10 +927,12 @@ pub extern "C" fn doomgeneric_Tick() {
             std::ptr::null_mut()
         };
         S_UpdateSounds(mo as *mut crate::doom::s_sound::MobjStub);
+        if verbose { log::info!("doomgeneric_Tick #{TICK_COUNT}: after S_UpdateSounds (screenvisible={screenvisible})"); }
 
         // Update display
         if screenvisible != 0 {
             D_Display();
+            if verbose { log::info!("doomgeneric_Tick #{TICK_COUNT}: after D_Display"); }
         }
     }
 }
@@ -964,13 +981,17 @@ pub extern "C" fn D_DoomLoop() {
         V_RestoreBuffer();
         R_ExecuteSetViewSize();
 
+        log::info!("D_DoomLoop: entering D_StartGameLoop");
         D_StartGameLoop();
+        log::info!("D_DoomLoop: D_StartGameLoop returned");
 
         if testcontrols != 0 {
             wipegamestate = gamestate;
         }
 
+        log::info!("D_DoomLoop: calling initial doomgeneric_Tick");
         doomgeneric_Tick();
+        log::info!("D_DoomLoop: initial doomgeneric_Tick returned");
     }
 }
 
@@ -993,6 +1014,12 @@ pub extern "C" fn D_PageTicker() {
 #[no_mangle]
 pub extern "C" fn D_PageDrawer() {
     unsafe {
+        // The title lump is chosen by the first game tic. On the web that tic
+        // can land on a later frame, because the loop must return to the
+        // browser instead of sleeping until the clock moves.
+        if pagename.is_null() || *pagename == 0 {
+            return;
+        }
         V_DrawPatch(0, 0, W_CacheLumpName(pagename, PU_CACHE) as *mut patch_t);
     }
 }
@@ -1127,19 +1154,23 @@ unsafe fn GetGameName(gamename: *mut c_char) -> *mut c_char {
                 Z_Malloc(gamename_size as c_int, PU_STATIC, ptr::null_mut()) as *mut c_char;
 
             let version = G_VanillaVersionCode();
-            // SAFETY: `deh_sub` is a valid, null-terminated C string allocated by Z_Malloc via
-            // DEH_String and live for the duration of this call. The format string always contains
-            // exactly two `%i` specifiers (matching the banner patterns), and `version/100` /
-            // `version%100` are both `c_int` values that satisfy them. `expanded` has room for
-            // `gamename_size` bytes. Dynamic format from DEH — cannot use c_write! (not a literal).
-            let result = libc::snprintf(
-                expanded,
-                gamename_size,
-                deh_sub,
-                version / 100,
-                version % 100,
-            );
-            M_snprintf_clamp(expanded, gamename_size, result);
+            let deh_str = std::ffi::CStr::from_ptr(deh_sub).to_string_lossy();
+            let v_major = (version / 100).to_string();
+            let v_minor = (version % 100).to_string();
+            let formatted = if let Some(idx) = deh_str.find("%i") {
+                let first = deh_str[..idx].to_string() + &v_major + &deh_str[idx + 2..];
+                if let Some(idx2) = first.find("%i") {
+                    first[..idx2].to_string() + &v_minor + &first[idx2 + 2..]
+                } else {
+                    first
+                }
+            } else {
+                deh_str.into_owned()
+            };
+            let bytes = formatted.as_bytes();
+            let copy_len = bytes.len().min(gamename_size.saturating_sub(1));
+            std::ptr::copy_nonoverlapping(bytes.as_ptr() as *const c_char, expanded, copy_len);
+            *expanded.add(copy_len) = 0;
 
             // Trim leading spaces
             let mut start = 0;
@@ -1782,28 +1813,27 @@ pub extern "C" fn D_DoomMain() {
         }
 
         // Init remaining subsystems
-        println!("M_Init: Init miscellaneous info.");
+        log::info!("D_DoomMain: M_Init...");
         M_Init();
 
-        print!("R_Init: Init DOOM refresh daemon - ");
+        log::info!("D_DoomMain: R_Init...");
         R_Init();
-        println!();
 
-        println!("P_Init: Init Playloop state.");
+        log::info!("D_DoomMain: P_Init...");
         P_Init();
 
-        println!("S_Init: Setting up sound.");
+        log::info!("D_DoomMain: S_Init...");
         S_Init(sfxVolume * 8, musicVolume * 8);
 
-        println!("D_CheckNetGame: Checking network game status.");
+        log::info!("D_DoomMain: D_CheckNetGame...");
         D_CheckNetGame();
 
         PrintGameVersion();
 
-        println!("HU_Init: Setting up heads up display.");
+        log::info!("D_DoomMain: HU_Init...");
         HU_Init();
 
-        println!("ST_Init: Init status bar.");
+        log::info!("D_DoomMain: ST_Init...");
         ST_Init();
 
         // Store demo check
@@ -1849,13 +1879,17 @@ pub extern "C" fn D_DoomMain() {
         // Start new game or title screen
         if gameaction != ga_loadgame {
             if autostart != 0 || netgame != 0 {
+                log::info!("D_DoomMain: G_InitNew...");
                 G_InitNew(startskill, startepisode, startmap);
             } else {
+                log::info!("D_DoomMain: D_StartTitle...");
                 D_StartTitle();
             }
         }
 
+        log::info!("D_DoomMain: calling D_DoomLoop...");
         D_DoomLoop();
+        log::info!("D_DoomMain: D_DoomLoop finished!");
     }
 }
 

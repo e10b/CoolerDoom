@@ -50,10 +50,17 @@
 // so converting to iterators would require from_raw_parts complexity.
 #![allow(clippy::needless_range_loop, clippy::explicit_counter_loop)]
 
+#[cfg(target_arch = "wasm32")]
+extern crate libc_wasm as libc;
+
 pub(crate) mod audio;
 pub mod doom;
+pub mod gpu;
 pub mod headless;
+pub mod platform;
 pub mod types;
+#[cfg(target_arch = "wasm32")]
+pub mod web;
 
 // Re-export `dhat` when the `dhat-heap` Cargo feature is enabled so binaries
 // can install the heap profiler without listing `dhat` as a direct dependency.

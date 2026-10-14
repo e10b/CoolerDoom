@@ -3,6 +3,7 @@ default-members = ["doomgeneric-sys", "room"]
 members = [
     "c2rust-intermediate",
     "doomgeneric-sys",
+    "libc-wasm",
     "room",
 ]
 resolver = "2"

@@ -40,7 +40,7 @@ use std::sync::Arc;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
-use room::doom::doomgeneric::{DOOMGENERIC_RESX, DOOMGENERIC_RESY};
+use crate::doom::doomgeneric::{DOOMGENERIC_RESX, DOOMGENERIC_RESY};
 
 // ---------------------------------------------------------------------------
 // WGSL shaders (embedded)
@@ -93,10 +93,11 @@ fn vs_main(@builtin(vertex_index) vi: u32) -> VertexOutput {
 @group(0) @binding(0) var doom_texture: texture_2d<f32>;
 @group(0) @binding(1) var doom_sampler: sampler;
 
-/// Sample the Doom frame texture and write the result to the render target.
+/// Sample the Doom frame texture and write the result to the render target with full opacity.
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(doom_texture, doom_sampler, in.tex_coords);
+    let color = textureSample(doom_texture, doom_sampler, in.tex_coords);
+    return vec4<f32>(color.rgb, 1.0);
 }
 "#;
 
@@ -139,33 +140,59 @@ impl GpuState {
     ///
     /// Returns an error string if any wgpu initialisation step fails.
     pub fn new(window: Arc<Window>) -> Result<Self, String> {
-        let size = window.inner_size();
-        // Use the default backends (Vulkan, Metal, DX12, OpenGL).
-        // The `new_without_display_handle` constructor is used here for simplicity;
-        // a more complete implementation would pass the display handle from winit
-        // to enable Wayland GLES compositing.
+        pollster::block_on(Self::new_async(window))
+    }
+
+    /// Asynchronous wgpu initialization, required for WebAssembly targets where blocking is forbidden.
+    pub async fn new_async(window: Arc<Window>) -> Result<Self, String> {
+        let mut size = window.inner_size();
+        // winit's web backend reports 0×0 until its resize observer runs.
+        // Configuring a 1×1 swapchain from that leaves a black canvas.
+        #[cfg(target_arch = "wasm32")]
+        if size.width < 2 || size.height < 2 {
+            size = web_canvas_size();
+        }
+        // Use the default backends (Vulkan, Metal, DX12, OpenGL, WebGPU, WebGL2).
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
         // `Surface<'static>` requires the window to outlive the surface.
         // `Arc<Window>` is `'static`, so this is sound.
         let surface = instance
             .create_surface(window)
             .map_err(|e| format!("create_surface: {e}"))?;
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::default(),
-            compatible_surface: Some(&surface),
-            force_fallback_adapter: false,
-        }))
-        .map_err(|e| format!("no suitable GPU adapter found: {e}"))?;
-        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("doom_device"),
-            required_features: wgpu::Features::empty(),
-            required_limits: wgpu::Limits::default(),
-            memory_hints: wgpu::MemoryHints::default(),
-            // Disable experimental features and API tracing for production use.
-            experimental_features: wgpu::ExperimentalFeatures::default(),
-            trace: wgpu::Trace::Off,
-        }))
-        .map_err(|e| format!("request_device: {e}"))?;
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::default(),
+                compatible_surface: Some(&surface),
+                force_fallback_adapter: false,
+            })
+            .await
+            .map_err(|e| format!("no suitable GPU adapter found: {e}"))?;
+
+        let adapter_info = adapter.get_info();
+        log::info!(
+            "GPU Adapter: backend={:?}, name={}, device_type={:?}",
+            adapter_info.backend,
+            adapter_info.name,
+            adapter_info.device_type
+        );
+
+        #[cfg(target_arch = "wasm32")]
+        let limits = wgpu::Limits::downlevel_webgl2_defaults();
+        #[cfg(not(target_arch = "wasm32"))]
+        let limits = wgpu::Limits::default();
+
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("doom_device"),
+                required_features: wgpu::Features::empty(),
+                required_limits: limits,
+                memory_hints: wgpu::MemoryHints::default(),
+                // Disable experimental features and API tracing for production use.
+                experimental_features: wgpu::ExperimentalFeatures::default(),
+                trace: wgpu::Trace::Off,
+            })
+            .await
+            .map_err(|e| format!("request_device: {e}"))?;
         let surface_caps = surface.get_capabilities(&adapter);
         // Prefer a non-sRGB format so colours match the palette exactly.
         let surface_format = surface_caps
@@ -186,8 +213,8 @@ impl GpuState {
             desired_maximum_frame_latency: 2,
         };
         surface.configure(&device, &config);
-        // Created with BGRA8Unorm to match the pixel format written by the
-        // engine's I_FinishUpdate function.
+        // Created with RGBA8Unorm to match the standard RGBA pixel format written by
+        // the engine's I_FinishUpdate function. Supported universally across WebGPU and WebGL2.
         let doom_texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("doom_frame_texture"),
             size: wgpu::Extent3d {
@@ -198,8 +225,7 @@ impl GpuState {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            // BGRA8Unorm matches the byte layout produced by I_FinishUpdate.
-            format: wgpu::TextureFormat::Bgra8Unorm,
+            format: wgpu::TextureFormat::Rgba8Unorm,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -343,25 +369,34 @@ impl GpuState {
                 depth_or_array_layers: 1,
             },
         );
-        let output = match self.surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(t) => t,
-            wgpu::CurrentSurfaceTexture::Suboptimal(t) => {
-                // Surface is suboptimal but still usable; present this frame.
-                t
-            }
-            wgpu::CurrentSurfaceTexture::Timeout => {
-                return Err("surface timeout".to_owned());
-            }
-            wgpu::CurrentSurfaceTexture::Occluded => {
-                // Window is minimised or hidden; skip this frame.
-                return Ok(());
-            }
-            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                return Err("surface lost or outdated".to_owned());
-            }
-            // Handle future variants without breaking the build.
-            _ => {
-                return Err("surface error: unknown status".to_owned());
+        let mut reconfigured = false;
+        let output = loop {
+            match self.surface.get_current_texture() {
+                wgpu::CurrentSurfaceTexture::Success(t) => break t,
+                wgpu::CurrentSurfaceTexture::Suboptimal(t) => {
+                    // Surface is suboptimal but still usable; present this frame.
+                    break t;
+                }
+                wgpu::CurrentSurfaceTexture::Timeout => {
+                    return Err("surface timeout".to_owned());
+                }
+                wgpu::CurrentSurfaceTexture::Occluded => {
+                    // Window is minimised or hidden; skip this frame.
+                    return Ok(());
+                }
+                wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
+                    // The canvas size often changes after the first configure on
+                    // the web. Rebuild the swapchain once and present this frame.
+                    if reconfigured || self.config.width == 0 || self.config.height == 0 {
+                        return Err("surface lost or outdated".to_owned());
+                    }
+                    reconfigured = true;
+                    self.surface.configure(&self.device, &self.config);
+                }
+                // Handle future variants without breaking the build.
+                _ => {
+                    return Err("surface error: unknown status".to_owned());
+                }
             }
         };
         let view = output
@@ -400,5 +435,27 @@ impl GpuState {
         output.present();
 
         Ok(())
+    }
+}
+
+/// CSS size of the page canvas, used when winit has not reported a real size yet.
+#[cfg(target_arch = "wasm32")]
+fn web_canvas_size() -> PhysicalSize<u32> {
+    let fallback = PhysicalSize::new(640, 400);
+    let Some(window) = web_sys::window() else {
+        return fallback;
+    };
+    let Some(document) = window.document() else {
+        return fallback;
+    };
+    let Some(canvas) = document.get_element_by_id("doom-canvas") else {
+        return fallback;
+    };
+    let width = canvas.client_width();
+    let height = canvas.client_height();
+    if width < 2 || height < 2 {
+        fallback
+    } else {
+        PhysicalSize::new(width as u32, height as u32)
     }
 }

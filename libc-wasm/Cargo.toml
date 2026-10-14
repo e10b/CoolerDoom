@@ -1,0 +1,7 @@
+[package]
+name = "libc-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal libc shim for Doom in WebAssembly (wasm32-unknown-unknown)"
+
+[dependencies]

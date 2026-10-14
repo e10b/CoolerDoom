@@ -12,7 +12,9 @@
 
 #![allow(non_upper_case_globals, non_snake_case, non_camel_case_types)]
 
-use crate::doom::m_argv::{myargc, myargv, M_CheckParmWithArgs, M_ParmExists};
+use crate::doom::m_argv::{myargc, myargv, M_CheckParmWithArgs};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::doom::m_argv::M_ParmExists;
 use crate::doom::m_misc::M_StrToInt;
 use std::ffi::{c_char, c_int, c_uint, c_void, CStr};
 use std::ptr;
@@ -131,11 +133,7 @@ pub extern "C" fn I_ZoneBase(size: *mut c_int) -> *mut u8 {
 
         let zonemem = AutoAllocMemory(size, default_ram, min_ram);
 
-        libc::printf(
-            c"zone memory: %p, %x allocated for zone\n".as_ptr(),
-            zonemem,
-            *size,
-        );
+        println!("zone memory: {:p}, {:x} allocated for zone", zonemem, *size);
 
         zonemem
     }
@@ -179,9 +177,7 @@ pub extern "C" fn I_PrintStartupBanner(gamedescription: *mut c_char) {
         I_PrintDivider();
         I_PrintBanner(gamedescription);
         I_PrintDivider();
-        libc::printf(
-            c" Room, like Doom Generic, is free software, covered by the GNU General Public\n License.  There is NO warranty; not even for MERCHANTABILITY or FITNESS\n FOR A PARTICULAR PURPOSE. You are welcome to change and distribute\n copies under certain conditions. See the source for more information.\n".as_ptr(),
-        );
+        println!(" Room, like Doom Generic, is free software, covered by the GNU General Public\n License.  There is NO warranty; not even for MERCHANTABILITY or FITNESS\n FOR A PARTICULAR PURPOSE. You are welcome to change and distribute\n copies under certain conditions. See the source for more information.");
         I_PrintDivider();
     }
 }
@@ -277,7 +273,7 @@ unsafe fn ZenityErrorBox(message: *const c_char) -> c_int {
 /// pre-formatted C string - the `i_error!` macro takes care of
 /// formatting on the caller side.
 #[no_mangle]
-pub extern "C" fn I_Error(msg: *const c_char) {
+pub extern "C" fn I_Error(msg: *const c_char) -> ! {
     unsafe {
         static mut already_quitting: bool = false;
 
@@ -288,23 +284,41 @@ pub extern "C" fn I_Error(msg: *const c_char) {
         }
 
         let msg_cstr = CStr::from_ptr(msg);
-        eprintln!("{}", msg_cstr.to_string_lossy());
-        eprintln!();
+        let msg_text = msg_cstr.to_string_lossy();
 
-        let mut entry = exit_funcs;
-        while !entry.is_null() {
-            if (*entry).run_on_error.is_truthy() {
-                ((*entry).func)();
+        #[cfg(target_arch = "wasm32")]
+        {
+            web_sys::console::error_1(&wasm_bindgen::JsValue::from_str(&msg_text));
+            if let Some(window) = web_sys::window() {
+                if let Some(document) = window.document() {
+                    if let Some(el) = document.get_element_by_id("status") {
+                        el.set_text_content(Some(&msg_text));
+                    }
+                }
             }
-            entry = (*entry).next;
+            wasm_bindgen::throw_str(&msg_text);
         }
 
-        let exit_gui_popup = M_ParmExists(c"-nogui".as_ptr().cast_mut()) == 0;
-        if exit_gui_popup && I_ConsoleStdout() == 0 {
-            ZenityErrorBox(msg);
-        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            eprintln!("{msg_text}");
+            eprintln!();
 
-        std::process::exit(-1);
+            let mut entry = exit_funcs;
+            while !entry.is_null() {
+                if (*entry).run_on_error.is_truthy() {
+                    ((*entry).func)();
+                }
+                entry = (*entry).next;
+            }
+
+            let exit_gui_popup = M_ParmExists(c"-nogui".as_ptr().cast_mut()) == 0;
+            if exit_gui_popup && I_ConsoleStdout() == 0 {
+                ZenityErrorBox(msg);
+            }
+
+            std::process::exit(-1);
+        }
     }
 }
 
@@ -314,7 +328,7 @@ pub extern "C" fn I_Error(msg: *const c_char) {
 /// in this port the `i_error!` macro produces a formatted C string
 /// and forwards to this function. Identical behaviour to `I_Error`.
 #[no_mangle]
-pub extern "C" fn I_ErrorV(msg: *const c_char) {
+pub extern "C" fn I_ErrorV(msg: *const c_char) -> ! {
     I_Error(msg);
 }
 

@@ -907,7 +907,10 @@ pub struct MobjInfo {
 const _: () = assert!(std::mem::size_of::<MobjInfo>() == 92);
 const _: () = assert!(std::mem::offset_of!(MobjInfo, speed) == 60);
 
+#[cfg(target_pointer_width = "64")]
 const _: () = assert!(std::mem::size_of::<State>() == 40);
+#[cfg(target_pointer_width = "32")]
+const _: () = assert!(std::mem::size_of::<State>() == 28);
 const _: () = assert!(std::mem::offset_of!(State, tics) == 8);
 
 // C-linkage declarations of every action function referenced from

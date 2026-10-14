@@ -194,7 +194,9 @@ pub extern "C" fn W_AddFile(filename: *mut c_char) -> *mut wad_file_t {
     unsafe {
         let wad_file = W_OpenFile(filename);
         if wad_file.is_null() {
-            libc::printf(c" couldn't open %s\n".as_ptr(), filename);
+            if !filename.is_null() {
+                println!(" couldn't open {}", std::ffi::CStr::from_ptr(filename).to_string_lossy());
+            }
             return ptr::null_mut();
         }
 

@@ -30,8 +30,6 @@ const MAXHEIGHT: usize = 832;
 // ---------------------------------------------------------------------------
 
 extern "C" {
-    /// Prints a formatted error message and terminates the program.
-    fn I_Error(format: *const c_char, ...);
     /// Returns a pointer to the cached lump with the given name, using the given zone tag.
     fn W_CacheLumpName(name: *const c_char, tag: c_int) -> *mut c_void;
     /// Allocates `size` bytes from the zone heap with the given tag; returns a pointer to the block.

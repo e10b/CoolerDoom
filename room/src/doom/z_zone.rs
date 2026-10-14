@@ -345,18 +345,14 @@ pub unsafe extern "C" fn Z_DumpHeap(lowtag: c_int, hightag: c_int) {
     let zone = mainzone;
     let sentinel = std::ptr::addr_of_mut!((*zone).blocklist);
 
-    let msg = b"zone size: %i  location: %p\n\0";
-    libc::printf(msg.as_ptr() as *const c_char, (*zone).size, zone);
-
-    let msg2 = b"tag range: %i to %i\n\0";
-    libc::printf(msg2.as_ptr() as *const c_char, lowtag, hightag);
+    println!("zone size: {}  location: {:p}", (*zone).size, zone);
+    println!("tag range: {} to {}", lowtag, hightag);
 
     let mut block = (*zone).blocklist.next;
     loop {
         if (*block).tag >= lowtag && (*block).tag <= hightag {
-            let msg3 = b"block:%p    size:%7i    user:%p    tag:%3i\n\0";
-            libc::printf(
-                msg3.as_ptr() as *const c_char,
+            println!(
+                "block:{:p}    size:{:7}    user:{:p}    tag:{:3}",
                 block,
                 (*block).size,
                 (*block).user,
@@ -369,18 +365,15 @@ pub unsafe extern "C" fn Z_DumpHeap(lowtag: c_int, hightag: c_int) {
         }
 
         if (block as *mut u8).add((*block).size as usize) != (*block).next as *mut u8 {
-            let msg4 = b"ERROR: block size does not touch the next block\n\0";
-            libc::printf(msg4.as_ptr() as *const c_char);
+            println!("ERROR: block size does not touch the next block");
         }
 
         if (*(*block).next).prev != block {
-            let msg5 = b"ERROR: next block doesn't have proper back link\n\0";
-            libc::printf(msg5.as_ptr() as *const c_char);
+            println!("ERROR: next block doesn't have proper back link");
         }
 
         if (*block).tag == PU_FREE && (*(*block).next).tag == PU_FREE {
-            let msg6 = b"ERROR: two consecutive free blocks\n\0";
-            libc::printf(msg6.as_ptr() as *const c_char);
+            println!("ERROR: two consecutive free blocks");
         }
 
         block = (*block).next;

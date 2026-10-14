@@ -44,8 +44,8 @@
 #[global_allocator]
 static ALLOC: dhat::Alloc = dhat::Alloc;
 
-mod gpu;
-mod platform;
+use room::gpu;
+use room::platform;
 
 use std::ffi::{c_char, c_int, CString};
 

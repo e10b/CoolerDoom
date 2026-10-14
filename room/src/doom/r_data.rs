@@ -619,9 +619,9 @@ pub unsafe extern "C" fn R_GenerateLookup(texnum: c_int) {
 
     for x in 0..width {
         if *patchcount.add(x as usize) == 0 {
-            libc::printf(
-                c"R_GenerateLookup: column without a patch (%s)\n".as_ptr(),
-                (*texture).name.as_ptr(),
+            println!(
+                "R_GenerateLookup: column without a patch ({})",
+                std::ffi::CStr::from_ptr((*texture).name.as_ptr()).to_string_lossy(),
             );
             Z_Free(patchcount as *mut c_void);
             return;
@@ -830,13 +830,13 @@ pub unsafe extern "C" fn R_InitTextures() {
     let temp3 = ((temp2 - temp1 + 63) / 64) + ((numtextures + 63) / 64);
 
     if I_ConsoleStdout() != 0 {
-        libc::printf(c"[".as_ptr());
+        print!("[");
         for _ in 0..temp3 + 9 {
-            libc::printf(c" ".as_ptr());
+            print!(" ");
         }
-        libc::printf(c"]".as_ptr());
+        print!("]");
         for _ in 0..temp3 + 10 {
-            libc::printf(c"\x08".as_ptr());
+            print!("\x08");
         }
     }
 
@@ -846,7 +846,7 @@ pub unsafe extern "C" fn R_InitTextures() {
 
     for i in 0..numtextures as usize {
         if (i & 63) == 0 {
-            libc::printf(c".".as_ptr());
+            print!(".");
         }
 
         if i == numtextures1 as usize {
@@ -1013,7 +1013,7 @@ pub unsafe extern "C" fn R_InitSpriteLumps() {
 
     for i in 0..numspritelumps as usize {
         if (i & 63) == 0 {
-            libc::printf(c".".as_ptr());
+            print!(".");
         }
 
         let patch = W_CacheLumpNum(firstspritelump + i as c_int, PU_CACHE) as *mut patch_t;
@@ -1070,11 +1070,11 @@ pub unsafe extern "C" fn R_InitColormaps() {
 #[no_mangle]
 pub unsafe extern "C" fn R_InitData() {
     R_InitTextures();
-    libc::printf(c".".as_ptr());
+    print!(".");
     R_InitFlats();
-    libc::printf(c".".as_ptr());
+    print!(".");
     R_InitSpriteLumps();
-    libc::printf(c".".as_ptr());
+    print!(".");
     R_InitColormaps();
 }
 

@@ -38,8 +38,9 @@
 
 use crate::doom::sounds::Sfx;
 use std::ffi::{c_char, c_int, c_uint, c_void};
-
 use std::ptr;
+
+use crate::{c_write, i_error};
 
 use crate::doom::d_mode::{
     commercial, doom, exe_chex, exe_doom_1_2, exe_doom_1_666, exe_doom_1_7, exe_doom_1_8,
@@ -650,13 +651,6 @@ static mut DEMOVERSIONBUF: [c_char; 16] = [0; 16];
 // ---------------------------------------------------------------------------
 
 extern "C" {
-    /// libc `snprintf` - variadic; only the buffer-pointer / length form is
-    /// actually invoked from this module (turbo banner and demo-version text).
-    fn snprintf(buf: *mut c_char, len: usize, fmt: *const c_char, ...) -> c_int;
-
-    /// Engine-wide fatal error from `i_system.c`. Kept variadic because call
-    /// sites pass `printf`-style format arguments.
-    fn I_Error(format: *const c_char, ...) -> !;
     /// Engine-wide clean shutdown from `i_system.c` (used by single demos).
     fn I_Quit() -> !;
 }
@@ -733,7 +727,7 @@ use crate::doom::s_sound::{S_PauseSound, S_ResumeSound, S_StartSound};
 use crate::doom::m_menu::{mouseSensitivity, M_StartControlPanel};
 
 /// String / file / formatted-print utilities from `m_misc.c`.
-use crate::doom::m_misc::{M_StringCopy, M_TempFile, M_WriteFile, M_snprintf_clamp};
+use crate::doom::m_misc::{M_StringCopy, M_TempFile, M_WriteFile};
 
 /// Command-line argument table and lookup helpers from `m_argv.c`.
 use crate::doom::m_argv::{myargv, M_CheckParm, M_CheckParmWithArgs};
@@ -1543,15 +1537,10 @@ pub unsafe extern "C" fn G_Ticker() {
                 && ((gametic >> 5) % MAXPLAYERS as c_int) == i as c_int
                 && turbodetected[i] != 0
             {
-                M_snprintf_clamp(
-                    std::ptr::addr_of_mut!(TURBOMESSAGE[0]),
-                    80,
-                    snprintf(
-                        std::ptr::addr_of_mut!(TURBOMESSAGE[0]),
-                        80,
-                        c"%s is turbo!".as_ptr(),
-                        player_names[i],
-                    ),
+                c_write!(
+                    TURBOMESSAGE,
+                    "{} is turbo!",
+                    std::ffi::CStr::from_ptr(player_names[i]).to_string_lossy()
                 );
                 players[consoleplayer as usize].message = std::ptr::addr_of_mut!(TURBOMESSAGE[0]);
                 turbodetected[i] = 0;
@@ -1559,10 +1548,10 @@ pub unsafe extern "C" fn G_Ticker() {
 
             if netgame != 0 && netdemo == 0 && (gametic % ticdup) == 0 {
                 if gametic > BACKUPTICS as c_int && consistancy[i][buf] != (*cmd).consistancy {
-                    I_Error(
-                        c"consistency failure (%i should be %i)".as_ptr(),
+                    i_error!(
+                        "consistency failure ({} should be {})",
                         (*cmd).consistancy as c_int,
-                        consistancy[i][buf] as c_int,
+                        consistancy[i][buf] as c_int
                     );
                 }
                 let mo = players[i].mo as *mut mobj_t;
@@ -1807,7 +1796,7 @@ pub unsafe extern "C" fn G_CheckSpot(playernum: c_int, mthing: *mut mapthing_t) 
             ya = finesine[an_raw as usize];
         }
         _ => {
-            I_Error(c"G_CheckSpot: unexpected angle %d\n".as_ptr(), an_raw);
+            i_error!("G_CheckSpot: unexpected angle {}", an_raw);
         }
     }
 
@@ -1840,7 +1829,7 @@ pub unsafe extern "C" fn G_CheckSpot(playernum: c_int, mthing: *mut mapthing_t) 
 pub unsafe extern "C" fn G_DeathMatchSpawnPlayer(playernum: c_int) {
     let selections = deathmatch_p.offset_from(std::ptr::addr_of!(deathmatchstarts[0])) as c_int;
     if selections < 4 {
-        I_Error(c"Only %i deathmatch spots, 4 required".as_ptr(), selections);
+        i_error!("Only {} deathmatch spots, 4 required", selections);
     }
 
     for _ in 0..20 {
@@ -2212,7 +2201,7 @@ pub unsafe extern "C" fn G_DoLoadGame() {
     P_UnArchiveSpecials();
 
     if P_ReadSaveGameEOF() == 0 {
-        I_Error(c"Bad savegame".as_ptr());
+        i_error!("Bad savegame");
     }
 
     libc::fclose(save_stream);
@@ -2271,10 +2260,10 @@ pub unsafe extern "C" fn G_DoSaveGame() {
         recovery_savegame_file = recovery;
         save_stream = libc::fopen(recovery, c"wb".as_ptr() as *const libc::c_char);
         if save_stream.is_null() {
-            I_Error(
-                c"Failed to open either '%s' or '%s' to write savegame.".as_ptr() as *const c_char,
-                temp_savegame_file,
-                recovery_savegame_file,
+            i_error!(
+                "Failed to open either '{}' or '{}' to write savegame.",
+                std::ffi::CStr::from_ptr(temp_savegame_file).to_string_lossy(),
+                std::ffi::CStr::from_ptr(recovery_savegame_file).to_string_lossy(),
             );
         }
     } else {
@@ -2291,16 +2280,16 @@ pub unsafe extern "C" fn G_DoSaveGame() {
     P_WriteSaveGameEOF();
 
     if vanilla_savegame_limit != 0 && libc::ftell(save_stream) > SAVEGAMESIZE {
-        I_Error(c"Savegame buffer overrun".as_ptr());
+        i_error!("Savegame buffer overrun");
     }
 
     libc::fclose(save_stream);
 
     if !recovery_savegame_file.is_null() {
-        I_Error(
-            c"Failed to open savegame file '%s' for writing.\nBut your game has been saved to '%s' for recovery.".as_ptr(),
-            temp_savegame_file,
-            recovery_savegame_file,
+        i_error!(
+            "Failed to open savegame file '{}' for writing.\nBut your game has been saved to '{}' for recovery.",
+            std::ffi::CStr::from_ptr(temp_savegame_file).to_string_lossy(),
+            std::ffi::CStr::from_ptr(recovery_savegame_file).to_string_lossy(),
         );
     }
 
@@ -2705,11 +2694,12 @@ pub unsafe extern "C" fn G_RecordDemo(name: *mut c_char) {
     let name_len = libc::strlen(name);
     let demoname_size = name_len + 5;
     demoname = Z_Malloc(demoname_size as c_int, PU_STATIC, ptr::null_mut()) as *mut c_char;
-    M_snprintf_clamp(
-        demoname,
-        demoname_size,
-        snprintf(demoname, demoname_size, c"%s.lmp".as_ptr(), name),
-    );
+    let name_str = std::ffi::CStr::from_ptr(name).to_string_lossy();
+    let full = format!("{}.lmp", name_str);
+    let bytes = full.as_bytes();
+    let copy_len = bytes.len().min(demoname_size - 1);
+    std::ptr::copy_nonoverlapping(bytes.as_ptr() as *const c_char, demoname, copy_len);
+    *demoname.add(copy_len) = 0;
     let mut maxsize: c_int = 0x20000;
     let i = M_CheckParmWithArgs(c"-maxdemo".as_ptr().cast_mut(), 1);
     if i != 0 {
@@ -2738,9 +2728,7 @@ pub unsafe extern "C" fn G_VanillaVersionCode() -> c_int {
 /// exercise the table directly.
 fn g_vanilla_version_code_for(gv: c_int) -> c_int {
     match gv {
-        v if v == exe_doom_1_2 => unsafe {
-            I_Error(c"Doom 1.2 does not have a version code!".as_ptr())
-        },
+        v if v == exe_doom_1_2 => i_error!("Doom 1.2 does not have a version code!"),
         v if v == exe_doom_1_666 => 106,
         v if v == exe_doom_1_7 => 107,
         v if v == exe_doom_1_8 => 108,
@@ -2838,16 +2826,11 @@ unsafe fn demo_version_description(version: c_int) -> *const c_char {
             if (0..=4).contains(&version) {
                 c"v1.0/v1.1/v1.2".as_ptr()
             } else {
-                M_snprintf_clamp(
-                    std::ptr::addr_of_mut!(DEMOVERSIONBUF[0]),
-                    16,
-                    snprintf(
-                        std::ptr::addr_of_mut!(DEMOVERSIONBUF[0]),
-                        16,
-                        c"%i.%i (unknown)".as_ptr(),
-                        version / 100,
-                        version % 100,
-                    ),
+                c_write!(
+                    DEMOVERSIONBUF,
+                    "{}.{} (unknown)",
+                    version / 100,
+                    version % 100
                 );
                 std::ptr::addr_of!(DEMOVERSIONBUF[0])
             }
@@ -2890,17 +2873,12 @@ pub unsafe extern "C" fn G_DoPlayDemo() {
     } else if demoversion == DOOM_191_VERSION {
         longtics = 1;
     } else {
-        let message = b"Demo is from a different game version!\n\
-            (read %i, should be %i)\n\n\
-            *** You may need to upgrade your version of Doom to v1.9. ***\n\
-            See: https://www.doomworld.com/classicdoom/info/patches.php\n\
-            This appears to be %s.\0";
         // C code uses printf (not I_Error) here so demo playback continues
-        libc::printf(
-            message.as_ptr() as *const libc::c_char,
+        println!(
+            "Demo is from a different game version!\n(read {}, should be {})\n\n*** You may need to upgrade your version of Doom to v1.9. ***\nSee: https://www.doomworld.com/classicdoom/info/patches.php\nThis appears to be {}.",
             demoversion,
             G_VanillaVersionCode(),
-            demo_version_description(demoversion),
+            std::ffi::CStr::from_ptr(demo_version_description(demoversion)).to_string_lossy(),
         );
     }
 
@@ -2921,10 +2899,7 @@ pub unsafe extern "C" fn G_DoPlayDemo() {
     consoleplayer = *demo_p as c_int;
     demo_p = demo_p.add(1);
     if consoleplayer < 0 || consoleplayer >= MAXPLAYERS as c_int {
-        I_Error(
-            c"G_DoPlayDemo: consoleplayer %d out of range\n".as_ptr(),
-            consoleplayer,
-        );
+        i_error!("G_DoPlayDemo: consoleplayer {} out of range", consoleplayer);
     }
 
     for i in 0..MAXPLAYERS {
@@ -3002,11 +2977,11 @@ pub unsafe extern "C" fn G_CheckDemoStatus() -> boolean {
         let fps = (gametic as f32 * 35.0) / realtics as f32;
         timingdemo = 0;
         demoplayback = 0;
-        I_Error(
-            c"timed %i gametics in %i realtics (%f fps)".as_ptr(),
+        i_error!(
+            "timed {} gametics in {} realtics ({} fps)",
             gametic,
             realtics,
-            fps as f64,
+            fps as f64
         );
     }
 
@@ -3042,7 +3017,7 @@ pub unsafe extern "C" fn G_CheckDemoStatus() -> boolean {
         );
         Z_Free(demobuffer as *mut c_void);
         demorecording = 0;
-        I_Error(c"Demo %s recorded".as_ptr(), demoname);
+        i_error!("Demo {} recorded", std::ffi::CStr::from_ptr(demoname).to_string_lossy());
     }
 
     0

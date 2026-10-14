@@ -867,7 +867,7 @@ unsafe fn WI_drawOnLnode(n: c_int, c: *mut *mut patch_t) {
             *c.offset(i as isize),
         );
     } else {
-        libc::printf(c"Could not place patch on level %d".as_ptr(), n + 1);
+        println!("Could not place patch on level {}", n + 1);
     }
 }
 

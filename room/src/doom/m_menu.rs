@@ -172,11 +172,21 @@ pub struct menu_t {
     pub lastOn: i16,
 }
 
+#[cfg(target_pointer_width = "64")]
 const _: () = assert!(
     std::mem::size_of::<menuitem_t>() == 32,
     "menuitem_t size mismatch"
 );
+#[cfg(target_pointer_width = "32")]
+const _: () = assert!(
+    std::mem::size_of::<menuitem_t>() == 20,
+    "menuitem_t size mismatch"
+);
+
+#[cfg(target_pointer_width = "64")]
 const _: () = assert!(std::mem::size_of::<menu_t>() == 40, "menu_t size mismatch");
+#[cfg(target_pointer_width = "32")]
+const _: () = assert!(std::mem::size_of::<menu_t>() == 24, "menu_t size mismatch");
 
 /// Minimal prefix of `patch_t` needed to read width/height without pulling in the full type.
 ///

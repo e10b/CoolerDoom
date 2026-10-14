@@ -613,6 +613,13 @@ pub extern "C" fn TryRunTics() {
                 return;
             }
 
+            // Sleeping on the browser thread does not yield, so `I_GetTime`
+            // never advances and this wait loops forever. Leave the frame and
+            // try again once the event loop has moved the clock.
+            #[cfg(target_arch = "wasm32")]
+            return;
+
+            #[cfg(not(target_arch = "wasm32"))]
             I_Sleep(1);
         }
 

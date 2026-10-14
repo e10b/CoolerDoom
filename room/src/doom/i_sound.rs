@@ -105,6 +105,7 @@ const fn c_bytes(s: &[u8]) -> &'static [c_char] {
 /// prefix encoded in `I_GetSfxLumpNum`.
 #[no_mangle]
 pub extern "C" fn I_InitSound(_use_sfx_prefix: Boolean) {
+    #[cfg(not(target_arch = "wasm32"))]
     crate::audio::AUDIO.with_borrow_mut(|audio| {
         if audio.is_none() {
             match crate::audio::AudioState::new() {

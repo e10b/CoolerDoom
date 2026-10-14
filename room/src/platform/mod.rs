@@ -32,7 +32,10 @@ use std::collections::VecDeque;
 use std::ffi::c_char;
 use std::ffi::CStr;
 use std::sync::Arc;
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
+#[cfg(target_arch = "wasm32")]
+use web_time::Instant;
 
 use winit::window::Window;
 
@@ -47,21 +50,21 @@ use crate::gpu::GpuState;
 // rustdoc does not process comments attached to `thread_local!` calls.
 thread_local! {
     // GPU rendering state.  `None` until `GpuState` is created in `resumed`.
-    pub(crate) static GPU: RefCell<Option<GpuState>> = const { RefCell::new(None) };
+    pub static GPU: RefCell<Option<GpuState>> = const { RefCell::new(None) };
 
     // OS window handle used for title updates.
-    pub(crate) static WINDOW: RefCell<Option<Arc<Window>>> = const { RefCell::new(None) };
+    pub static WINDOW: RefCell<Option<Arc<Window>>> = const { RefCell::new(None) };
 
     // Keyboard event queue consumed by `DG_GetKey`.
     // Each entry is `(pressed, doom_key_byte)`.
-    pub(crate) static KEY_QUEUE: RefCell<VecDeque<(bool, u8)>> =
+    pub static KEY_QUEUE: RefCell<VecDeque<(bool, u8)>> =
         const { RefCell::new(VecDeque::new()) };
 
     // Absolute time of programme launch, used by `DG_GetTicksMs`.
     static START_TIME: Cell<Option<Instant>> = const { Cell::new(None) };
 
     // Set to `true` when the user asks to close the window.
-    pub(crate) static QUIT_REQUESTED: Cell<bool> = const { Cell::new(false) };
+    pub static QUIT_REQUESTED: Cell<bool> = const { Cell::new(false) };
 }
 
 // ---------------------------------------------------------------------------
@@ -107,13 +110,24 @@ pub extern "C" fn DG_DrawFrame() {
     // SAFETY: DG_ScreenBuffer is allocated by doomgeneric_Create and is
     // valid for DOOMGENERIC_PIXELS * 4 bytes.
     let pixel_bytes = unsafe {
-        let ptr = room::doom::doomgeneric::DG_ScreenBuffer as *const u8;
+        let ptr = crate::doom::doomgeneric::DG_ScreenBuffer as *const u8;
         if ptr.is_null() {
             log::warn!("DG_DrawFrame: DG_ScreenBuffer is null, skipping frame");
             return;
         }
-        std::slice::from_raw_parts(ptr, room::doom::doomgeneric::DOOMGENERIC_PIXELS * 4)
+        std::slice::from_raw_parts(ptr, crate::doom::doomgeneric::DOOMGENERIC_PIXELS * 4)
     };
+
+    static mut FRAME_COUNT: u32 = 0;
+    unsafe {
+        FRAME_COUNT += 1;
+        if FRAME_COUNT <= 5 || FRAME_COUNT % 60 == 0 {
+            let mid = (200 * 640 + 320) * 4;
+            let sample_0 = &pixel_bytes[0..8];
+            let sample_mid = &pixel_bytes[mid..mid + 8];
+            log::info!("DG_DrawFrame #{FRAME_COUNT}: p0={sample_0:02x?} p_mid={sample_mid:02x?}");
+        }
+    }
 
     GPU.with_borrow(|opt| {
         if let Some(gpu) = opt.as_ref() {
@@ -132,7 +146,10 @@ pub extern "C" fn DG_DrawFrame() {
 /// the target tick rate.
 #[no_mangle]
 pub extern "C" fn DG_SleepMs(ms: u32) {
+    #[cfg(not(target_arch = "wasm32"))]
     std::thread::sleep(std::time::Duration::from_millis(u64::from(ms)));
+    #[cfg(target_arch = "wasm32")]
+    let _ = ms;
 }
 
 /// Return the number of milliseconds elapsed since `doomgeneric_Create`.
