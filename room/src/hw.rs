@@ -19,6 +19,7 @@ use crate::doom::p_setup::{
     vertexes,
 };
 use crate::doom::p_telept::mobj_t;
+use crate::doom::p_tick::leveltime;
 use crate::doom::r_data::{
     firstflat, firstspritelump, flattranslation, hw_texture_size, numflats, numspritelumps,
     numtextures, spriteoffset, spritetopoffset, spritewidth, textureheight, texturetranslation,
@@ -30,7 +31,9 @@ use crate::doom::r_sky::{skyflatnum, skytexture};
 use crate::doom::r_things::{hw_psprite_lump, hw_sprite_lump};
 use crate::doom::w_wad::{W_CacheLumpNum, W_LumpLength};
 use crate::doom::z_zone::PU_CACHE;
+use crate::voxel::{self, VoxelMesh};
 use std::collections::HashSet;
+use std::sync::Arc;
 
 const FRAC: f32 = 65536.0;
 const FF_FULLBRIGHT: i32 = 0x8000;
@@ -40,6 +43,8 @@ const GS_LEVEL: i32 = 0;
 
 /// One mesh vertex. `atlas` is the texture rectangle in the shared atlas
 /// (u0, v0, u1, v1). `uv` is in tiles; the shader wraps it inside that rectangle.
+/// `tint` is multiplied with the texel. Walls and sprites leave it white.
+/// Voxels put their own palette color here and sample a white texel.
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Vertex {
@@ -47,7 +52,8 @@ pub struct Vertex {
     pub uv: [f32; 2],
     pub atlas: [f32; 4],
     pub light: f32,
-    pub _pad: [f32; 2],
+    pub tint: [f32; 3],
+    pub _pad: f32,
 }
 
 /// One frame of world geometry plus the camera and the HUD hole.
@@ -72,6 +78,8 @@ struct Atlas {
     flat_rects: Vec<[f32; 4]>,
     sprite_rects: Vec<[f32; 4]>,
     sprite_size: Vec<(i32, i32)>,
+    /// A solid white texel. Voxel faces sample this and carry their color in `tint`.
+    white: [f32; 4],
     pending: Option<(u32, Vec<u8>)>,
 }
 
@@ -132,25 +140,14 @@ pub unsafe fn build_scene() -> Scene {
 
     ensure_flats(scratch);
     if let Some(atlas) = scratch.atlas.as_ref() {
-        push_sky(
-            &mut scratch.verts,
-            &mut scratch.indices,
-            atlas,
-            eye,
-            ang,
-        );
+        push_sky(&mut scratch.verts, &mut scratch.indices, atlas, eye, ang);
         push_world(
             &mut scratch.verts,
             &mut scratch.indices,
             atlas,
             &scratch.flats,
         );
-        push_sprites(
-            &mut scratch.verts,
-            &mut scratch.indices,
-            atlas,
-            right,
-        );
+        push_sprites(&mut scratch.verts, &mut scratch.indices, atlas, right);
     }
     let world_indices = scratch.indices.len() as u32;
     if let Some(atlas) = scratch.atlas.as_ref() {
@@ -234,6 +231,7 @@ unsafe fn build_atlas(key: usize) -> Atlas {
         flat_rects: vec![[0.0; 4]; numflats.max(0) as usize],
         sprite_rects: vec![[0.0; 4]; numspritelumps.max(0) as usize],
         sprite_size: vec![(0, 0); numspritelumps.max(0) as usize],
+        white: [0.0; 4],
         pending: None,
     };
     for size in [2048i32, 4096, 8192] {
@@ -252,8 +250,15 @@ unsafe fn pack_into(atlas: &mut Atlas, size: i32, pal: &[(u8, u8, u8); 256]) -> 
     atlas.flat_rects.fill([0.0; 4]);
     atlas.sprite_rects.fill([0.0; 4]);
     atlas.sprite_size.fill((0, 0));
+    atlas.white = [0.0; 4];
     let mut pack = Packer::new(size);
     let mut ok = true;
+    if let Some((wx, wy)) = pack.alloc(1, 1) {
+        pack.put(wx, wy, [255, 255, 255, 255]);
+        atlas.white = pack.rect(wx, wy, 1, 1);
+    } else {
+        ok = false;
+    }
     for tex in 0..numtextures {
         let (w, h) = hw_texture_size(tex);
         if w <= 0 || h <= 0 {
@@ -309,11 +314,7 @@ unsafe fn palette() -> [(u8, u8, u8); 256] {
     let mut rgb = [(0u8, 0u8, 0u8); 256];
     if !lump.is_null() {
         for i in 0..256 {
-            rgb[i] = (
-                *lump.add(i * 3),
-                *lump.add(i * 3 + 1),
-                *lump.add(i * 3 + 2),
-            );
+            rgb[i] = (*lump.add(i * 3), *lump.add(i * 3 + 1), *lump.add(i * 3 + 2));
         }
     }
     rgb
@@ -368,6 +369,14 @@ impl Packer {
         ]
     }
 
+    fn put(&mut self, x: i32, y: i32, rgba: [u8; 4]) {
+        if x < 0 || y < 0 || x >= self.size || y >= self.size {
+            return;
+        }
+        let dst = (y as usize * self.size as usize + x as usize) * 4;
+        self.rgba[dst..dst + 4].copy_from_slice(&rgba);
+    }
+
     fn blit(&mut self, x: i32, y: i32, w: i32, h: i32, src: &[u8]) {
         for row in 0..h {
             let dst = ((y + row) as usize * self.size as usize + x as usize) * 4;
@@ -375,14 +384,6 @@ impl Packer {
             let n = (w as usize) * 4;
             self.rgba[dst..dst + n].copy_from_slice(&src[src_off..src_off + n]);
         }
-    }
-
-    fn put(&mut self, x: i32, y: i32, rgba: [u8; 4]) {
-        if x < 0 || y < 0 || x >= self.size || y >= self.size {
-            return;
-        }
-        let i = (y as usize * self.size as usize + x as usize) * 4;
-        self.rgba[i..i + 4].copy_from_slice(&rgba);
     }
 }
 
@@ -447,8 +448,11 @@ unsafe fn raster_patch(lump: i32, pal: &[(u8, u8, u8); 256]) -> Option<(i32, i32
     }
     let mut px = vec![0u8; (w as usize) * (h as usize) * 4];
     for col in 0..w as usize {
-        let ofs = u32::from_le_bytes(bytes[header + col * 4..header + col * 4 + 4].try_into().ok()?)
-            as usize;
+        let ofs = u32::from_le_bytes(
+            bytes[header + col * 4..header + col * 4 + 4]
+                .try_into()
+                .ok()?,
+        ) as usize;
         if ofs >= bytes.len() {
             continue;
         }
@@ -512,9 +516,10 @@ unsafe fn push_sky(
     let lats = 16i32;
     let v_of = |el: f32| (100.0 - el.to_degrees() * (100.0 / 90.0)) / th as f32;
     for lat in 0..lats {
-        let el0 = -std::f32::consts::FRAC_PI_2 + (lat as f32) / (lats as f32) * std::f32::consts::PI;
-        let el1 =
-            -std::f32::consts::FRAC_PI_2 + ((lat + 1) as f32) / (lats as f32) * std::f32::consts::PI;
+        let el0 =
+            -std::f32::consts::FRAC_PI_2 + (lat as f32) / (lats as f32) * std::f32::consts::PI;
+        let el1 = -std::f32::consts::FRAC_PI_2
+            + ((lat + 1) as f32) / (lats as f32) * std::f32::consts::PI;
         for i in 0..segs_n {
             let a0 = (i as f32) / (segs_n as f32) * std::f32::consts::TAU;
             let a1 = ((i + 1) as f32) / (segs_n as f32) * std::f32::consts::TAU;
@@ -540,6 +545,7 @@ unsafe fn push_sky(
                 ],
                 rect,
                 1.0,
+                [1.0; 3],
             );
         }
     }
@@ -721,12 +727,7 @@ unsafe fn push_wall(
     push_quad(
         verts,
         indices,
-        [
-            [x1, z0, -y1],
-            [x1, z1, -y1],
-            [x2, z1, -y2],
-            [x2, z0, -y2],
-        ],
+        [[x1, z0, -y1], [x1, z1, -y1], [x2, z1, -y2], [x2, z0, -y2]],
         [
             [u0, v_of(z0)],
             [u0, v_of(z1)],
@@ -735,6 +736,7 @@ unsafe fn push_wall(
         ],
         rect,
         light,
+        [1.0; 3],
     );
 }
 
@@ -778,7 +780,7 @@ fn fan(
     rect: [f32; 4],
     light: f32,
 ) {
-    if poly.len() < 3 || verts.len() + poly.len() > 400_000 {
+    if poly.len() < 3 || verts.len() + poly.len() > 2_000_000 {
         return;
     }
     let base = verts.len() as u32;
@@ -788,7 +790,8 @@ fn fan(
             uv: [p[0] / 64.0, p[1] / 64.0],
             atlas: rect,
             light,
-            _pad: [0.0; 2],
+            tint: [1.0; 3],
+            _pad: 0.0,
         });
     }
     for i in 1..poly.len() as u32 - 1 {
@@ -935,7 +938,11 @@ fn plane_inside(plane: &Plane, p: [f32; 2]) -> bool {
     // the shared edge is the same line, without an overlapping strip that
     // shimmers.
     let d = plane_dist(plane, p);
-    if plane.keep_right { d <= 1.0e-3 } else { d >= -1.0e-3 }
+    if plane.keep_right {
+        d <= 1.0e-3
+    } else {
+        d >= -1.0e-3
+    }
 }
 
 fn plane_hit(plane: &Plane, a: [f32; 2], b: [f32; 2]) -> [f32; 2] {
@@ -975,7 +982,10 @@ unsafe fn push_sprites(
     atlas: &Atlas,
     right: [f32; 3],
 ) {
-    if sectors.is_null() || spritewidth.is_null() || spriteoffset.is_null() || spritetopoffset.is_null()
+    if sectors.is_null()
+        || spritewidth.is_null()
+        || spriteoffset.is_null()
+        || spritetopoffset.is_null()
     {
         return;
     }
@@ -994,11 +1004,21 @@ unsafe fn push_sprites(
             if !th.player.is_null() && th.player as *mut std::ffi::c_void == player {
                 continue;
             }
+            let mut light = (sector.lightlevel as f32 / 255.0).clamp(0.04, 1.0);
+            if th.frame & FF_FULLBRIGHT != 0 {
+                light = 1.0;
+            } else if th.flags & MF_SHADOW != 0 {
+                light = 0.18;
+            }
+            if let Some((mesh, extra)) = voxel::model_for(th.sprite, th.frame, leveltime) {
+                push_voxel(verts, indices, atlas, th, &mesh, extra, light);
+                continue;
+            }
             let Some((lump, flip)) = hw_sprite_lump(th.sprite, th.frame, th.x, th.y, th.angle)
             else {
                 continue;
             };
-            push_billboard(verts, indices, atlas, th, lump, flip, right, sector.lightlevel);
+            push_billboard(verts, indices, atlas, th, lump, flip, right, light);
         }
     }
 }
@@ -1012,7 +1032,7 @@ unsafe fn push_billboard(
     lump: i32,
     flip: bool,
     right: [f32; 3],
-    lightlevel: i16,
+    light: f32,
 ) {
     if lump < 0 || lump as usize >= atlas.sprite_rects.len() {
         return;
@@ -1027,17 +1047,7 @@ unsafe fn push_billboard(
     let top = fx(th.z) + fx(*spritetopoffset.add(lump as usize));
     let cx = fx(th.x);
     let cz = -fx(th.y);
-    let mut light = (lightlevel as f32 / 255.0).clamp(0.04, 1.0);
-    if th.frame & FF_FULLBRIGHT != 0 {
-        light = 1.0;
-    } else if th.flags & MF_SHADOW != 0 {
-        light = 0.18;
-    }
-    let left = [
-        cx - right[0] * offset,
-        top,
-        cz - right[2] * offset,
-    ];
+    let left = [cx - right[0] * offset, top, cz - right[2] * offset];
     let across = [right[0] * width, 0.0, right[2] * width];
     let down = ph as f32;
     let (u0, u1) = if flip { (0.999, 0.0) } else { (0.0, 0.999) };
@@ -1053,6 +1063,7 @@ unsafe fn push_billboard(
         [[u0, 0.0], [u1, 0.0], [u1, 1.0], [u0, 1.0]],
         rect,
         light,
+        [1.0; 3],
     );
 }
 
@@ -1102,9 +1113,8 @@ unsafe fn push_weapon(
         let yoff = top_up * world_per_px;
         let mut origin = eye;
         for k in 0..3 {
-            origin[k] += forward[k] * distance
-                + right[k] * (left_px * world_per_px)
-                + cam_up[k] * yoff;
+            origin[k] +=
+                forward[k] * distance + right[k] * (left_px * world_per_px) + cam_up[k] * yoff;
         }
         let width = pw as f32 * world_per_px;
         let height = ph as f32 * world_per_px;
@@ -1115,7 +1125,13 @@ unsafe fn push_weapon(
             -cam_up[2] * height,
         ];
         let (u0, u1) = if flip { (0.999, 0.0) } else { (0.0, 0.999) };
-        let corner = |a: [f32; 3], b: [f32; 3]| [origin[0] + a[0] + b[0], origin[1] + a[1] + b[1], origin[2] + a[2] + b[2]];
+        let corner = |a: [f32; 3], b: [f32; 3]| {
+            [
+                origin[0] + a[0] + b[0],
+                origin[1] + a[1] + b[1],
+                origin[2] + a[2] + b[2],
+            ]
+        };
         push_quad(
             verts,
             indices,
@@ -1128,6 +1144,49 @@ unsafe fn push_weapon(
             [[u0, 0.0], [u1, 0.0], [u1, 1.0], [u0, 1.0]],
             rect,
             1.0,
+            [1.0; 3],
+        );
+    }
+}
+
+fn push_voxel(
+    verts: &mut Vec<Vertex>,
+    indices: &mut Vec<u32>,
+    atlas: &Atlas,
+    th: &mobj_t,
+    mesh: &Arc<VoxelMesh>,
+    extra_yaw: f32,
+    light: f32,
+) {
+    let yaw = (th.angle as f32) * std::f32::consts::TAU / 4294967296.0 + extra_yaw;
+    let (s, c) = yaw.sin_cos();
+    let ox = fx(th.x);
+    let oy = fx(th.z);
+    let oz = -fx(th.y);
+    let uv = [[0.5, 0.5]; 4];
+    for quad in &mesh.quads {
+        let mut p = [[0.0; 3]; 4];
+        for i in 0..4 {
+            let m = quad.p[i];
+            p[i] = [
+                ox + c * m[1] + s * m[0],
+                oy + m[2],
+                oz - s * m[1] + c * m[0],
+            ];
+        }
+        let rgb = mesh.palette[quad.color as usize];
+        push_quad(
+            verts,
+            indices,
+            p,
+            uv,
+            atlas.white,
+            light,
+            [
+                rgb[0] as f32 / 255.0,
+                rgb[1] as f32 / 255.0,
+                rgb[2] as f32 / 255.0,
+            ],
         );
     }
 }
@@ -1139,8 +1198,9 @@ fn push_quad(
     uv: [[f32; 2]; 4],
     atlas: [f32; 4],
     light: f32,
+    tint: [f32; 3],
 ) {
-    if verts.len() + 4 > 400_000 {
+    if verts.len() + 4 > 2_000_000 {
         return;
     }
     let base = verts.len() as u32;
@@ -1150,7 +1210,8 @@ fn push_quad(
             uv: uv[i],
             atlas,
             light,
-            _pad: [0.0; 2],
+            tint,
+            _pad: 0.0,
         });
     }
     indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);

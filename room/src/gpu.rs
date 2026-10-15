@@ -116,6 +116,7 @@ struct VertexInput {
     @location(1) uv: vec2<f32>,
     @location(2) atlas: vec4<f32>,
     @location(3) light: f32,
+    @location(4) tint: vec3<f32>,
 };
 
 struct VertexOutput {
@@ -123,6 +124,7 @@ struct VertexOutput {
     @location(0) uv: vec2<f32>,
     @location(1) atlas: vec4<f32>,
     @location(2) light: f32,
+    @location(3) tint: vec3<f32>,
 };
 
 @vertex
@@ -132,6 +134,7 @@ fn vs_world(in: VertexInput) -> VertexOutput {
     out.uv = in.uv;
     out.atlas = in.atlas;
     out.light = in.light;
+    out.tint = in.tint;
     return out;
 }
 
@@ -148,7 +151,7 @@ fn fs_world(in: VertexOutput) -> @location(0) vec4<f32> {
     if (color.a < 0.5) {
         discard;
     }
-    return vec4<f32>(color.rgb * in.light, 1.0);
+    return vec4<f32>(color.rgb * in.tint * in.light, 1.0);
 }
 "#;
 
@@ -698,13 +701,11 @@ impl GpuState {
         self.ensure_world(atlas);
         if let Some(world) = self.world.as_mut() {
             upload_mesh(world, &self.device, &self.queue, scene);
-            self.queue.write_buffer(
-                &world.uniform,
-                0,
-                bytemuck::cast_slice(&scene.view_proj),
-            );
+            self.queue
+                .write_buffer(&world.uniform, 0, bytemuck::cast_slice(&scene.view_proj));
             if self.config.width != world.depth_size.0 || self.config.height != world.depth_size.1 {
-                let (depth, depth_view) = depth_target(&self.device, self.config.width, self.config.height);
+                let (depth, depth_view) =
+                    depth_target(&self.device, self.config.width, self.config.height);
                 world.depth = depth;
                 world.depth_view = depth_view;
                 world.depth_size = (self.config.width, self.config.height);
@@ -889,37 +890,39 @@ impl GpuState {
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             ..Default::default()
         });
-        let layout = self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("doom_world_layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+        let layout = self
+            .device
+            .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("doom_world_layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
         let uniform = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("doom_camera"),
             size: 256,
@@ -944,74 +947,82 @@ impl GpuState {
                 },
             ],
         });
-        let shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("doom_world_shader"),
-            source: wgpu::ShaderSource::Wgsl(WORLD_SHADER.into()),
-        });
-        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("doom_world_pipeline_layout"),
-            bind_group_layouts: &[Some(&layout)],
-            immediate_size: 0,
-        });
+        let shader = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("doom_world_shader"),
+                source: wgpu::ShaderSource::Wgsl(WORLD_SHADER.into()),
+            });
+        let pipeline_layout = self
+            .device
+            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("doom_world_pipeline_layout"),
+                bind_group_layouts: &[Some(&layout)],
+                immediate_size: 0,
+            });
         let buffers = [vertex_layout()];
-        let pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("doom_world_pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_world"),
-                buffers: &buffers,
-                compilation_options: Default::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_world"),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: self.config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                compilation_options: Default::default(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                cull_mode: None,
-                ..Default::default()
-            },
-            depth_stencil: Some(depth_state(true, wgpu::CompareFunction::Less)),
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: None,
-            cache: None,
-        });
-        let weapon_pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("doom_weapon_pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_world"),
-                buffers: &buffers,
-                compilation_options: Default::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_world"),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: self.config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                compilation_options: Default::default(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                cull_mode: None,
-                ..Default::default()
-            },
-            depth_stencil: Some(depth_state(false, wgpu::CompareFunction::Always)),
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: None,
-            cache: None,
-        });
+        let pipeline = self
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("doom_world_pipeline"),
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: Some("vs_world"),
+                    buffers: &buffers,
+                    compilation_options: Default::default(),
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: Some("fs_world"),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: self.config.format,
+                        blend: Some(wgpu::BlendState::REPLACE),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                    compilation_options: Default::default(),
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    cull_mode: None,
+                    ..Default::default()
+                },
+                depth_stencil: Some(depth_state(true, wgpu::CompareFunction::Less)),
+                multisample: wgpu::MultisampleState::default(),
+                multiview_mask: None,
+                cache: None,
+            });
+        let weapon_pipeline = self
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("doom_weapon_pipeline"),
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: Some("vs_world"),
+                    buffers: &buffers,
+                    compilation_options: Default::default(),
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: Some("fs_world"),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: self.config.format,
+                        blend: Some(wgpu::BlendState::REPLACE),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                    compilation_options: Default::default(),
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    cull_mode: None,
+                    ..Default::default()
+                },
+                depth_stencil: Some(depth_state(false, wgpu::CompareFunction::Always)),
+                multisample: wgpu::MultisampleState::default(),
+                multiview_mask: None,
+                cache: None,
+            });
         let (depth, depth_view) = depth_target(&self.device, self.config.width, self.config.height);
         let vertices = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("doom_vertices"),
@@ -1043,7 +1054,7 @@ impl GpuState {
     }
 }
 
-const VERTEX_ATTRS: [wgpu::VertexAttribute; 4] = [
+const VERTEX_ATTRS: [wgpu::VertexAttribute; 5] = [
     wgpu::VertexAttribute {
         format: wgpu::VertexFormat::Float32x3,
         offset: 0,
@@ -1063,6 +1074,11 @@ const VERTEX_ATTRS: [wgpu::VertexAttribute; 4] = [
         format: wgpu::VertexFormat::Float32,
         offset: 36,
         shader_location: 3,
+    },
+    wgpu::VertexAttribute {
+        format: wgpu::VertexFormat::Float32x3,
+        offset: 40,
+        shader_location: 4,
     },
 ];
 
@@ -1084,7 +1100,11 @@ fn depth_state(write: bool, compare: wgpu::CompareFunction) -> wgpu::DepthStenci
     }
 }
 
-fn depth_target(device: &wgpu::Device, width: u32, height: u32) -> (wgpu::Texture, wgpu::TextureView) {
+fn depth_target(
+    device: &wgpu::Device,
+    width: u32,
+    height: u32,
+) -> (wgpu::Texture, wgpu::TextureView) {
     let depth = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("doom_depth"),
         size: wgpu::Extent3d {
@@ -1103,7 +1123,12 @@ fn depth_target(device: &wgpu::Device, width: u32, height: u32) -> (wgpu::Textur
     (depth, view)
 }
 
-fn upload_mesh(world: &mut WorldGpu, device: &wgpu::Device, queue: &wgpu::Queue, scene: &crate::hw::Scene) {
+fn upload_mesh(
+    world: &mut WorldGpu,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    scene: &crate::hw::Scene,
+) {
     let v_bytes = bytemuck::cast_slice(&scene.verts);
     let i_bytes = bytemuck::cast_slice(&scene.indices);
     if v_bytes.len() as u64 > world.vertex_cap {

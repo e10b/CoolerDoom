@@ -1,0 +1,511 @@
+//===========================================================================
+//
+// WEAPONS AND AMMO
+//
+//===========================================================================
+
+// Chainsaw
+csawa = "csawa" { PlacedSpin = 150 DroppedSpin = 150 }
+
+// Pistol
+pista = "pista" { PlacedSpin = 150 DroppedSpin = 150 }
+
+// Shotgun
+shota = "shota" { PlacedSpin = 150 }
+
+// Chaingun
+mguna = "mguna" { PlacedSpin = 150 }
+
+// Rocket Launcher
+launa = "launa" { PlacedSpin = 150 DroppedSpin = 150 }
+
+// Plasma Rifle
+plasa = "plasa" { PlacedSpin = 150 DroppedSpin = 150 }
+
+// BFG9000
+bfuga = "bfuga" { PlacedSpin = 150 DroppedSpin = 150 }
+
+// Bullet (clip)
+clipa = "clipa" { AngleOffset = 270 }
+
+// Bullets (box)
+ammoa = "ammoa" { AngleOffset = 270 }
+
+// Shells
+shela = "shela" {}
+
+// Shells (box)
+sboxa = "sboxa" {}
+
+// Rocket ammo
+rocka = "rocka" {}
+
+// Rocket ammo (box)
+broka = "broka" { AngleOffset = 270 }
+
+// Cell (small)
+cella = "cella" {}
+
+// Cell (big)
+celpa = "celpa" {}
+
+// Rocket projectile
+misla = "misla" { /*UseActorPitch*/ }
+
+// Rocket explosion
+mislb = "mislb" { AngleOffset = -90 }
+mislc = "mislc" { AngleOffset = -90 }
+misld = "misld" { AngleOffset = -90 }
+
+// Explosive Barrel
+bar1a = "bar1a" { AngleOffset = 270 }
+bar1b = "bar1b" { AngleOffset = 270 }
+bexpa = "bexpa" { AngleOffset = 270 }
+bexpb = "bexpb" { AngleOffset = 270 }
+bexpc = "bexpc" { AngleOffset = 270 }
+bexpd = "bexpd" { AngleOffset = 270 }
+bexpe = "bexpe" { AngleOffset = 270 }
+
+//===========================================================================
+//
+// POWERUPS
+//
+//===========================================================================
+
+// Berserk
+pstra = "pstra" {}
+
+// Light Amp Goggles
+pvisa = "pvisa" { PlacedSpin = 150 }
+pvisb = "pvisb" { PlacedSpin = 150 }
+
+// Computer Area Map
+pmapa = "pmapa" { PlacedSpin = 150 DroppedSpin = 150 }
+pmapb = "pmapb" { PlacedSpin = 150 DroppedSpin = 150 }
+pmapc = "pmapc" { PlacedSpin = 150 DroppedSpin = 150 }
+pmapd = "pmapd" { PlacedSpin = 150 DroppedSpin = 150 }
+
+// Radiation Suit
+suita = "suita" { PlacedSpin = 150 }
+
+// Invulnerability Sphere
+pinva = "pinva" {}
+pinvb = "pinvb" {}
+pinvc = "pinvc" {}
+pinvd = "pinvd" {}
+pinve = "voxels/pinv_shell.kvx" { PlacedSpin = 15 }
+
+// Soul Sphere
+soula = "soula" {}
+soulb = "soulb" {}
+soulc = "soulc" {}
+sould = "sould" {}
+soule = "voxels/soul_shell.kvx" { PlacedSpin = 15 }
+
+// Invisibility Sphere
+pinsa = "pinsa" {}
+pinsb = "pinsb" {}
+pinsc = "pinsc" {}
+pinsd = "pinsd" {}
+pinse = "voxels/pins_shell.kvx" { PlacedSpin = 15 }
+
+//===========================================================================
+//
+// ITEMS
+//
+//===========================================================================
+
+// Stimpack
+stima = "stima" { AngleOffset = 270 }
+
+// Medikit
+media = "media" { AngleOffset = 270 }
+
+// Green Armor
+arm1a = "arm1a" { PlacedSpin = 150 }
+arm1b = "arm1b" { PlacedSpin = 150 }
+
+// Blue Armor
+arm2a = "arm2a" { PlacedSpin = 150 }
+arm2b = "arm2b" { PlacedSpin = 150 }
+
+// Health Bonus
+bon1a = "bon1a" { PlacedSpin = 150 }
+bon1b = "bon1b" { PlacedSpin = 150 }
+bon1c = "bon1c" { PlacedSpin = 150 }
+bon1d = "bon1d" { PlacedSpin = 150 }
+
+// Armor Bonus
+bon2a = "bon2a" { PlacedSpin = 150 }
+bon2b = "bon2b" { PlacedSpin = 150 }
+bon2c = "bon2c" { PlacedSpin = 150 }
+bon2d = "bon2d" { PlacedSpin = 150 }
+
+// Blue Keycard
+bkeya = "bkeya" { PlacedSpin = 150 }
+bkeyb = "bkeyb" { PlacedSpin = 150 }
+
+// Red Keycard
+rkeya = "rkeya" { PlacedSpin = 150 }
+rkeyb = "rkeyb" { PlacedSpin = 150 }
+
+// Yellow Keycard
+ykeya = "ykeya" { PlacedSpin = 150 }
+ykeyb = "ykeyb" { PlacedSpin = 150 }
+
+// Blue Skull Key
+bskua = "bskua" { PlacedSpin = 150 }
+bskub = "bskub" { PlacedSpin = 150 }
+
+// Red Skull Key
+rskua = "rskua" { PlacedSpin = 150 }
+rskub = "rskub" { PlacedSpin = 150 }
+
+// Yellow Skull Key
+yskua = "yskua" { PlacedSpin = 150 }
+yskub = "yskub" { PlacedSpin = 150 }
+
+// Backpack
+bpaka = "bpaka" {}
+
+//===========================================================================
+//
+// MONSTERS
+//
+//===========================================================================
+
+// Zombie Man
+possa = "possa" {}
+possb = "possb" {}
+possc = "possc" {}
+possd = "possd" {}
+posse = "posse" {}
+possf = "possf" {}
+possg = "possg" {}
+possh = "possh" {}
+possi = "possi" {}
+possj = "possj" {}
+possk = "possk" {}
+possl = "possl" {}
+possm = "possm" {}
+possn = "possn" {}
+posso = "posso" {}
+possp = "possp" {}
+possq = "possq" {}
+possr = "possr" {}
+posss = "posss" {}
+posst = "posst" {}
+possu = "possu" {}
+
+// Shotgun Guy
+sposa = "sposa" {}
+sposb = "sposb" {}
+sposc = "sposc" {}
+sposd = "sposd" {}
+spose = "spose" {}
+sposf = "sposf" {}
+sposg = "sposg" {}
+sposh = "sposh" {}
+sposi = "sposi" {}
+sposj = "sposj" {}
+sposk = "sposk" {}
+sposl = "sposl" {}
+sposm = "sposm" {}
+sposn = "sposn" {}
+sposo = "sposo" {}
+sposp = "sposp" {}
+sposq = "sposq" {}
+sposr = "sposr" {}
+sposs = "sposs" {}
+spost = "spost" {}
+sposu = "sposu" {}
+
+// Imp
+trooa = "trooa" {}
+troob = "troob" {}
+trooc = "trooc" {}
+trood = "trood" {}
+trooe = "trooe" {}
+troof = "troof" {}
+troog = "troog" {}
+trooh = "trooh" {}
+trooi = "trooi" {}
+trooj = "trooj" {}
+trook = "trook" {}
+trool = "trool" {}
+troom = "troom" {}
+troon = "troon" {}
+trooo = "trooo" {}
+troop = "troop" {}
+trooq = "trooq" {}
+troor = "troor" {}
+troos = "troos" {}
+troot = "troot" {}
+troou = "troou" {}
+
+// Pinky
+sarga = "sarga" {}
+sargb = "sargb" {}
+sargc = "sargc" {}
+sargd = "sargd" {}
+sarge = "sarge" {}
+sargf = "sargf" {}
+sargh = "sargh" {}
+sargi = "sargi" {}
+sargj = "sargj" {}
+sargk = "sargk" {}
+sargl = "sargl" {}
+sargm = "sargm" {}
+sargn = "sargn" {}
+
+// Cacodemon
+heada = "heada" {}
+headb = "headb" {}
+headc = "headc" {}
+headd = "headd" {}
+heade = "heade" {}
+headf = "headf" {}
+headg = "headg" {}
+headh = "headh" {}
+headi = "headi" {}
+headj = "headj" {}
+headk = "headk" {}
+headl = "headl" {}
+
+// Lost Soul
+skula = "skula" {}
+skulb = "skulb" {}
+skulc = "skulc" {}
+skuld = "skuld" {}
+skule = "skule" {}
+skulf = "skulf" {}
+skulg = "skulg" {}
+skulh = "skulh" {}
+skuli = "skuli" {}
+skulj = "skulj" {}
+skulk = "skulk" {}
+
+// Baron of Hell
+bossa = "bossa" {}
+bossb = "bossb" {}
+bossc = "bossc" {}
+bossd = "bossd" {}
+bosse = "bosse" {}
+bossf = "bossf" {}
+bossg = "bossg" {}
+bossh = "bossh" {}
+bossi = "bossi" {}
+bossj = "bossj" {}
+bossk = "bossk" {}
+bossl = "bossl" {}
+bossm = "bossm" {}
+bossn = "bossn" {}
+bosso = "bosso" {}
+
+// Cyberdemon
+cybra = "cybra" {}
+cybrb = "cybrb" {}
+cybrc = "cybrc" {}
+cybrd = "cybrd" {}
+cybre = "cybre" {}
+cybrf = "cybrf" {}
+cybrg = "cybrg" {}
+cybrh = "cybrh" {}
+cybri = "cybri" {}
+cybrj = "cybrj" {}
+cybrk = "cybrk" {}
+cybrl = "cybrl" {}
+cybrm = "cybrm" {}
+cybrn = "cybrn" {}
+cybro = "cybro" {}
+cybrp = "cybrp" {}
+
+// Spider Mastermind
+spida = "spida" {}
+spidb = "spidb" {}
+spidc = "spidc" {}
+spidd = "spidd" {}
+spide = "spide" {}
+spidf = "spidf" {}
+spidg = "spidg" {}
+spidh = "spidh" {}
+spidi = "spidi" {}
+spidj = "spidj" {}
+spidk = "spidk" {}
+spidl = "spidl" {}
+spidm = "spidm" {}
+spidn = "spidn" {}
+spido = "spido" {}
+spidp = "spidp" {}
+spidq = "spidq" {}
+spidr = "spidr" {}
+spids = "spids" {}
+
+// Doomguy
+playa = "playa" {}
+playb = "playb" {}
+playc = "playc" {}
+playd = "playd" {}
+playe = "playe" {}
+playf = "playf" {}
+playg = "playg" {}
+playh = "playh" {}
+playi = "playi" {}
+playj = "playj" {}
+playk = "playk" {}
+playl = "playl" {}
+playm = "playm" {}
+playn = "playn" {}
+playo = "playo" {}
+playp = "playp" {}
+playq = "playq" {}
+playr = "playr" {}
+plays = "plays" {}
+playt = "playt" {}
+playu = "playu" {}
+playv = "playv" {}
+playw = "playw" {}
+
+//===========================================================================
+//
+// DECORATION
+//
+//===========================================================================
+
+// Tall green column
+col1a = "col1a" {}
+
+// Short green column
+col2a = "col2a" {}
+
+// Tall red column
+col3a = "col3a" {}
+
+// Short red column
+col4a = "col4a" {}
+
+// Heart column
+col5a = "col5a" {}
+col5b = "col5b" {}
+
+// Skull column
+col6a = "col6a" {}
+
+// Candle
+canda = "canda" {}
+
+// Big tree
+tre2a = "tre2a" {}
+
+// Column
+colua = "colua" {}
+
+// Tech pillar
+eleca = "eleca" {}
+
+// Bloody twitch
+gor1a = "gor1a" {}
+gor1b = "gor1b" {}
+gor1c = "gor1c" {}
+
+// Meat 2
+gor2a = "gor2a" {}
+
+// Meat 3
+gor3a = "gor3a" {}
+
+// Meat 4
+gor4a = "gor4a" {}
+
+// Meat 5
+gor5a = "gor5a" {}
+
+// Stalagtite
+smita = "smita" {}
+
+// Gibs (crushed)
+pol5a = "pol5a" {}
+
+// Dead on a stick
+pol1a = "pol1a" {}
+
+//Heads (plural!) on a stick
+pol2a = "pol2a" {}
+
+// Evil eye
+ceyea = "ceyea" {}
+ceyeb = "ceyeb" {}
+ceyec = "ceyec" {}
+
+// Candelabra
+cbraa = "cbraa" {}
+
+// Floating skulls
+fskua = "fskua" {}
+fskub = "fskub" {}
+fskuc = "fskuc" {}
+
+// Torch tree
+tre1a = "tre1a" {}
+
+// Head candles
+pol3a = "pol3a" {}
+pol3b = "pol3b" {}
+
+// Head on a stick
+pol4a = "pol4a" {}
+
+// Short red torch
+smrta = "smrta" {}
+smrtb = "smrtb" {}
+smrtc = "smrtc" {}
+smrtd = "smrtd" {}
+
+// Short blue torch
+smbta = "smbta" {}
+smbtb = "smbtb" {}
+smbtc = "smbtc" {}
+smbtd = "smbtd" {}
+
+// Short green torch
+smgta = "smgta" {}
+smgtb = "smgtb" {}
+smgtc = "smgtc" {}
+smgtd = "smgtd" {}
+
+// Still alive on a stick
+pol6a = "pol6a" {}
+pol6b = "pol6b" {}
+
+// Green torch
+tgrna = "tgrna" {}
+tgrnb = "tgrnb" {}
+tgrnc = "tgrnc" {}
+tgrnd = "tgrnd" {}
+
+// Blue torch
+tblua = "tblua" {}
+tblub = "tblub" {}
+tbluc = "tbluc" {}
+tblud = "tblud" {}
+
+// Red torch
+treda = "treda" {}
+tredb = "tredb" {}
+tredc = "tredc" {}
+tredd = "tredd" {}
+
+// Grey stalagmite (unused Doom sprite)
+smt2a = "smt2a" {}
+
+//===========================================================================
+//
+// EFFECTS
+//
+//===========================================================================
+
+// Bullet Puff
+puffa = "puffa" {}
+puffb = "puffb" {}
+puffc = "puffc" {}
+puffd = "puffd" {}
