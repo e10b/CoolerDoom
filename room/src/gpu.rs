@@ -486,6 +486,47 @@ fn fs_hud(in: VertexOutput) -> @location(0) vec4<f32> {
 }
 "#;
 
+/// The 3D view is drawn at half the window's pixel count per axis, then this
+/// stretches that image into the view rectangle. The window itself stays put.
+const UPSCALE_SHADER: &str = r#"
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) tex_coords: vec2<f32>,
+};
+
+@group(0) @binding(0) var low_tex: texture_2d<f32>;
+@group(0) @binding(1) var low_samp: sampler;
+
+@vertex
+fn vs_up(@builtin(vertex_index) vi: u32) -> VertexOutput {
+    var positions = array<vec2<f32>, 6>(
+        vec2<f32>(-1.0, -1.0),
+        vec2<f32>( 1.0, -1.0),
+        vec2<f32>(-1.0,  1.0),
+        vec2<f32>(-1.0,  1.0),
+        vec2<f32>( 1.0, -1.0),
+        vec2<f32>( 1.0,  1.0),
+    );
+    var tex_coords = array<vec2<f32>, 6>(
+        vec2<f32>(0.0, 1.0),
+        vec2<f32>(1.0, 1.0),
+        vec2<f32>(0.0, 0.0),
+        vec2<f32>(0.0, 0.0),
+        vec2<f32>(1.0, 1.0),
+        vec2<f32>(1.0, 0.0),
+    );
+    var out: VertexOutput;
+    out.clip_position = vec4<f32>(positions[vi], 0.0, 1.0);
+    out.tex_coords = tex_coords[vi];
+    return out;
+}
+
+@fragment
+fn fs_up(in: VertexOutput) -> @location(0) vec4<f32> {
+    return textureSample(low_tex, low_samp, in.tex_coords);
+}
+"#;
+
 struct WorldGpu {
     atlas: wgpu::Texture,
     atlas_size: u32,
@@ -494,7 +535,14 @@ struct WorldGpu {
     weapon_pipeline: wgpu::RenderPipeline,
     depth: wgpu::Texture,
     depth_view: wgpu::TextureView,
-    depth_size: (u32, u32),
+    /// Half-resolution color target the 3D view is drawn into.
+    low_color: wgpu::Texture,
+    low_color_view: wgpu::TextureView,
+    low_size: (u32, u32),
+    up_pipeline: wgpu::RenderPipeline,
+    up_layout: wgpu::BindGroupLayout,
+    up_bind: wgpu::BindGroup,
+    up_sampler: wgpu::Sampler,
     uniform: wgpu::Buffer,
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
@@ -1032,33 +1080,43 @@ impl GpuState {
             None
         };
         self.ensure_world(atlas);
+        let rect = scene.view_rect;
+        let surf_w = self.config.width as f32;
+        let surf_h = self.config.height as f32;
+        let vx = (rect[0] * surf_w).round().clamp(0.0, surf_w - 1.0);
+        let vy = (rect[1] * surf_h).round().clamp(0.0, surf_h - 1.0);
+        let vw = (rect[2] * surf_w).round().clamp(1.0, surf_w - vx);
+        let vh = (rect[3] * surf_h).round().clamp(1.0, surf_h - vy);
+        // Half the view in each axis. The window stays the size it is.
+        let low_w = (vw as u32 / 2).max(1);
+        let low_h = (vh as u32 / 2).max(1);
         if let Some(world) = self.world.as_mut() {
             upload_mesh(world, &self.device, &self.queue, scene);
             self.queue
                 .write_buffer(&world.uniform, 0, bytemuck::cast_slice(&scene.view_proj));
-            if self.config.width != world.depth_size.0 || self.config.height != world.depth_size.1 {
-                let (depth, depth_view) =
-                    depth_target(&self.device, self.config.width, self.config.height);
+            if world.low_size != (low_w, low_h) {
+                let (depth, depth_view) = depth_target(&self.device, low_w, low_h);
+                let (color, color_view) =
+                    low_color_target(&self.device, self.config.format, low_w, low_h);
+                world.up_bind = upscale_bind(
+                    &self.device,
+                    &world.up_layout,
+                    &color_view,
+                    &world.up_sampler,
+                );
                 world.depth = depth;
                 world.depth_view = depth_view;
-                world.depth_size = (self.config.width, self.config.height);
+                world.low_color = color;
+                world.low_color_view = color_view;
+                world.low_size = (low_w, low_h);
             }
             if let Some(frame) = &scene.svo {
-                let surf_w = self.config.width as f32;
-                let surf_h = self.config.height as f32;
-                let rect = scene.view_rect;
-                let view = [
-                    rect[0] * surf_w,
-                    rect[1] * surf_h,
-                    (rect[2] * surf_w).max(1.0),
-                    (rect[3] * surf_h).max(1.0),
-                ];
                 sync_svo(
                     world,
                     &self.device,
                     &self.queue,
                     frame,
-                    view,
+                    [0.0, 0.0, low_w as f32, low_h as f32],
                     node_upload.as_deref(),
                 );
             }
@@ -1090,19 +1148,11 @@ impl GpuState {
                 label: Some("doom_world_encoder"),
             });
 
-        let rect = scene.view_rect;
-        let surf_w = self.config.width as f32;
-        let surf_h = self.config.height as f32;
-        let vx = (rect[0] * surf_w).round().clamp(0.0, surf_w - 1.0);
-        let vy = (rect[1] * surf_h).round().clamp(0.0, surf_h - 1.0);
-        let vw = (rect[2] * surf_w).round().clamp(1.0, surf_w - vx);
-        let vh = (rect[3] * surf_h).round().clamp(1.0, surf_h - vy);
-
         if let Some(world) = self.world.as_ref() {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("doom_world_pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &view,
+                    view: &world.low_color_view,
                     resolve_target: None,
                     depth_slice: None,
                     ops: wgpu::Operations {
@@ -1127,8 +1177,8 @@ impl GpuState {
                 timestamp_writes: None,
                 multiview_mask: None,
             });
-            pass.set_viewport(vx, vy, vw, vh, 0.0, 1.0);
-            pass.set_scissor_rect(vx as u32, vy as u32, vw as u32, vh as u32);
+            pass.set_viewport(0.0, 0.0, low_w as f32, low_h as f32, 0.0, 1.0);
+            pass.set_scissor_rect(0, 0, low_w, low_h);
             pass.set_pipeline(&world.pipeline);
             pass.set_bind_group(0, &world.bind_group, &[]);
             pass.set_vertex_buffer(0, world.vertices.slice(..));
@@ -1158,6 +1208,33 @@ impl GpuState {
                 pass.set_index_buffer(world.indices.slice(..), wgpu::IndexFormat::Uint32);
                 pass.draw_indexed(world_n..total, 0, 0..1);
             }
+            drop(pass);
+            let mut up = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("doom_upscale_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    depth_slice: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: 0.02,
+                            g: 0.02,
+                            b: 0.03,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+                multiview_mask: None,
+            });
+            up.set_viewport(vx, vy, vw, vh, 0.0, 1.0);
+            up.set_scissor_rect(vx as u32, vy as u32, vw as u32, vh as u32);
+            up.set_pipeline(&world.up_pipeline);
+            up.set_bind_group(0, &world.up_bind, &[]);
+            up.draw(0..6, 0..1);
         }
 
         {
@@ -1482,7 +1559,13 @@ impl GpuState {
             &svo_uniform,
             &svo_view,
         );
-        let (depth, depth_view) = depth_target(&self.device, self.config.width, self.config.height);
+        let low_w = (self.config.width / 2).max(1);
+        let low_h = (self.config.height / 2).max(1);
+        let (low_color, low_color_view) =
+            low_color_target(&self.device, self.config.format, low_w, low_h);
+        let (depth, depth_view) = depth_target(&self.device, low_w, low_h);
+        let (up_pipeline, up_layout, up_sampler, up_bind) =
+            upscale_pipeline(&self.device, self.config.format, &low_color_view);
         let vertices = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("doom_vertices"),
             size: 64 * 1024,
@@ -1503,7 +1586,13 @@ impl GpuState {
             weapon_pipeline,
             depth,
             depth_view,
-            depth_size: (self.config.width, self.config.height),
+            low_color,
+            low_color_view,
+            low_size: (low_w, low_h),
+            up_pipeline,
+            up_layout,
+            up_bind,
+            up_sampler,
             uniform,
             vertices,
             indices,
@@ -1567,6 +1656,134 @@ fn depth_state(write: bool, compare: wgpu::CompareFunction) -> wgpu::DepthStenci
         stencil: wgpu::StencilState::default(),
         bias: wgpu::DepthBiasState::default(),
     }
+}
+
+fn low_color_target(
+    device: &wgpu::Device,
+    format: wgpu::TextureFormat,
+    width: u32,
+    height: u32,
+) -> (wgpu::Texture, wgpu::TextureView) {
+    let color = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("doom_low_color"),
+        size: wgpu::Extent3d {
+            width: width.max(1),
+            height: height.max(1),
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+    let view = color.create_view(&wgpu::TextureViewDescriptor::default());
+    (color, view)
+}
+
+fn upscale_pipeline(
+    device: &wgpu::Device,
+    format: wgpu::TextureFormat,
+    color: &wgpu::TextureView,
+) -> (
+    wgpu::RenderPipeline,
+    wgpu::BindGroupLayout,
+    wgpu::Sampler,
+    wgpu::BindGroup,
+) {
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("doom_upscale_shader"),
+        source: wgpu::ShaderSource::Wgsl(UPSCALE_SHADER.into()),
+    });
+    let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("doom_upscale_layout"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+    });
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        label: Some("doom_upscale_sampler"),
+        address_mode_u: wgpu::AddressMode::ClampToEdge,
+        address_mode_v: wgpu::AddressMode::ClampToEdge,
+        address_mode_w: wgpu::AddressMode::ClampToEdge,
+        mag_filter: wgpu::FilterMode::Nearest,
+        min_filter: wgpu::FilterMode::Nearest,
+        mipmap_filter: wgpu::MipmapFilterMode::Nearest,
+        ..Default::default()
+    });
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("doom_upscale_pipeline_layout"),
+        bind_group_layouts: &[Some(&layout)],
+        immediate_size: 0,
+    });
+    let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("doom_upscale_pipeline"),
+        layout: Some(&pipeline_layout),
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("vs_up"),
+            buffers: &[],
+            compilation_options: Default::default(),
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("fs_up"),
+            targets: &[Some(wgpu::ColorTargetState {
+                format,
+                blend: Some(wgpu::BlendState::REPLACE),
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+            compilation_options: Default::default(),
+        }),
+        primitive: wgpu::PrimitiveState {
+            topology: wgpu::PrimitiveTopology::TriangleList,
+            ..Default::default()
+        },
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview_mask: None,
+        cache: None,
+    });
+    let bind = upscale_bind(device, &layout, color, &sampler);
+    (pipeline, layout, sampler, bind)
+}
+
+fn upscale_bind(
+    device: &wgpu::Device,
+    layout: &wgpu::BindGroupLayout,
+    color: &wgpu::TextureView,
+    sampler: &wgpu::Sampler,
+) -> wgpu::BindGroup {
+    device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("doom_upscale_bind"),
+        layout,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(color),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::Sampler(sampler),
+            },
+        ],
+    })
 }
 
 fn depth_target(

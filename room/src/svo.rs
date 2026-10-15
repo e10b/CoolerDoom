@@ -23,13 +23,17 @@ pub const KIND_LOWER: u32 = 3;
 pub const KIND_MID: u32 = 4;
 
 const VOXEL_OFFSET: u32 = 134_217_728;
-/// One map unit is one texel on Doom's walls and flats. The grid stays a
-/// power of two so the tracer's shifts line up. The browser cannot spend
-/// the memory of an 8192 cube, so it keeps a coarser cell.
+/// The grid stays a power of two so the tracer's shifts line up. Native cells
+/// cover two map units, half a texel, so the stamp and the rays both do less
+/// work. The browser cannot spend the memory of an 8192 cube.
 #[cfg(target_arch = "wasm32")]
 const MAX_GRID: u32 = 1024;
+#[cfg(target_arch = "wasm32")]
+const CELL_UNITS: f32 = 1.0;
 #[cfg(not(target_arch = "wasm32"))]
 const MAX_GRID: u32 = 8192;
+#[cfg(not(target_arch = "wasm32"))]
+const CELL_UNITS: f32 = 2.0;
 
 pub struct Built {
     /// Solid texels grouped by the top octree digits. A door lives in a
@@ -420,14 +424,13 @@ pub fn build_surfaces(
         max[k] += 64.0;
     }
     let span = (0..3).map(|k| max[k] - min[k]).fold(1.0_f32, f32::max);
-    // A cell is one map unit, which is one texel, until the level is bigger
-    // than the grid. The sorted texel list is the CPU octree: children are
-    // spans of that list, created when a ray asks for them.
-    let grid = (span.ceil() as u32)
-        .next_power_of_two()
-        .clamp(2, MAX_GRID);
-    let cell = if (span.ceil() as u32) <= MAX_GRID {
-        1.0
+    // A cell is `CELL_UNITS` map units, until the level is bigger than the
+    // grid. The sorted texel list is the CPU octree: children are spans of
+    // that list, created when a ray asks for them.
+    let cells = (span / CELL_UNITS).ceil() as u32;
+    let grid = cells.next_power_of_two().clamp(2, MAX_GRID);
+    let cell = if cells <= MAX_GRID {
+        CELL_UNITS
     } else {
         span / grid as f32
     };
