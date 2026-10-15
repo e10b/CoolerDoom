@@ -86,6 +86,9 @@ pub struct SvoFrame {
     pub cube: f32,
     pub inv_view: [[f32; 4]; 4],
     pub view_proj: [[f32; 4]; 4],
+    /// Texels to splice in when a door or lift has moved. The GPU owns the
+    /// tree after the first frame, so the patch travels with the frame.
+    pub patch: Option<crate::svo::Patch>,
 }
 
 struct Atlas {
@@ -121,9 +124,10 @@ struct Scratch {
     svo_send: bool,
     svo_origin: [f32; 3],
     svo_cube: f32,
-    /// Height key we're waiting to settle before rebuilding the octree.
-    svo_wait_key: u64,
-    svo_wait: u8,
+    svo_grid: u32,
+    /// Floor and ceiling the octree was last stamped with, one pair per sector.
+    heights: Vec<(i32, i32)>,
+    pending_patch: Option<crate::svo::Patch>,
 }
 
 static mut SCRATCH: Scratch = Scratch {
@@ -140,8 +144,9 @@ static mut SCRATCH: Scratch = Scratch {
     svo_send: false,
     svo_origin: [0.0; 3],
     svo_cube: 0.0,
-    svo_wait_key: 0,
-    svo_wait: 0,
+    svo_grid: 0,
+    heights: Vec::new(),
+    pending_patch: None,
 };
 
 /// True when the frame should be a triangle scene instead of the software view.
@@ -179,7 +184,7 @@ pub unsafe fn build_scene() -> Scene {
     let cam_up = cross(right, forward);
 
     ensure_flats(scratch);
-    refresh_svo(scratch);
+    refresh_svo(scratch, eye);
     let mut sky_indices = 0;
     if let Some(atlas) = scratch.atlas.as_ref() {
         push_sky(&mut scratch.verts, &mut scratch.indices, atlas, eye, ang);
@@ -246,6 +251,7 @@ pub unsafe fn build_scene() -> Scene {
             cube,
             inv_view: crate::svo::invert(view_proj),
             view_proj,
+            patch: scratch.pending_patch.take(),
         })
     } else {
         None
@@ -280,22 +286,14 @@ pub unsafe fn build_scene() -> Scene {
     }
 }
 
-fn refresh_svo(scratch: &mut Scratch) {
-    let key = unsafe { map_key() };
-    if scratch.svo_cached && scratch.svo_key == key {
+fn refresh_svo(scratch: &mut Scratch, eye: [f32; 3]) {
+    let heights = unsafe { sector_heights() };
+    let map_id = unsafe { vertexes as u64 ^ ((numsectors as u64) << 32) };
+    if scratch.svo_cached && scratch.svo_key == map_id && scratch.heights == heights {
         return;
     }
-    // A door or lift changes the key every few tics. Rebuilding the texel
-    // octree on each of those tics is the hitch. Wait until the heights sit
-    // still, then rebuild once.
-    if scratch.svo_cached {
-        if scratch.svo_wait_key != key {
-            scratch.svo_wait_key = key;
-            scratch.svo_wait = 8;
-            return;
-        }
-        if scratch.svo_wait > 0 {
-            scratch.svo_wait -= 1;
+    if scratch.svo_cached && scratch.svo_key == map_id && scratch.svo_grid > 0 {
+        if patch_moved_sectors(scratch, &heights, eye) {
             return;
         }
     }
@@ -324,32 +322,124 @@ fn refresh_svo(scratch: &mut Scratch) {
         built
     };
     scratch.svo = built;
-    scratch.svo_key = key;
+    scratch.svo_key = map_id;
     scratch.svo_cached = true;
+    scratch.heights = heights;
+    scratch.pending_patch = None;
     scratch.svo_dirty = scratch.svo.is_some();
     scratch.svo_send = scratch.svo.is_some();
     if let Some(built) = scratch.svo.as_ref() {
         scratch.svo_origin = built.origin;
         scratch.svo_cube = built.cube;
+        scratch.svo_grid = built.grid;
     }
 }
 
-unsafe fn map_key() -> u64 {
-    let mut h = vertexes as u64 ^ ((numsectors as u64) << 32);
-    if !sectors.is_null() {
-        for i in 0..numsectors.max(0) as usize {
-            let s = &*sectors.add(i);
-            // A door moves a fraction of a cell per tic. Quantize to the voxel
-            // so the tree is rebuilt when a floor crosses a cell, not every frame.
-            h = h
-                .wrapping_mul(0x100000001b3)
-                .wrapping_add((s.floorheight >> 19) as u64);
-            h = h
-                .wrapping_mul(0x100000001b3)
-                .wrapping_add((s.ceilingheight >> 19) as u64);
+unsafe fn sector_heights() -> Vec<(i32, i32)> {
+    if sectors.is_null() || numsectors <= 0 {
+        return Vec::new();
+    }
+    let mut out = Vec::with_capacity(numsectors as usize);
+    for i in 0..numsectors as usize {
+        let s = &*sectors.add(i);
+        out.push((s.floorheight, s.ceilingheight));
+    }
+    out
+}
+
+/// Restamp the sectors whose floor or ceiling moved by a map unit or more.
+/// Returns false when the caller should rebuild the whole cube instead.
+fn patch_moved_sectors(scratch: &mut Scratch, heights: &[(i32, i32)], eye: [f32; 3]) -> bool {
+    if scratch.heights.len() != heights.len() || scratch.svo_cube <= 0.0 {
+        return false;
+    }
+    let mut which = vec![false; heights.len()];
+    let mut any = false;
+    for i in 0..heights.len() {
+        let floor = (scratch.heights[i].0 - heights[i].0).abs() >= 65536;
+        let ceil = (scratch.heights[i].1 - heights[i].1).abs() >= 65536;
+        if floor || ceil {
+            which[i] = true;
+            any = true;
         }
     }
-    h
+    if !any {
+        scratch.heights = heights.to_vec();
+        return true;
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    let started = std::time::Instant::now();
+    #[cfg(target_arch = "wasm32")]
+    let started = web_time::Instant::now();
+    let cell = scratch.svo_cube / scratch.svo_grid as f32;
+    let origin = scratch.svo_origin;
+    let grid = scratch.svo_grid;
+    let patch = {
+        let Some(atlas) = scratch.atlas.as_ref() else {
+            return false;
+        };
+        let mut old_verts = Vec::new();
+        let mut old_indices = Vec::new();
+        let mut new_verts = Vec::new();
+        let mut new_indices = Vec::new();
+        unsafe {
+            push_affected(
+                &mut old_verts,
+                &mut old_indices,
+                atlas,
+                &scratch.flats,
+                &which,
+                Some(&scratch.heights),
+            );
+            push_affected(
+                &mut new_verts,
+                &mut new_indices,
+                atlas,
+                &scratch.flats,
+                &which,
+                Some(heights),
+            );
+        }
+        let remove = crate::svo::stamp_mesh(
+            origin,
+            cell,
+            grid,
+            &old_verts,
+            &old_indices,
+            &atlas.pixels,
+            atlas.pixel_size,
+        );
+        let add = crate::svo::stamp_mesh(
+            origin,
+            cell,
+            grid,
+            &new_verts,
+            &new_indices,
+            &atlas.pixels,
+            atlas.pixel_size,
+        );
+        let remove_keys: Vec<u64> = remove.into_iter().map(|(key, _)| key).collect();
+        log::info!(
+            "octree: door {} sectors, {} -> {} texels, {} ms",
+            which.iter().filter(|on| **on).count(),
+            remove_keys.len(),
+            add.len(),
+            started.elapsed().as_millis()
+        );
+        crate::svo::Patch {
+            remove: remove_keys,
+            add,
+            eye,
+        }
+    };
+    if let Some(tree) = scratch.svo.as_mut() {
+        tree.edit(&patch.remove, &patch.add);
+        scratch.pending_patch = None;
+    } else {
+        scratch.pending_patch = Some(patch);
+    }
+    scratch.heights = heights.to_vec();
+    true
 }
 
 /// Put the mesh buffers back so the next frame can reuse their allocation.
@@ -730,13 +820,87 @@ unsafe fn push_world(
     let mut drawn: HashSet<(i32, i32, i32, i32, i32, i32)> = HashSet::new();
     for i in 0..numsegs {
         let seg = &*segs.add(i as usize);
-        push_seg(verts, indices, atlas, seg, &mut drawn, cull);
+        push_seg(verts, indices, atlas, seg, &mut drawn, cull, None);
     }
     for i in 0..numsubsectors {
         let sub = &*subsectors.add(i as usize);
         let outline = flats.get(i as usize).map(Vec::as_slice).unwrap_or(&[]);
-        push_flat(verts, indices, atlas, sub, outline);
+        push_flat(verts, indices, atlas, sub, outline, None);
     }
+}
+
+unsafe fn push_affected(
+    verts: &mut Vec<Vertex>,
+    indices: &mut Vec<u32>,
+    atlas: &Atlas,
+    flats: &[Vec<[f32; 2]>],
+    which: &[bool],
+    heights: Option<&[(i32, i32)]>,
+) {
+    if segs.is_null() || subsectors.is_null() {
+        return;
+    }
+    let mut drawn: HashSet<(i32, i32, i32, i32, i32, i32)> = HashSet::new();
+    for i in 0..numsegs {
+        let seg = &*segs.add(i as usize);
+        let front = sector_index(seg.frontsector);
+        let back = sector_index(seg.backsector);
+        let hit = front.is_some_and(|id| which.get(id).copied().unwrap_or(false))
+            || back.is_some_and(|id| which.get(id).copied().unwrap_or(false));
+        if hit {
+            push_seg(verts, indices, atlas, seg, &mut drawn, false, heights);
+        }
+    }
+    for i in 0..numsubsectors {
+        let sub = &*subsectors.add(i as usize);
+        let Some(id) = sector_index(sub.sector as *const sector_t) else {
+            continue;
+        };
+        if !which.get(id).copied().unwrap_or(false) {
+            continue;
+        }
+        let outline = flats.get(i as usize).map(Vec::as_slice).unwrap_or(&[]);
+        push_flat(verts, indices, atlas, sub, outline, heights);
+    }
+}
+
+fn sector_index(sector: *const sector_t) -> Option<usize> {
+    if sector.is_null() {
+        return None;
+    }
+    unsafe {
+        if sectors.is_null() || numsectors <= 0 {
+            return None;
+        }
+        let id = sector.offset_from(sectors);
+        if id < 0 || id >= numsectors as isize {
+            None
+        } else {
+            Some(id as usize)
+        }
+    }
+}
+
+fn sector_floor(sector: &sector_t, heights: Option<&[(i32, i32)]>) -> i32 {
+    if let Some(table) = heights {
+        if let Some(id) = sector_index(sector) {
+            if let Some(pair) = table.get(id) {
+                return pair.0;
+            }
+        }
+    }
+    sector.floorheight
+}
+
+fn sector_ceil(sector: &sector_t, heights: Option<&[(i32, i32)]>) -> i32 {
+    if let Some(table) = heights {
+        if let Some(id) = sector_index(sector) {
+            if let Some(pair) = table.get(id) {
+                return pair.1;
+            }
+        }
+    }
+    sector.ceilingheight
 }
 
 unsafe fn push_seg(
@@ -746,6 +910,7 @@ unsafe fn push_seg(
     seg: &seg_t,
     drawn: &mut HashSet<(i32, i32, i32, i32, i32, i32)>,
     cull: bool,
+    heights: Option<&[(i32, i32)]>,
 ) {
     if seg.v1.is_null()
         || seg.v2.is_null()
@@ -772,8 +937,8 @@ unsafe fn push_seg(
     let flags = line.flags as u16;
 
     if back.is_none() {
-        let z0 = fx(front.floorheight);
-        let z1 = fx(front.ceilingheight);
+        let z0 = fx(sector_floor(front, heights));
+        let z1 = fx(sector_ceil(front, heights));
         let tex = translated_tex(side.midtexture);
         let origin = if flags & LinedefFlag::DONTPEGBOTTOM != 0 {
             z0 + tex_pixels(tex)
@@ -786,11 +951,15 @@ unsafe fn push_seg(
         return;
     }
     let back = back.unwrap();
+    let front_floor = sector_floor(front, heights);
+    let front_ceil = sector_ceil(front, heights);
+    let back_floor = sector_floor(back, heights);
+    let back_ceil = sector_ceil(back, heights);
     let sky = front.ceilingpic as i32 == skyflatnum && back.ceilingpic as i32 == skyflatnum;
 
-    if !sky && back.ceilingheight < front.ceilingheight {
-        let z0 = fx(back.ceilingheight);
-        let z1 = fx(front.ceilingheight);
+    if !sky && back_ceil < front_ceil {
+        let z0 = fx(back_ceil);
+        let z1 = fx(front_ceil);
         let tex = translated_tex(side.toptexture);
         let origin = if flags & LinedefFlag::DONTPEGTOP != 0 {
             z1
@@ -801,12 +970,12 @@ unsafe fn push_seg(
             verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light, drawn,
         );
     }
-    if back.floorheight > front.floorheight {
-        let z0 = fx(front.floorheight);
-        let z1 = fx(back.floorheight);
+    if back_floor > front_floor {
+        let z0 = fx(front_floor);
+        let z1 = fx(back_floor);
         let tex = translated_tex(side.bottomtexture);
         let origin = if flags & LinedefFlag::DONTPEGBOTTOM != 0 {
-            fx(front.ceilingheight)
+            fx(front_ceil)
         } else {
             z1
         } + fx(side.rowoffset);
@@ -815,13 +984,13 @@ unsafe fn push_seg(
         );
     }
     if side.midtexture != 0 {
-        let z0 = fx(front.floorheight.max(back.floorheight));
-        let z1 = fx(front.ceilingheight.min(back.ceilingheight));
+        let z0 = fx(front_floor.max(back_floor));
+        let z1 = fx(front_ceil.min(back_ceil));
         let tex = translated_tex(side.midtexture);
         let origin = if flags & LinedefFlag::DONTPEGBOTTOM != 0 {
             z0 + tex_pixels(tex)
         } else {
-            fx(front.ceilingheight.min(back.ceilingheight))
+            fx(front_ceil.min(back_ceil))
         } + fx(side.rowoffset);
         push_wall(
             verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light, drawn,
@@ -912,13 +1081,14 @@ unsafe fn push_flat(
     atlas: &Atlas,
     sub: &subsector_t,
     outline: &[[f32; 2]],
+    heights: Option<&[(i32, i32)]>,
 ) {
     if sub.sector.is_null() || outline.len() < 3 {
         return;
     }
     let sector = &*(sub.sector as *const sector_t);
     let light = (sector.lightlevel as f32 / 255.0).clamp(0.04, 1.0);
-    let y_floor = fx(sector.floorheight);
+    let y_floor = fx(sector_floor(sector, heights));
     let floor_rect = flat_rect(atlas, sector.floorpic as i32);
     if floor_rect != [0.0; 4] {
         fan(verts, indices, outline, y_floor, floor_rect, light);
@@ -930,7 +1100,7 @@ unsafe fn push_flat(
                 verts,
                 indices,
                 outline,
-                fx(sector.ceilingheight),
+                fx(sector_ceil(sector, heights)),
                 ceil_rect,
                 light,
             );

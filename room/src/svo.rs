@@ -4,10 +4,11 @@
 //! in the bottom. A leaf's pointer is `VOXEL_OFFSET` plus a packed colour.
 //! Rays increment the counter. Counters at 4 or more split a leaf; a counter
 //! of 0 folds an internal node back up. The CPU tree supplies the eight child
-//! colours. The cube is rebuilt when sector heights change so doors and lifts
-//! move.
+//! colours. A moving door restamps only that sector and splices those texels
+//! into the buckets they touch, so the rest of the map stays put.
 
 use crate::hw::Vertex;
+use std::collections::BTreeMap;
 
 const VOXEL_OFFSET: u32 = 134_217_728;
 /// One map unit is one texel on Doom's walls and flats. The grid stays a
@@ -19,16 +20,25 @@ const MAX_GRID: u32 = 1024;
 const MAX_GRID: u32 = 8192;
 
 pub struct Built {
-    /// Solid texels, sorted by octree path so a node's eight children are
-    /// eight contiguous spans. The GPU tree only materialises what rays see.
-    solids: Vec<Solid>,
+    /// Solid texels grouped by the top octree digits. A door lives in a
+    /// handful of these, so moving it rewrites those groups and not the map.
+    buckets: Vec<Bucket>,
     bits: u32,
+    /// How many top path digits select a bucket. Zero means one bucket.
+    bucket_digits: u32,
     view: View,
     pub origin: [f32; 3],
     /// World length of the cube. Voxel size is `cube / grid`.
     pub cube: f32,
     pub grid: u32,
     changed: bool,
+}
+
+/// Texels to delete and texels to insert. Keys are octree path keys.
+pub struct Patch {
+    pub remove: Vec<u64>,
+    pub add: Vec<(u64, u32)>,
+    pub eye: [f32; 3],
 }
 
 impl Built {
@@ -50,7 +60,10 @@ impl Built {
     /// coarse, and cells that contain the camera down to a single texel.
     pub fn prime(&mut self, eye_world: [f32; 3]) {
         let eye = self.oct(eye_world);
-        if self.view.prime_view(&self.solids, self.bits, eye) {
+        if self
+            .view
+            .prime_view(&self.buckets, self.bits, self.bucket_digits, eye)
+        {
             self.changed = true;
         }
     }
@@ -58,9 +71,81 @@ impl Built {
     /// Split coarse nodes near the eye and fold distant ones back up.
     pub fn refine(&mut self, eye_world: [f32; 3]) {
         let eye = self.oct(eye_world);
-        if self.view.refine(&self.solids, self.bits, eye, 2_500, 4) {
+        if self.view.refine(
+            &self.buckets,
+            self.bits,
+            self.bucket_digits,
+            eye,
+            2_500,
+            4,
+        ) {
             self.changed = true;
         }
+    }
+
+    /// Swap texels in the buckets a moving sector touches, then fold those
+    /// buckets back to a leaf so the next `prime` opens only what changed.
+    pub fn edit(&mut self, remove: &[u64], add: &[(u64, u32)]) {
+        if remove.is_empty() && add.is_empty() {
+            return;
+        }
+        let mut groups: BTreeMap<u64, (Vec<u64>, Vec<(u64, u32)>)> = BTreeMap::new();
+        for &key in remove {
+            groups
+                .entry(prefix_of(key, self.bits, self.bucket_digits))
+                .or_default()
+                .0
+                .push(key);
+        }
+        for &(key, color) in add {
+            groups
+                .entry(prefix_of(key, self.bits, self.bucket_digits))
+                .or_default()
+                .1
+                .push((key, color));
+        }
+        let touched: Vec<u64> = groups.keys().copied().collect();
+        for (prefix, (mut dead, mut born)) in groups {
+            dead.sort_unstable();
+            dead.dedup();
+            born.sort_unstable_by_key(|s| s.0);
+            born.dedup_by_key(|s| s.0);
+            let born_keys: Vec<u64> = born.iter().map(|s| s.0).collect();
+            match self.buckets.binary_search_by_key(&prefix, |b| b.prefix) {
+                Ok(i) => {
+                    let solids = &mut self.buckets[i].solids;
+                    solids.retain(|s| {
+                        dead.binary_search(&s.key).is_err()
+                            && born_keys.binary_search(&s.key).is_err()
+                    });
+                    for (key, color) in born {
+                        solids.push(Solid { key, color });
+                    }
+                    solids.sort_unstable_by_key(|s| s.key);
+                    solids.dedup_by_key(|s| s.key);
+                }
+                Err(i) => {
+                    if born.is_empty() {
+                        continue;
+                    }
+                    let solids: Vec<Solid> = born
+                        .into_iter()
+                        .map(|(key, color)| Solid { key, color })
+                        .collect();
+                    self.buckets.insert(i, Bucket { prefix, solids });
+                }
+            }
+        }
+        self.buckets.retain(|b| !b.solids.is_empty());
+        for prefix in touched {
+            self.view.resync_bucket(
+                &self.buckets,
+                self.bits,
+                self.bucket_digits,
+                prefix,
+            );
+        }
+        self.changed = true;
     }
 
     /// Apply the compute pass's queues. `subdivide` lists leaves whose hit
@@ -72,7 +157,12 @@ impl Built {
             if made >= 1_024_000 || self.view.nodes.len() >= 2_000_000 {
                 break;
             }
-            if self.view.subdivide(&self.solids, self.bits, id as usize) {
+            if self.view.subdivide(
+                &self.buckets,
+                self.bits,
+                self.bucket_digits,
+                id as usize,
+            ) {
                 made += 1;
                 changed = true;
             }
@@ -137,32 +227,80 @@ pub fn build(verts: &[Vertex], indices: &[u32], pixels: &[u8], atlas: i32) -> Op
         .map(|t| [t[0] as usize, t[1] as usize, t[2] as usize])
         .filter(|t| t.iter().all(|i| *i < verts.len()))
         .collect();
-    let raw = stamp_tris(verts, &tris, min, cell, grid, pixels, atlas);
-    if raw.is_empty() {
+    let solids = voxelize(verts, &tris, min, cell, grid, pixels, atlas);
+    if solids.is_empty() {
         return None;
     }
     let bits = grid.trailing_zeros();
-    let mut solids: Vec<Solid> = raw
-        .into_iter()
-        .map(|raw| Solid {
-            key: path_key(raw.x as i32, raw.y as i32, raw.z as i32, bits as i32),
-            color: raw.color,
-        })
-        .collect();
-    solids.sort_unstable_by_key(|s| s.key);
-    solids.dedup_by_key(|s| s.key);
-    log::info!("octree voxels {} grid {grid} cell {cell}", solids.len());
-    let mut view = View::from_root(&solids, bits);
-    let changed = view.refine(&solids, bits, [0.0, 0.0, 0.0], 2_500, 4);
+    let bucket_digits = bucket_digits(bits);
+    let buckets = into_buckets(solids, bits, bucket_digits);
+    let voxels: usize = buckets.iter().map(|b| b.solids.len()).sum();
+    log::info!(
+        "octree voxels {voxels} grid {grid} cell {cell} buckets {}",
+        buckets.len()
+    );
+    let mut view = View::from_root(&buckets, bits, bucket_digits);
+    let changed = view.refine(&buckets, bits, bucket_digits, [0.0, 0.0, 0.0], 2_500, 4);
     Some(Built {
-        solids,
+        buckets,
         bits,
+        bucket_digits,
         view,
         origin: min,
         cube,
         grid,
         changed,
     })
+}
+
+/// Voxelise a mesh with the same grid the octree was built on.
+pub fn stamp_mesh(
+    origin: [f32; 3],
+    cell: f32,
+    grid: u32,
+    verts: &[Vertex],
+    indices: &[u32],
+    pixels: &[u8],
+    atlas: i32,
+) -> Vec<(u64, u32)> {
+    if verts.is_empty() || indices.len() < 3 || grid < 2 || cell <= 0.0 {
+        return Vec::new();
+    }
+    let tris: Vec<[usize; 3]> = indices
+        .chunks_exact(3)
+        .map(|t| [t[0] as usize, t[1] as usize, t[2] as usize])
+        .filter(|t| t.iter().all(|i| *i < verts.len()))
+        .collect();
+    voxelize(verts, &tris, origin, cell, grid, pixels, atlas)
+        .into_iter()
+        .map(|s| (s.key, s.color))
+        .collect()
+}
+
+fn voxelize(
+    verts: &[Vertex],
+    tris: &[[usize; 3]],
+    origin: [f32; 3],
+    cell: f32,
+    grid: u32,
+    pixels: &[u8],
+    atlas: i32,
+) -> Vec<Solid> {
+    let raw = stamp_tris(verts, tris, origin, cell, grid, pixels, atlas);
+    if raw.is_empty() {
+        return Vec::new();
+    }
+    let bits = grid.trailing_zeros() as i32;
+    let mut solids: Vec<Solid> = raw
+        .into_iter()
+        .map(|raw| Solid {
+            key: path_key(raw.x as i32, raw.y as i32, raw.z as i32, bits),
+            color: raw.color,
+        })
+        .collect();
+    solids.sort_unstable_by_key(|s| s.key);
+    solids.dedup_by_key(|s| s.key);
+    solids
 }
 
 struct Raw {
@@ -175,6 +313,90 @@ struct Raw {
 struct Solid {
     key: u64,
     color: u32,
+}
+
+struct Bucket {
+    prefix: u64,
+    solids: Vec<Solid>,
+}
+
+fn bucket_digits(bits: u32) -> u32 {
+    if bits <= 2 {
+        0
+    } else {
+        (bits - 1).min(6)
+    }
+}
+
+fn prefix_of(key: u64, bits: u32, digits: u32) -> u64 {
+    if digits == 0 {
+        0
+    } else {
+        key >> ((bits - digits) * 3)
+    }
+}
+
+fn into_buckets(mut solids: Vec<Solid>, bits: u32, digits: u32) -> Vec<Bucket> {
+    if solids.is_empty() {
+        return Vec::new();
+    }
+    if digits == 0 {
+        return vec![Bucket {
+            prefix: 0,
+            solids,
+        }];
+    }
+    let shift = (bits - digits) * 3;
+    let mut buckets = Vec::new();
+    while !solids.is_empty() {
+        let prefix = solids.last().map(|s| s.key >> shift).unwrap_or(0);
+        let mut cut = solids.len();
+        while cut > 0 && (solids[cut - 1].key >> shift) == prefix {
+            cut -= 1;
+        }
+        buckets.push(Bucket {
+            prefix,
+            solids: solids.split_off(cut),
+        });
+    }
+    buckets.reverse();
+    buckets
+}
+
+/// `fine`, bucket prefix, solid span, and a representative colour.
+fn describe(buckets: &[Bucket], digits: u32, depth: u32, route: u64) -> (u8, u64, usize, usize, u32) {
+    if depth >= digits {
+        let (start, end) = bucket_bounds(buckets, digits, digits, route);
+        if end == start + 1 {
+            let bucket = &buckets[start];
+            let color = bucket.solids.first().map(|s| s.color).unwrap_or(0);
+            return (1, bucket.prefix, 0, bucket.solids.len(), color);
+        }
+        return (0, 0, 0, 0, 0);
+    }
+    let (start, end) = bucket_bounds(buckets, digits, depth, route);
+    let color = if start < end {
+        buckets[start]
+            .solids
+            .first()
+            .map(|solid| solid.color)
+            .unwrap_or(0)
+    } else {
+        0
+    };
+    (0, 0, 0, 0, color)
+}
+
+fn bucket_bounds(buckets: &[Bucket], digits: u32, depth: u32, route: u64) -> (usize, usize) {
+    if depth == 0 || depth > digits {
+        return (0, 0);
+    }
+    let shift = (digits - depth) * 3;
+    let lo = route << shift;
+    let hi = (route + 1) << shift;
+    let start = buckets.partition_point(|b| b.prefix < lo);
+    let end = buckets.partition_point(|b| b.prefix < hi);
+    (start, end)
 }
 
 fn stamp_tris(
@@ -438,6 +660,9 @@ struct Slot {
     word: u32,
     pos: [f32; 3],
     depth: u32,
+    route: u64,
+    fine: u8,
+    bucket_prefix: u64,
     start: usize,
     end: usize,
     color: u32,
@@ -449,73 +674,198 @@ struct View {
     nodes: Vec<u32>,
     positions: Vec<[f32; 3]>,
     depths: Vec<u32>,
-    /// Start and end of this node's texels in the sorted solid list.
+    /// Top octree digits that lead to this node, packed from the root.
+    route: Vec<u64>,
+    /// One when `span` indexes a single bucket's texels.
+    fine: Vec<u8>,
+    bucket_prefix: Vec<u64>,
+    /// Start and end of this node's texels inside its bucket.
     span: Vec<(u32, u32)>,
     colors: Vec<u32>,
     holes: Vec<usize>,
 }
 
 impl View {
-    fn from_root(solids: &[Solid], bits: u32) -> Self {
+    fn from_root(buckets: &[Bucket], bits: u32, bucket_digits: u32) -> Self {
         let mut view = Self {
             nodes: Vec::new(),
             positions: Vec::new(),
             depths: Vec::new(),
+            route: Vec::new(),
+            fine: Vec::new(),
+            bucket_prefix: Vec::new(),
             span: Vec::new(),
             colors: Vec::new(),
             holes: Vec::new(),
         };
-        let shift = bits.saturating_sub(1);
-        let mut edge = [0usize; 9];
-        edge[0] = 0;
-        edge[8] = solids.len();
-        for digit in 1..8 {
-            edge[digit] = lower_bound(solids, 0, solids.len(), shift, digit);
+        if bucket_digits == 0 {
+            let solids = buckets.first().map(|b| b.solids.as_slice()).unwrap_or(&[]);
+            let shift = bits.saturating_sub(1);
+            let mut edge = [0usize; 9];
+            edge[0] = 0;
+            edge[8] = solids.len();
+            for digit in 1..8 {
+                edge[digit] = lower_bound(solids, 0, solids.len(), shift, digit);
+            }
+            for i in 0..8 {
+                let start = edge[i];
+                let end = edge[i + 1];
+                let color = if start < end { solids[start].color } else { 0 };
+                view.push(Slot {
+                    word: gpu_leaf(color),
+                    pos: pos_offset(i, 1),
+                    depth: 1,
+                    route: i as u64,
+                    fine: 1,
+                    bucket_prefix: 0,
+                    start,
+                    end,
+                    color,
+                });
+            }
+            return view;
         }
         for i in 0..8 {
-            let start = edge[i];
-            let end = edge[i + 1];
-            let color = if start < end { solids[start].color } else { 0 };
-            view.push(
-                gpu_leaf(color),
-                pos_offset(i, 1),
-                1,
+            let (fine, prefix, start, end, color) =
+                describe(buckets, bucket_digits, 1, i as u64);
+            view.push(Slot {
+                word: gpu_leaf(color),
+                pos: pos_offset(i, 1),
+                depth: 1,
+                route: i as u64,
+                fine,
+                bucket_prefix: prefix,
                 start,
                 end,
                 color,
-            );
+            });
         }
         view
     }
 
-    fn push(
-        &mut self,
-        word: u32,
-        pos: [f32; 3],
-        depth: u32,
-        start: usize,
-        end: usize,
-        color: u32,
-    ) {
-        self.nodes.push(word);
-        self.positions.push(pos);
-        self.depths.push(depth);
-        self.span.push((start as u32, end as u32));
-        self.colors.push(color);
+    fn push(&mut self, slot: Slot) {
+        self.nodes.push(slot.word);
+        self.positions.push(slot.pos);
+        self.depths.push(slot.depth);
+        self.route.push(slot.route);
+        self.fine.push(slot.fine);
+        self.bucket_prefix.push(slot.bucket_prefix);
+        self.span.push((slot.start as u32, slot.end as u32));
+        self.colors.push(slot.color);
     }
 
     fn write_slot(&mut self, at: usize, slot: Slot) {
         self.nodes[at] = slot.word;
         self.positions[at] = slot.pos;
         self.depths[at] = slot.depth;
+        self.route[at] = slot.route;
+        self.fine[at] = slot.fine;
+        self.bucket_prefix[at] = slot.bucket_prefix;
         self.span[at] = (slot.start as u32, slot.end as u32);
         self.colors[at] = slot.color;
+    }
+
+    /// Fold one bucket's leaves back together after its texels change.
+    /// A new bucket is grafted onto the coarse tree. The camera pass then
+    /// opens just that leaf, and the rest of the octree stays as it was.
+    fn resync_bucket(
+        &mut self,
+        buckets: &[Bucket],
+        bits: u32,
+        bucket_digits: u32,
+        prefix: u64,
+    ) {
+        if bucket_digits == 0 {
+            *self = Self::from_root(buckets, bits, 0);
+            return;
+        }
+        let (color, len) = buckets
+            .binary_search_by_key(&prefix, |b| b.prefix)
+            .ok()
+            .and_then(|i| buckets[i].solids.first().map(|s| (s.color, buckets[i].solids.len())))
+            .unwrap_or((0, 0));
+        let found = self.shallowest_fine(prefix);
+        if let Some(idx) = found {
+            self.install_fine(idx, prefix, color, len as u32);
+        } else if len > 0 {
+            if let Some(idx) = self.walk_bucket(buckets, bits, bucket_digits, prefix) {
+                self.install_fine(idx, prefix, color, len as u32);
+            }
+        }
+    }
+
+    fn shallowest_fine(&self, prefix: u64) -> Option<usize> {
+        let mut best: Option<(usize, u32)> = None;
+        for i in 0..self.nodes.len() {
+            if self.depths[i] == 0 || self.fine[i] == 0 || self.bucket_prefix[i] != prefix {
+                continue;
+            }
+            let depth = self.depths[i];
+            if best.map(|(_, d)| depth < d).unwrap_or(true) {
+                best = Some((i, depth));
+            }
+        }
+        best.map(|(i, _)| i)
+    }
+
+    fn install_fine(&mut self, idx: usize, prefix: u64, color: u32, len: u32) {
+        if idx >= self.nodes.len() || self.depths[idx] == 0 {
+            return;
+        }
+        if (self.nodes[idx] >> 4) < VOXEL_OFFSET {
+            self.unsubdivide(idx);
+        }
+        self.nodes[idx] = gpu_leaf(color);
+        self.colors[idx] = color;
+        self.span[idx] = (0, len);
+        self.fine[idx] = 1;
+        self.bucket_prefix[idx] = prefix;
+    }
+
+    fn walk_bucket(
+        &mut self,
+        buckets: &[Bucket],
+        bits: u32,
+        bucket_digits: u32,
+        prefix: u64,
+    ) -> Option<usize> {
+        if bucket_digits == 0 || self.nodes.len() < 8 {
+            return None;
+        }
+        let top = ((prefix >> ((bucket_digits - 1) * 3)) & 7) as usize;
+        let mut idx = top;
+        let mut depth = 1u32;
+        loop {
+            if idx >= self.nodes.len() || self.depths[idx] == 0 {
+                return None;
+            }
+            if depth >= bucket_digits {
+                return Some(idx);
+            }
+            let ptr = self.nodes[idx] >> 4;
+            if ptr >= VOXEL_OFFSET && !self.subdivide(buckets, bits, bucket_digits, idx) {
+                return Some(idx);
+            }
+            let ptr = self.nodes[idx] >> 4;
+            if ptr >= VOXEL_OFFSET {
+                return Some(idx);
+            }
+            let digit = ((prefix >> ((bucket_digits - depth - 1) * 3)) & 7) as usize;
+            idx = ptr as usize + digit;
+            depth += 1;
+        }
     }
 
     /// `prime_view` from octree-tracer. Split the whole cube a little, and
     /// keep splitting any leaf whose centre is within one and a half cells
     /// of the eye, down to a texel.
-    fn prime_view(&mut self, solids: &[Solid], bits: u32, eye: [f32; 3]) -> bool {
+    fn prime_view(
+        &mut self,
+        buckets: &[Bucket],
+        bits: u32,
+        bucket_digits: u32,
+        eye: [f32; 3],
+    ) -> bool {
         let mut changed = false;
         let mut i = 0;
         while i < self.nodes.len() {
@@ -530,7 +880,10 @@ impl View {
                 let dy = pos[1] - eye[1];
                 let dz = pos[2] - eye[2];
                 let near = (dx * dx + dy * dy + dz * dz).sqrt() <= cell * 1.5;
-                if depth < bits && (near || depth <= 2) && self.subdivide(solids, bits, i) {
+                if depth < bits
+                    && (near || depth <= 2)
+                    && self.subdivide(buckets, bits, bucket_digits, i)
+                {
                     changed = true;
                 }
             }
@@ -541,8 +894,9 @@ impl View {
 
     fn refine(
         &mut self,
-        solids: &[Solid],
+        buckets: &[Bucket],
         bits: u32,
+        bucket_digits: u32,
         eye: [f32; 3],
         budget: usize,
         open_depth: u32,
@@ -564,7 +918,10 @@ impl View {
                 let dy = pos[1] - eye[1];
                 let dz = pos[2] - eye[2];
                 let near = dx * dx + dy * dy + dz * dz <= (cell * 8.0) * (cell * 8.0);
-                if depth < bits && (near || depth < open_depth) && self.subdivide(solids, bits, i) {
+                if depth < bits
+                    && (near || depth < open_depth)
+                    && self.subdivide(buckets, bits, bucket_digits, i)
+                {
                     made += 1;
                     changed = true;
                 }
@@ -577,7 +934,13 @@ impl View {
         changed
     }
 
-    fn subdivide(&mut self, solids: &[Solid], bits: u32, node: usize) -> bool {
+    fn subdivide(
+        &mut self,
+        buckets: &[Bucket],
+        bits: u32,
+        bucket_digits: u32,
+        node: usize,
+    ) -> bool {
         if node >= self.nodes.len() || self.depths[node] == 0 {
             return false;
         }
@@ -589,12 +952,75 @@ impl View {
         if depth >= bits {
             return false;
         }
-        let (start, end) = self.span[node];
-        let start = start as usize;
-        let end = end as usize;
+        if self.fine[node] == 0 && bucket_digits > 0 && depth >= bucket_digits {
+            let (start, end) = bucket_bounds(buckets, bucket_digits, depth, self.route[node]);
+            if end != start + 1 {
+                return false;
+            }
+            let bucket = &buckets[start];
+            self.fine[node] = 1;
+            self.bucket_prefix[node] = bucket.prefix;
+            self.span[node] = (0, bucket.solids.len() as u32);
+            self.colors[node] = bucket.solids.first().map(|s| s.color).unwrap_or(0);
+        }
+        if self.fine[node] == 1 || bucket_digits == 0 {
+            return self.subdivide_fine(buckets, bits, bucket_digits, node);
+        }
+        let (start, end) = bucket_bounds(buckets, bucket_digits, depth, self.route[node]);
         if start >= end {
             return false;
         }
+        let child_depth = depth + 1;
+        let pos = self.positions[node];
+        let route = self.route[node];
+        let at = self.alloc_children();
+        self.nodes[node] = (at as u32) << 4;
+        for digit in 0..8 {
+            let child_route = (route << 3) | digit as u64;
+            let (fine, prefix, child_start, child_end, color) =
+                describe(buckets, bucket_digits, child_depth, child_route);
+            self.write_slot(
+                at + digit,
+                Slot {
+                    word: gpu_leaf(color),
+                    pos: add3(pos, pos_offset(digit, child_depth)),
+                    depth: child_depth,
+                    route: child_route,
+                    fine,
+                    bucket_prefix: prefix,
+                    start: child_start,
+                    end: child_end,
+                    color,
+                },
+            );
+        }
+        true
+    }
+
+    fn subdivide_fine(
+        &mut self,
+        buckets: &[Bucket],
+        bits: u32,
+        bucket_digits: u32,
+        node: usize,
+    ) -> bool {
+        let prefix = if bucket_digits == 0 {
+            0
+        } else {
+            self.bucket_prefix[node]
+        };
+        let Ok(bucket_i) = buckets.binary_search_by_key(&prefix, |b| b.prefix) else {
+            return false;
+        };
+        let solids = &buckets[bucket_i].solids;
+        let (start, end) = self.span[node];
+        let start = start as usize;
+        let end = end as usize;
+        if start >= end || start >= solids.len() {
+            return false;
+        }
+        let end = end.min(solids.len());
+        let depth = self.depths[node];
         let shift = bits - depth - 1;
         let mut edge = [start; 9];
         edge[8] = end;
@@ -603,30 +1029,26 @@ impl View {
         }
         let child_depth = depth + 1;
         let pos = self.positions[node];
-        let at = if let Some(hole) = self.holes.pop() {
-            hole
-        } else {
-            let at = self.nodes.len();
-            for _ in 0..8 {
-                self.push(0, [0.0; 3], 0, 0, 0, 0);
-            }
-            at
-        };
+        let route = self.route[node];
+        let at = self.alloc_children();
         self.nodes[node] = (at as u32) << 4;
-        for i in 0..8 {
-            let child_start = edge[i];
-            let child_end = edge[i + 1];
+        for digit in 0..8 {
+            let child_start = edge[digit];
+            let child_end = edge[digit + 1];
             let color = if child_start < child_end {
                 solids[child_start].color
             } else {
                 0
             };
             self.write_slot(
-                at + i,
+                at + digit,
                 Slot {
                     word: gpu_leaf(color),
-                    pos: add3(pos, pos_offset(i, child_depth)),
+                    pos: add3(pos, pos_offset(digit, child_depth)),
                     depth: child_depth,
+                    route: (route << 3) | digit as u64,
+                    fine: 1,
+                    bucket_prefix: prefix,
                     start: child_start,
                     end: child_end,
                     color,
@@ -634,6 +1056,27 @@ impl View {
             );
         }
         true
+    }
+
+    fn alloc_children(&mut self) -> usize {
+        if let Some(hole) = self.holes.pop() {
+            return hole;
+        }
+        let at = self.nodes.len();
+        for _ in 0..8 {
+            self.push(Slot {
+                word: 0,
+                pos: [0.0; 3],
+                depth: 0,
+                route: 0,
+                fine: 0,
+                bucket_prefix: 0,
+                start: 0,
+                end: 0,
+                color: 0,
+            });
+        }
+        at
     }
 
     /// Fold an internal node back into the colour it was split from.
@@ -860,6 +1303,71 @@ mod tests {
             .collect();
         assert!(!internal.is_empty());
         assert!(built.apply_hits(&[], &internal), "an unseen node should fold up");
+    }
+
+    #[test]
+    fn moving_one_floor_leaves_the_other_in_place() {
+        let verts = [
+            vert([0.0, 0.0, 0.0]),
+            vert([8.0, 0.0, 0.0]),
+            vert([8.0, 0.0, 8.0]),
+            vert([0.0, 0.0, 8.0]),
+            vert([40.0, 0.0, 0.0]),
+            vert([48.0, 0.0, 0.0]),
+            vert([48.0, 0.0, 8.0]),
+            vert([40.0, 0.0, 8.0]),
+        ];
+        let indices = [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7];
+        let pixels = [180u8, 180, 180, 255];
+        let mut built = build(&verts, &indices, &pixels, 1).expect("octree");
+        let cell = built.cube / built.grid as f32;
+        let quad = [0u32, 1, 2, 0, 2, 3];
+        let stay = stamp_mesh(
+            built.origin,
+            cell,
+            built.grid,
+            &verts[..4],
+            &quad,
+            &pixels,
+            1,
+        );
+        let old = stamp_mesh(
+            built.origin,
+            cell,
+            built.grid,
+            &verts[4..],
+            &quad,
+            &pixels,
+            1,
+        );
+        let raised = [
+            vert([40.0, 16.0, 0.0]),
+            vert([48.0, 16.0, 0.0]),
+            vert([48.0, 16.0, 8.0]),
+            vert([40.0, 16.0, 8.0]),
+        ];
+        let new = stamp_mesh(built.origin, cell, built.grid, &raised, &quad, &pixels, 1);
+        assert!(!old.is_empty() && !new.is_empty() && !stay.is_empty());
+        let remove: Vec<u64> = old.iter().map(|s| s.0).collect();
+        let started = std::time::Instant::now();
+        built.edit(&remove, &new);
+        let ms = started.elapsed().as_millis();
+        assert!(ms < 50, "splicing a floor took {ms} ms");
+        let has = |key: u64| {
+            built
+                .buckets
+                .iter()
+                .any(|bucket| bucket.solids.iter().any(|solid| solid.key == key))
+        };
+        for (key, _) in &stay {
+            assert!(has(*key), "untouched floor texel disappeared");
+        }
+        for key in &remove {
+            assert!(!has(*key), "old floor texel was left behind");
+        }
+        for (key, _) in &new {
+            assert!(has(*key), "raised floor texel was not inserted");
+        }
     }
 
     #[test]

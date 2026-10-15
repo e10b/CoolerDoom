@@ -53,7 +53,7 @@ fn e1m1_octree_builds() {
         assert_eq!(room::doom::g_game::gamestate, 0, "never reached the level");
         assert!(room::doom::p_setup::numsubsectors > 0);
         let started = std::time::Instant::now();
-        let scene = room::hw::build_scene();
+        let mut scene = room::hw::build_scene();
         let ms = started.elapsed().as_millis();
         let nodes = scene.svo.as_ref().map(frame_nodes).unwrap_or(0);
         eprintln!("e1m1 octree: {ms} ms, nodes={nodes}");
@@ -62,6 +62,30 @@ fn e1m1_octree_builds() {
         // Texel cells are one map unit: E1M1 is about 58 million of them,
         // which takes a few seconds once per map, not once per frame.
         assert!(ms < 8_000, "octree build took {ms} ms");
+        let frame = scene.svo.take().expect("octree frame");
+        let mut tree = frame.tree.expect("the test keeps the octree");
+        (*room::doom::p_setup::sectors).ceilingheight += 64 * 65536;
+        let mut scene2 = room::hw::build_scene();
+        let patch = scene2
+            .svo
+            .as_mut()
+            .and_then(|frame| frame.patch.take())
+            .expect("a moved ceiling should splice texels");
+        let door = std::time::Instant::now();
+        tree.edit(&patch.remove, &patch.add);
+        tree.prime(patch.eye);
+        let door_ms = door.elapsed().as_millis();
+        eprintln!(
+            "door splice: {door_ms} ms, remove {}, add {}",
+            patch.remove.len(),
+            patch.add.len()
+        );
+        assert!(
+            !patch.remove.is_empty() || !patch.add.is_empty(),
+            "sector 0 produced no texels"
+        );
+        assert!(door_ms < 150, "door splice took {door_ms} ms");
+        room::hw::recycle(scene2);
         room::hw::recycle(scene);
     }
 }

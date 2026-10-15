@@ -1004,6 +1004,20 @@ impl GpuState {
                 self.octree = Some(tree);
                 self.octree_dirty = true;
             }
+            if let Some(patch) = frame.patch.take() {
+                if let Some(tree) = self.octree.as_mut() {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    let started = std::time::Instant::now();
+                    tree.edit(&patch.remove, &patch.add);
+                    tree.prime(patch.eye);
+                    self.octree_dirty = true;
+                    #[cfg(not(target_arch = "wasm32"))]
+                    log::info!(
+                        "octree: door spliced into the live tree in {} ms",
+                        started.elapsed().as_millis()
+                    );
+                }
+            }
         }
         let node_upload = if self.octree_dirty {
             self.octree_dirty = false;
