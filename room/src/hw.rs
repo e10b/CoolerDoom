@@ -30,6 +30,7 @@ use crate::doom::r_sky::{skyflatnum, skytexture};
 use crate::doom::r_things::{hw_psprite_lump, hw_sprite_lump};
 use crate::doom::w_wad::{W_CacheLumpNum, W_LumpLength};
 use crate::doom::z_zone::PU_CACHE;
+use std::collections::HashSet;
 
 const FRAC: f32 = 65536.0;
 const FF_FULLBRIGHT: i32 = 0x8000;
@@ -542,9 +543,12 @@ unsafe fn push_world(
     if segs.is_null() || subsectors.is_null() {
         return;
     }
+    // One quad per solid surface. The partner seg of a two-sided line faces
+    // the other way and would otherwise sit on the same plane.
+    let mut drawn: HashSet<(i32, i32, i32, i32, i32, i32)> = HashSet::new();
     for i in 0..numsegs {
         let seg = &*segs.add(i as usize);
-        push_seg(verts, indices, atlas, seg);
+        push_seg(verts, indices, atlas, seg, &mut drawn);
     }
     for i in 0..numsubsectors {
         let sub = &*subsectors.add(i as usize);
@@ -553,7 +557,13 @@ unsafe fn push_world(
     }
 }
 
-unsafe fn push_seg(verts: &mut Vec<Vertex>, indices: &mut Vec<u32>, atlas: &Atlas, seg: &seg_t) {
+unsafe fn push_seg(
+    verts: &mut Vec<Vertex>,
+    indices: &mut Vec<u32>,
+    atlas: &Atlas,
+    seg: &seg_t,
+    drawn: &mut HashSet<(i32, i32, i32, i32, i32, i32)>,
+) {
     if seg.v1.is_null()
         || seg.v2.is_null()
         || seg.linedef.is_null()
@@ -564,6 +574,9 @@ unsafe fn push_seg(verts: &mut Vec<Vertex>, indices: &mut Vec<u32>, atlas: &Atla
     }
     let v1 = &*seg.v1;
     let v2 = &*seg.v2;
+    if !seg_faces_view(v1.x, v1.y, v2.x, v2.y, viewx, viewy) {
+        return;
+    }
     let side = &*seg.sidedef;
     let line = &*seg.linedef;
     let front = &*seg.frontsector;
@@ -584,7 +597,9 @@ unsafe fn push_seg(verts: &mut Vec<Vertex>, indices: &mut Vec<u32>, atlas: &Atla
         } else {
             z1
         } + fx(side.rowoffset);
-        push_wall(verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light);
+        push_wall(
+            verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light, drawn,
+        );
         return;
     }
     let back = back.unwrap();
@@ -599,7 +614,9 @@ unsafe fn push_seg(verts: &mut Vec<Vertex>, indices: &mut Vec<u32>, atlas: &Atla
         } else {
             z0 + tex_pixels(tex)
         } + fx(side.rowoffset);
-        push_wall(verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light);
+        push_wall(
+            verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light, drawn,
+        );
     }
     if back.floorheight > front.floorheight {
         let z0 = fx(front.floorheight);
@@ -610,7 +627,9 @@ unsafe fn push_seg(verts: &mut Vec<Vertex>, indices: &mut Vec<u32>, atlas: &Atla
         } else {
             z1
         } + fx(side.rowoffset);
-        push_wall(verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light);
+        push_wall(
+            verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light, drawn,
+        );
     }
     if side.midtexture != 0 {
         let z0 = fx(front.floorheight.max(back.floorheight));
@@ -621,8 +640,33 @@ unsafe fn push_seg(verts: &mut Vec<Vertex>, indices: &mut Vec<u32>, atlas: &Atla
         } else {
             fx(front.ceilingheight.min(back.ceilingheight))
         } + fx(side.rowoffset);
-        push_wall(verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light);
+        push_wall(
+            verts, indices, atlas, v1, v2, z0, z1, side, seg, tex, origin, light, drawn,
+        );
     }
+}
+
+/// True when the camera is on the front side of the directed seg.
+///
+/// The front side is to the right of v1→v2. In world space that normal is
+/// `(dy, dx)` on the XZ plane, so the camera is in front when
+/// `dy * (viewx - x1) + dx * (y1 - viewy)` is positive.
+fn seg_faces_view(x1: i32, y1: i32, x2: i32, y2: i32, cam_x: i32, cam_y: i32) -> bool {
+    let dx = x2 as i64 - x1 as i64;
+    let dy = y2 as i64 - y1 as i64;
+    let side = dy * (cam_x as i64 - x1 as i64) + dx * (y1 as i64 - cam_y as i64);
+    side >= 0
+}
+
+/// Endpoints ordered so a seg and the partner seg share a key, plus the
+/// vertical span. A second quad on that surface is dropped.
+fn wall_key(v1: &vertex_t, v2: &vertex_t, z0: f32, z1: f32) -> (i32, i32, i32, i32, i32, i32) {
+    let (ax, ay, bx, by) = if (v1.x, v1.y) <= (v2.x, v2.y) {
+        (v1.x, v1.y, v2.x, v2.y)
+    } else {
+        (v2.x, v2.y, v1.x, v1.y)
+    };
+    (ax, ay, bx, by, z0.to_bits() as i32, z1.to_bits() as i32)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -639,6 +683,7 @@ unsafe fn push_wall(
     tex: i32,
     origin: f32,
     light: f32,
+    drawn: &mut HashSet<(i32, i32, i32, i32, i32, i32)>,
 ) {
     if z1 <= z0 + 0.01 {
         return;
@@ -649,6 +694,9 @@ unsafe fn push_wall(
     }
     let (tw, th) = hw_texture_size(tex);
     if tw <= 0 || th <= 0 {
+        return;
+    }
+    if !drawn.insert(wall_key(v1, v2, z0, z1)) {
         return;
     }
     let x1 = fx(v1.x);
@@ -1194,4 +1242,23 @@ fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
 fn norm(v: [f32; 3]) -> [f32; 3] {
     let n = dot(v, v).sqrt().max(1e-8);
     [v[0] / n, v[1] / n, v[2] / n]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::seg_faces_view;
+
+    #[test]
+    fn wall_is_drawn_from_the_front_only() {
+        let x1 = 0;
+        let y1 = 0;
+        let x2 = 64 << 16;
+        let y2 = 0;
+        let south = -100 << 16;
+        let north = 100 << 16;
+        assert!(seg_faces_view(x1, y1, x2, y2, 0, south));
+        assert!(!seg_faces_view(x1, y1, x2, y2, 0, north));
+        assert!(!seg_faces_view(x2, y2, x1, y1, 0, south));
+        assert!(seg_faces_view(x2, y2, x1, y1, 0, north));
+    }
 }
