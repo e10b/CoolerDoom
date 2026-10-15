@@ -287,8 +287,8 @@ pub extern "C" fn DG_DrawFrame() {
             return;
         };
         let result = if crate::hw::active() {
-            let scene = unsafe { crate::hw::build_scene() };
-            let result = gpu.render_world(pixel_bytes, &scene);
+            let mut scene = unsafe { crate::hw::build_scene() };
+            let result = gpu.render_world(pixel_bytes, &mut scene);
             crate::hw::recycle(scene);
             result
         } else {

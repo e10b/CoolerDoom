@@ -43,6 +43,23 @@ struct Def {
     spin: f32,
 }
 
+/// Mesh every model once, so the first time something dies is not the frame
+/// that parses its death poses.
+pub fn preload() {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| {
+            let started = std::time::Instant::now();
+            let files: Vec<String> = defs().values().map(|def| def.file.clone()).collect();
+            for file in files {
+                let _ = mesh_for(&file);
+            }
+            log::info!("voxel meshes ready in {} ms", started.elapsed().as_millis());
+        });
+    }
+}
+
 /// Mesh and extra yaw (radians) for a sprite frame, when this pack has one.
 pub fn model_for(sprite: i32, frame: i32, leveltime: i32) -> Option<(Arc<VoxelMesh>, f32)> {
     let key = sprite_key(sprite, frame)?;

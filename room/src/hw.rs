@@ -60,15 +60,32 @@ pub struct Vertex {
 pub struct Scene {
     pub verts: Vec<Vertex>,
     pub indices: Vec<u32>,
+    /// Index count of the sky sphere. Sprites begin here when the map is the
+    /// octree; otherwise the walls and floors sit between this and `world_indices`.
+    pub sky_indices: u32,
     /// Index count of sky, walls, flats, and sprites. The rest are the weapon,
     /// drawn with depth testing disabled so nearby walls do not clip it.
     pub world_indices: u32,
+    /// Octree of the map. `None` means draw the wall and floor triangles.
+    pub svo: Option<SvoFrame>,
     pub view_proj: [[f32; 4]; 4],
     /// Fraction of the framebuffer covered by the 3D view: x, y, width, height.
     /// The HUD pass discards this rectangle and keeps the status bar.
     pub view_rect: [f32; 4],
     /// Fresh atlas pixels, present only on the frame the atlas is rebuilt.
     pub atlas: Option<(u32, Vec<u8>)>,
+}
+
+/// Camera and, when the tree was rebuilt, the node words to upload.
+pub struct SvoFrame {
+    pub nodes: Option<Vec<u32>>,
+    /// Full CPU octree, handed to the GPU once per rebuild so hit counters can
+    /// split and merge it. Empty on the frames after that handoff.
+    pub tree: Option<crate::svo::Built>,
+    pub origin: [f32; 3],
+    pub cube: f32,
+    pub inv_view: [[f32; 4]; 4],
+    pub view_proj: [[f32; 4]; 4],
 }
 
 struct Atlas {
@@ -80,6 +97,9 @@ struct Atlas {
     sprite_size: Vec<(i32, i32)>,
     /// A solid white texel. Voxel faces sample this and carry their color in `tint`.
     white: [f32; 4],
+    /// CPU copy of the atlas, so the octree can sample wall and floor texels.
+    pixels: Vec<u8>,
+    pixel_size: i32,
     pending: Option<(u32, Vec<u8>)>,
 }
 
@@ -93,6 +113,17 @@ struct Scratch {
     flats: Vec<Vec<[f32; 2]>>,
     flats_key: usize,
     logged: bool,
+    svo: Option<crate::svo::Built>,
+    svo_key: u64,
+    svo_cached: bool,
+    svo_dirty: bool,
+    /// The native renderer takes the tree once, then owns the hit-counter edits.
+    svo_send: bool,
+    svo_origin: [f32; 3],
+    svo_cube: f32,
+    /// Height key we're waiting to settle before rebuilding the octree.
+    svo_wait_key: u64,
+    svo_wait: u8,
 }
 
 static mut SCRATCH: Scratch = Scratch {
@@ -102,6 +133,15 @@ static mut SCRATCH: Scratch = Scratch {
     flats: Vec::new(),
     flats_key: 0,
     logged: false,
+    svo: None,
+    svo_key: 0,
+    svo_cached: false,
+    svo_dirty: false,
+    svo_send: false,
+    svo_origin: [0.0; 3],
+    svo_cube: 0.0,
+    svo_wait_key: 0,
+    svo_wait: 0,
 };
 
 /// True when the frame should be a triangle scene instead of the software view.
@@ -139,14 +179,20 @@ pub unsafe fn build_scene() -> Scene {
     let cam_up = cross(right, forward);
 
     ensure_flats(scratch);
+    refresh_svo(scratch);
+    let mut sky_indices = 0;
     if let Some(atlas) = scratch.atlas.as_ref() {
         push_sky(&mut scratch.verts, &mut scratch.indices, atlas, eye, ang);
-        push_world(
-            &mut scratch.verts,
-            &mut scratch.indices,
-            atlas,
-            &scratch.flats,
-        );
+        sky_indices = scratch.indices.len() as u32;
+        if scratch.svo.is_none() {
+            push_world(
+                &mut scratch.verts,
+                &mut scratch.indices,
+                atlas,
+                &scratch.flats,
+                true,
+            );
+        }
         push_sprites(&mut scratch.verts, &mut scratch.indices, atlas, right);
     }
     let world_indices = scratch.indices.len() as u32;
@@ -164,6 +210,46 @@ pub unsafe fn build_scene() -> Scene {
 
     let aspect = viewwidth as f32 / viewheight as f32;
     let view_proj = mul(perspective(aspect), look_at(eye, forward));
+    // The browser has no storage writes, so it opens the tree by distance.
+    // Native rays bump the hit counters and the compute pass does the splits.
+    #[cfg(target_arch = "wasm32")]
+    if let Some(built) = scratch.svo.as_mut() {
+        built.refine(eye);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    let tree = if scratch.svo_send {
+        scratch.svo_send = false;
+        scratch.svo.take().map(|mut built| {
+            built.prime(eye);
+            scratch.svo_origin = built.origin;
+            scratch.svo_cube = built.cube;
+            built
+        })
+    } else {
+        None
+    };
+    #[cfg(target_arch = "wasm32")]
+    let tree: Option<crate::svo::Built> = None;
+    let svo = if tree.is_some() || scratch.svo.is_some() || scratch.svo_cube > 0.0 {
+        let (origin, cube) = if let Some(built) = tree.as_ref() {
+            (built.origin, built.cube)
+        } else if let Some(built) = scratch.svo.as_ref() {
+            (built.origin, built.cube)
+        } else {
+            (scratch.svo_origin, scratch.svo_cube)
+        };
+        let node_words = scratch.svo.as_mut().and_then(|built| built.take_nodes());
+        Some(SvoFrame {
+            nodes: node_words,
+            tree,
+            origin,
+            cube,
+            inv_view: crate::svo::invert(view_proj),
+            view_proj,
+        })
+    } else {
+        None
+    };
     let view_rect = [
         viewwindowx as f32 / SCREENWIDTH as f32,
         viewwindowy as f32 / SCREENHEIGHT as f32,
@@ -185,11 +271,85 @@ pub unsafe fn build_scene() -> Scene {
     Scene {
         verts,
         indices,
+        sky_indices,
         world_indices,
+        svo,
         view_proj,
         view_rect,
         atlas: atlas_upload,
     }
+}
+
+fn refresh_svo(scratch: &mut Scratch) {
+    let key = unsafe { map_key() };
+    if scratch.svo_cached && scratch.svo_key == key {
+        return;
+    }
+    // A door or lift changes the key every few tics. Rebuilding the texel
+    // octree on each of those tics is the hitch. Wait until the heights sit
+    // still, then rebuild once.
+    if scratch.svo_cached {
+        if scratch.svo_wait_key != key {
+            scratch.svo_wait_key = key;
+            scratch.svo_wait = 8;
+            return;
+        }
+        if scratch.svo_wait > 0 {
+            scratch.svo_wait -= 1;
+            return;
+        }
+    }
+    crate::voxel::preload();
+    #[cfg(not(target_arch = "wasm32"))]
+    let started = std::time::Instant::now();
+    #[cfg(target_arch = "wasm32")]
+    let started = web_time::Instant::now();
+    let built = {
+        let Some(atlas) = scratch.atlas.as_ref() else {
+            return;
+        };
+        let mut verts = Vec::new();
+        let mut indices = Vec::new();
+        unsafe {
+            push_world(&mut verts, &mut indices, atlas, &scratch.flats, false);
+        }
+        log::info!("octree: voxelizing {} triangles", indices.len() / 3);
+        let built = crate::svo::build(&verts, &indices, &atlas.pixels, atlas.pixel_size);
+        log::info!(
+            "octree: {} triangles, {} nodes, {} ms",
+            indices.len() / 3,
+            built.as_ref().map(|b| b.nodes().len()).unwrap_or(0),
+            started.elapsed().as_millis()
+        );
+        built
+    };
+    scratch.svo = built;
+    scratch.svo_key = key;
+    scratch.svo_cached = true;
+    scratch.svo_dirty = scratch.svo.is_some();
+    scratch.svo_send = scratch.svo.is_some();
+    if let Some(built) = scratch.svo.as_ref() {
+        scratch.svo_origin = built.origin;
+        scratch.svo_cube = built.cube;
+    }
+}
+
+unsafe fn map_key() -> u64 {
+    let mut h = vertexes as u64 ^ ((numsectors as u64) << 32);
+    if !sectors.is_null() {
+        for i in 0..numsectors.max(0) as usize {
+            let s = &*sectors.add(i);
+            // A door moves a fraction of a cell per tic. Quantize to the voxel
+            // so the tree is rebuilt when a floor crosses a cell, not every frame.
+            h = h
+                .wrapping_mul(0x100000001b3)
+                .wrapping_add((s.floorheight >> 19) as u64);
+            h = h
+                .wrapping_mul(0x100000001b3)
+                .wrapping_add((s.ceilingheight >> 19) as u64);
+        }
+    }
+    h
 }
 
 /// Put the mesh buffers back so the next frame can reuse their allocation.
@@ -232,6 +392,8 @@ unsafe fn build_atlas(key: usize) -> Atlas {
         sprite_rects: vec![[0.0; 4]; numspritelumps.max(0) as usize],
         sprite_size: vec![(0, 0); numspritelumps.max(0) as usize],
         white: [0.0; 4],
+        pixels: Vec::new(),
+        pixel_size: 0,
         pending: None,
     };
     for size in [2048i32, 4096, 8192] {
@@ -298,6 +460,8 @@ unsafe fn pack_into(atlas: &mut Atlas, size: i32, pal: &[(u8, u8, u8); 256]) -> 
             atlas.sprite_size[lump as usize] = (w, h);
         }
     }
+    atlas.pixels = pack.rgba.clone();
+    atlas.pixel_size = size;
     atlas.pending = Some((size as u32, pack.rgba));
     ok
 }
@@ -556,6 +720,7 @@ unsafe fn push_world(
     indices: &mut Vec<u32>,
     atlas: &Atlas,
     flats: &[Vec<[f32; 2]>],
+    cull: bool,
 ) {
     if segs.is_null() || subsectors.is_null() {
         return;
@@ -565,7 +730,7 @@ unsafe fn push_world(
     let mut drawn: HashSet<(i32, i32, i32, i32, i32, i32)> = HashSet::new();
     for i in 0..numsegs {
         let seg = &*segs.add(i as usize);
-        push_seg(verts, indices, atlas, seg, &mut drawn);
+        push_seg(verts, indices, atlas, seg, &mut drawn, cull);
     }
     for i in 0..numsubsectors {
         let sub = &*subsectors.add(i as usize);
@@ -580,6 +745,7 @@ unsafe fn push_seg(
     atlas: &Atlas,
     seg: &seg_t,
     drawn: &mut HashSet<(i32, i32, i32, i32, i32, i32)>,
+    cull: bool,
 ) {
     if seg.v1.is_null()
         || seg.v2.is_null()
@@ -591,7 +757,7 @@ unsafe fn push_seg(
     }
     let v1 = &*seg.v1;
     let v2 = &*seg.v2;
-    if !seg_faces_view(v1.x, v1.y, v2.x, v2.y, viewx, viewy) {
+    if cull && !seg_faces_view(v1.x, v1.y, v2.x, v2.y, viewx, viewy) {
         return;
     }
     let side = &*seg.sidedef;
