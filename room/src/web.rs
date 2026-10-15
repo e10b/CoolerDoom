@@ -5,22 +5,24 @@
 
 #![cfg(target_arch = "wasm32")]
 
+use std::cell::Cell;
 use std::ffi::{c_char, c_int, CString};
 use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
-use winit::event::{ElementState, WindowEvent};
+use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::keyboard::PhysicalKey;
 use winit::platform::web::{EventLoopExtWebSys, WindowAttributesExtWebSys};
 use winit::window::{Window, WindowId};
 
 use crate::doom::doomgeneric::{DOOMGENERIC_RESX, DOOMGENERIC_RESY};
 use crate::gpu::GpuState;
-use crate::platform::keys::to_doom_key;
-use crate::platform::{init_start_time, GPU, KEY_QUEUE, QUIT_REQUESTED, WINDOW};
+use crate::platform::{
+    init_start_time, on_key, on_mouse_button, on_mouse_motion, set_pointer_locked, GPU,
+    QUIT_REQUESTED, WINDOW,
+};
 
 /// Embedded Doom shareware episode 1 WAD (4 MB).
 pub const EMBEDDED_DOOM1_WAD: &[u8] = include_bytes!("../../doom1.wad");
@@ -112,6 +114,7 @@ impl ApplicationHandler for WebApp {
         };
 
         WINDOW.with_borrow_mut(|w| *w = Some(window.clone()));
+        watch_pointer_lock();
 
         if !self.gpu_initializing {
             self.gpu_initializing = true;
@@ -156,15 +159,14 @@ impl ApplicationHandler for WebApp {
                 });
             }
             WindowEvent::KeyboardInput { event, .. } => {
-                if let PhysicalKey::Code(code) = event.physical_key {
-                    if event.repeat {
-                        return;
-                    }
-                    if let Some(doom_key) = to_doom_key(code) {
-                        let pressed = event.state == ElementState::Pressed;
-                        KEY_QUEUE.with_borrow_mut(|q| q.push_back((pressed, doom_key)));
-                    }
+                if let winit::keyboard::PhysicalKey::Code(code) = event.physical_key {
+                    let pressed = event.state == winit::event::ElementState::Pressed;
+                    on_key(code, pressed, event.repeat);
                 }
+            }
+            WindowEvent::MouseInput { state, button, .. } => {
+                let pressed = state == winit::event::ElementState::Pressed;
+                on_mouse_button(button, pressed);
             }
             WindowEvent::RedrawRequested => {
                 let gpu_ready = GPU.with_borrow(|g| g.is_some());
@@ -206,12 +208,50 @@ impl ApplicationHandler for WebApp {
         }
     }
 
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: DeviceId,
+        event: DeviceEvent,
+    ) {
+        if let DeviceEvent::MouseMotion { delta } = event {
+            on_mouse_motion(delta.0, delta.1);
+        }
+    }
+
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         // `ControlFlow::Poll` is driven by `scheduler.postTask`, which drops
         // the callback if the task is rejected and then never runs again.
         // Request the next frame from `requestAnimationFrame` instead.
         schedule_frame();
     }
+}
+
+fn watch_pointer_lock() {
+    thread_local! {
+        static WATCHING: Cell<bool> = const { Cell::new(false) };
+    }
+    if WATCHING.with(|watching| watching.replace(true)) {
+        return;
+    }
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+    let Some(document) = window.document() else {
+        return;
+    };
+    let closure = Closure::wrap(Box::new(move || {
+        let locked = web_sys::window()
+            .and_then(|w| w.document())
+            .and_then(|doc| doc.pointer_lock_element())
+            .is_some();
+        set_pointer_locked(locked);
+    }) as Box<dyn FnMut()>);
+    let _ = document.add_event_listener_with_callback(
+        "pointerlockchange",
+        closure.as_ref().unchecked_ref(),
+    );
+    closure.forget();
 }
 
 fn schedule_frame() {

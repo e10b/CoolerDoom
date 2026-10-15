@@ -13,6 +13,7 @@ use std::os::raw::c_int;
 
 use crate::doom::d_event::event_t;
 use crate::doom::doomkeys::KEY_RSHIFT;
+use crate::platform::take_mouse;
 
 /// Configuration flag mirroring the C global `vanilla_keyboard_mapping`.
 ///
@@ -166,6 +167,18 @@ pub extern "C" fn I_GetEvent() {
                 }
                 break;
             }
+        }
+
+        // Yaw only. Pitch is applied by the triangle camera.
+        if let Some((dx, buttons)) = take_mouse() {
+            let event = event_t {
+                type_: 2, // ev_mouse
+                data1: buttons,
+                data2: dx,
+                data3: 0,
+                data4: 0,
+            };
+            D_PostEvent(&event);
         }
     }
 }

@@ -20,7 +20,7 @@ use super::doomkeys::{
     KEY_BACKSPACE, KEY_DEL, KEY_DOWNARROW, KEY_END, KEY_ENTER, KEY_EQUALS, KEY_ESCAPE, KEY_F1,
     KEY_F10, KEY_F11, KEY_F12, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9,
     KEY_HOME, KEY_INS, KEY_LEFTARROW, KEY_MINUS, KEY_PAUSE, KEY_PGDN, KEY_PGUP, KEY_RALT,
-    KEY_RIGHTARROW, KEY_RSHIFT, KEY_STRAFE_L, KEY_STRAFE_R, KEY_TAB, KEY_UPARROW, KEY_USE,
+    KEY_RIGHTARROW, KEY_RSHIFT, KEY_TAB, KEY_UPARROW, KEY_USE,
 };
 
 //
@@ -33,18 +33,18 @@ pub static mut key_right: c_int = KEY_RIGHTARROW as c_int;
 /// Turn left (default: left arrow).
 #[no_mangle]
 pub static mut key_left: c_int = KEY_LEFTARROW as c_int;
-/// Move forward (default: up arrow).
+/// Move forward (default: W). Arrow keys still turn.
 #[no_mangle]
-pub static mut key_up: c_int = KEY_UPARROW as c_int;
-/// Move backward (default: down arrow).
+pub static mut key_up: c_int = b'w' as c_int;
+/// Move backward (default: S).
 #[no_mangle]
-pub static mut key_down: c_int = KEY_DOWNARROW as c_int;
-/// Strafe left (default: comma `KEY_STRAFE_L`).
+pub static mut key_down: c_int = b's' as c_int;
+/// Strafe left (default: A).
 #[no_mangle]
-pub static mut key_strafeleft: c_int = KEY_STRAFE_L as c_int;
-/// Strafe right (default: period `KEY_STRAFE_R`).
+pub static mut key_strafeleft: c_int = b'a' as c_int;
+/// Strafe right (default: D).
 #[no_mangle]
-pub static mut key_straferight: c_int = KEY_STRAFE_R as c_int;
+pub static mut key_straferight: c_int = b'd' as c_int;
 /// Fire current weapon (default: `KEY_FIRE`, the right Ctrl).
 #[no_mangle]
 pub static mut key_fire: c_int = super::doomkeys::KEY_FIRE as c_int;

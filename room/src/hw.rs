@@ -121,9 +121,14 @@ pub unsafe fn build_scene() -> Scene {
 
     let eye = [fx(viewx), fx(viewz), -fx(viewy)];
     let ang = viewangle as f32 * std::f32::consts::TAU / 4294967296.0;
+    let pitch = crate::platform::look_pitch();
     // Angle 0 faces east. North is world −Z, so the camera's right is south.
-    let forward = [ang.cos(), 0.0, -ang.sin()];
+    // Pitch raises that heading without tilting the horizon.
+    let yaw_forward = [ang.cos(), 0.0, -ang.sin()];
     let right = [ang.sin(), 0.0, ang.cos()];
+    let (sp, cp) = pitch.sin_cos();
+    let forward = [yaw_forward[0] * cp, sp, yaw_forward[2] * cp];
+    let cam_up = cross(right, forward);
 
     ensure_flats(scratch);
     if let Some(atlas) = scratch.atlas.as_ref() {
@@ -156,6 +161,7 @@ pub unsafe fn build_scene() -> Scene {
             eye,
             forward,
             right,
+            cam_up,
         );
     }
 
@@ -470,9 +476,10 @@ unsafe fn raster_patch(lump: i32, pal: &[(u8, u8, u8); 256]) -> Option<(i32, i32
                 }
                 let idx = bytes[start + i] as usize;
                 let (r, g, b) = pal[idx.min(255)];
-                let a = if idx == 0 { 0 } else { 255 };
+                // A posted pixel is opaque, including palette index 0 (black).
+                // Transparency is the texels this loop never writes.
                 let di = (row * w as usize + col) * 4;
-                px[di..di + 4].copy_from_slice(&[r, g, b, a]);
+                px[di..di + 4].copy_from_slice(&[r, g, b, 255]);
             }
             p = start + n + 1;
         }
@@ -496,41 +503,45 @@ unsafe fn push_sky(
     if tw <= 0 || th <= 0 {
         return;
     }
-    // Tall enough that a horizontal view still hits the cylinder at the top
-    // of the screen. Vanilla has no look up or down.
+    // A sphere around the eye, so looking straight up or down still hits sky.
+    // Row 100 sits on the horizon (`skytexturemid`). The top of the texture
+    // meets the pole. A full turn maps to 1024 sky columns.
     let radius = 6000.0;
-    let y0 = eye[1] - 8000.0;
-    let y1 = eye[1] + 8000.0;
-    // A full turn maps to 1024 sky columns (`ANGLETOSKYSHIFT`), so a 256-wide
-    // sky repeats four times and one 90° view shows the texture once.
     let repeats = 1024.0 / tw as f32;
-    let segs_n = 64i32;
-    for i in 0..segs_n {
-        let a0 = (i as f32) / (segs_n as f32) * std::f32::consts::TAU;
-        let a1 = ((i + 1) as f32) / (segs_n as f32) * std::f32::consts::TAU;
-        let p = |a: f32, y: f32| [eye[0] + a.cos() * radius, y, eye[2] - a.sin() * radius];
-        let u0 = (i as f32) / (segs_n as f32) * repeats;
-        let u1 = ((i + 1) as f32) / (segs_n as f32) * repeats;
-        // Row 100 sits on the horizon, matching `skytexturemid`.
-        let v_of = |y: f32| (100.0 - 160.0 * (y - eye[1]) / radius) / th as f32;
-        push_quad(
-            verts,
-            indices,
-            [
-                p(a0, y0),
-                p(a0, y1),
-                p(a1, y1),
-                p(a1, y0),
-            ],
-            [
-                [u0, v_of(y0)],
-                [u0, v_of(y1)],
-                [u1, v_of(y1)],
-                [u1, v_of(y0)],
-            ],
-            rect,
-            1.0,
-        );
+    let segs_n = 48i32;
+    let lats = 16i32;
+    let v_of = |el: f32| (100.0 - el.to_degrees() * (100.0 / 90.0)) / th as f32;
+    for lat in 0..lats {
+        let el0 = -std::f32::consts::FRAC_PI_2 + (lat as f32) / (lats as f32) * std::f32::consts::PI;
+        let el1 =
+            -std::f32::consts::FRAC_PI_2 + ((lat + 1) as f32) / (lats as f32) * std::f32::consts::PI;
+        for i in 0..segs_n {
+            let a0 = (i as f32) / (segs_n as f32) * std::f32::consts::TAU;
+            let a1 = ((i + 1) as f32) / (segs_n as f32) * std::f32::consts::TAU;
+            let p = |a: f32, el: f32| {
+                let c = el.cos() * radius;
+                [
+                    eye[0] + a.cos() * c,
+                    eye[1] + el.sin() * radius,
+                    eye[2] - a.sin() * c,
+                ]
+            };
+            let u0 = (i as f32) / (segs_n as f32) * repeats;
+            let u1 = ((i + 1) as f32) / (segs_n as f32) * repeats;
+            push_quad(
+                verts,
+                indices,
+                [p(a0, el0), p(a0, el1), p(a1, el1), p(a1, el0)],
+                [
+                    [u0, v_of(el0)],
+                    [u0, v_of(el1)],
+                    [u1, v_of(el1)],
+                    [u1, v_of(el0)],
+                ],
+                rect,
+                1.0,
+            );
+        }
     }
 }
 
@@ -1052,6 +1063,7 @@ unsafe fn push_weapon(
     eye: [f32; 3],
     forward: [f32; 3],
     right: [f32; 3],
+    cam_up: [f32; 3],
 ) {
     if consoleplayer < 0
         || consoleplayer as usize >= MAXPLAYERS
@@ -1087,30 +1099,31 @@ unsafe fn push_weapon(
         let left_px = sx - offset - 160.0;
         let top_px = sy - topoff - 0.5;
         let top_up = 100.0 - top_px;
+        let yoff = top_up * world_per_px;
         let mut origin = eye;
         for k in 0..3 {
-            origin[k] += forward[k] * distance + right[k] * (left_px * world_per_px);
+            origin[k] += forward[k] * distance
+                + right[k] * (left_px * world_per_px)
+                + cam_up[k] * yoff;
         }
-        origin[1] += top_up * world_per_px;
         let width = pw as f32 * world_per_px;
         let height = ph as f32 * world_per_px;
+        let right_w = [right[0] * width, right[1] * width, right[2] * width];
+        let down = [
+            -cam_up[0] * height,
+            -cam_up[1] * height,
+            -cam_up[2] * height,
+        ];
         let (u0, u1) = if flip { (0.999, 0.0) } else { (0.0, 0.999) };
+        let corner = |a: [f32; 3], b: [f32; 3]| [origin[0] + a[0] + b[0], origin[1] + a[1] + b[1], origin[2] + a[2] + b[2]];
         push_quad(
             verts,
             indices,
             [
                 origin,
-                [
-                    origin[0] + right[0] * width,
-                    origin[1],
-                    origin[2] + right[2] * width,
-                ],
-                [
-                    origin[0] + right[0] * width,
-                    origin[1] - height,
-                    origin[2] + right[2] * width,
-                ],
-                [origin[0], origin[1] - height, origin[2]],
+                corner(right_w, [0.0; 3]),
+                corner(right_w, down),
+                corner([0.0; 3], down),
             ],
             [[u0, 0.0], [u1, 0.0], [u1, 1.0], [u0, 1.0]],
             rect,

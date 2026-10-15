@@ -51,16 +51,14 @@ use std::ffi::{c_char, c_int, CString};
 
 use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
-use winit::event::{ElementState, WindowEvent};
+use winit::event::{DeviceEvent, DeviceId, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::keyboard::PhysicalKey;
 use winit::window::{Window, WindowId};
 
 use room::doom::doomgeneric::{DOOMGENERIC_RESX, DOOMGENERIC_RESY};
 
 use gpu::GpuState;
-use platform::keys::to_doom_key;
-use platform::{GPU, KEY_QUEUE, QUIT_REQUESTED, WINDOW};
+use platform::{on_key, on_mouse_button, on_mouse_motion, GPU, QUIT_REQUESTED, WINDOW};
 
 // ---------------------------------------------------------------------------
 // App – the winit ApplicationHandler
@@ -190,20 +188,28 @@ impl ApplicationHandler for App {
                 });
             }
             WindowEvent::KeyboardInput { event, .. } => {
-                if let PhysicalKey::Code(code) = event.physical_key {
-                    // Ignore auto-repeat key presses (key held down).
-                    if event.repeat {
-                        return;
-                    }
-
-                    if let Some(doom_key) = to_doom_key(code) {
-                        let pressed = event.state == ElementState::Pressed;
-                        KEY_QUEUE.with_borrow_mut(|q| q.push_back((pressed, doom_key)));
-                    }
+                if let winit::keyboard::PhysicalKey::Code(code) = event.physical_key {
+                    let pressed = event.state == winit::event::ElementState::Pressed;
+                    on_key(code, pressed, event.repeat);
                 }
+            }
+            WindowEvent::MouseInput { state, button, .. } => {
+                let pressed = state == winit::event::ElementState::Pressed;
+                on_mouse_button(button, pressed);
             }
 
             _ => {}
+        }
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: DeviceId,
+        event: DeviceEvent,
+    ) {
+        if let DeviceEvent::MouseMotion { delta } = event {
+            on_mouse_motion(delta.0, delta.1);
         }
     }
 

@@ -37,7 +37,9 @@ use std::time::Instant;
 #[cfg(target_arch = "wasm32")]
 use web_time::Instant;
 
-use winit::window::Window;
+use winit::event::MouseButton;
+use winit::keyboard::KeyCode;
+use winit::window::{CursorGrabMode, Window};
 
 use crate::gpu::GpuState;
 
@@ -65,6 +67,156 @@ thread_local! {
 
     // Set to `true` when the user asks to close the window.
     pub static QUIT_REQUESTED: Cell<bool> = const { Cell::new(false) };
+
+    // Pointer-lock aim. Yaw is forwarded to Doom. Pitch is view-only:
+    // looking up must not walk the player forward.
+    static MOUSE: RefCell<Mouse> = const { RefCell::new(Mouse::new()) };
+    static CURSOR_LOCKED: Cell<bool> = const { Cell::new(false) };
+    static LOOK_PITCH: Cell<f64> = const { Cell::new(0.0) };
+}
+
+struct Mouse {
+    dx: f64,
+    buttons: i32,
+    dirty: bool,
+}
+
+impl Mouse {
+    const fn new() -> Self {
+        Self { dx: 0.0, buttons: 0, dirty: false }
+    }
+}
+
+/// Record a key. Escape releases the cursor so the menu can be used.
+pub fn on_key(code: KeyCode, pressed: bool, repeat: bool) {
+    if repeat {
+        return;
+    }
+    if code == KeyCode::Escape && pressed {
+        release_pointer();
+    }
+    if let Some(doom_key) = keys::to_doom_key(code) {
+        KEY_QUEUE.with_borrow_mut(|q| q.push_back((pressed, doom_key)));
+    }
+}
+
+/// Left click captures the cursor and fires. Other buttons keep their
+/// Doom bindings (right strafe, middle forward).
+pub fn on_mouse_button(button: MouseButton, pressed: bool) {
+    if button == MouseButton::Left && pressed && level_playing() {
+        capture_pointer();
+    }
+    let Some(bit) = mouse_bit(button) else {
+        return;
+    };
+    MOUSE.with_borrow_mut(|mouse| {
+        if pressed {
+            mouse.buttons |= 1 << bit;
+        } else {
+            mouse.buttons &= !(1 << bit);
+        }
+        mouse.dirty = true;
+    });
+}
+
+/// Turn and look while the cursor is captured.
+///
+/// Horizontal motion is Doom's yaw. Vertical motion pitches the 3D camera
+/// from straight down to straight up, and is not sent to the engine.
+pub fn on_mouse_motion(dx: f64, dy: f64) {
+    if !CURSOR_LOCKED.with(|locked| locked.get()) {
+        return;
+    }
+    if dx != 0.0 {
+        MOUSE.with_borrow_mut(|mouse| {
+            mouse.dx += dx;
+            mouse.dirty = true;
+        });
+    }
+    if dy != 0.0 {
+        // Same radians-per-pixel as `MOUSEX * 8` shifted into a BAM angle.
+        let sens = unsafe { crate::doom::m_menu::mouseSensitivity as f64 };
+        let scale = (sens + 5.0) / 10.0 * 8.0 * 65536.0 / 4294967296.0 * std::f64::consts::TAU;
+        let limit = std::f64::consts::FRAC_PI_2 - 0.01;
+        LOOK_PITCH.with(|pitch| {
+            pitch.set((pitch.get() - dy * scale).clamp(-limit, limit));
+        });
+    }
+}
+
+/// Vertical look in radians. Positive looks up. Clamped just short of
+/// ±90° so the camera can face the sky or the floor without flipping.
+pub fn look_pitch() -> f32 {
+    LOOK_PITCH.with(|pitch| pitch.get() as f32)
+}
+
+/// One mouse sample for this tic: `(x_delta, button_mask)`.
+///
+/// `None` when nothing changed. The button mask stays latched in the engine
+/// until a later sample clears a bit, so a held fire button does not need
+/// to be repeated every tic.
+pub fn take_mouse() -> Option<(i32, i32)> {
+    MOUSE.with_borrow_mut(|mouse| {
+        if !mouse.dirty {
+            return None;
+        }
+        mouse.dirty = false;
+        let dx = mouse.dx.round() as i32;
+        mouse.dx = 0.0;
+        Some((dx, mouse.buttons))
+    })
+}
+
+/// Browser pointer-lock can end without a key event (Escape is swallowed).
+pub fn set_pointer_locked(locked: bool) {
+    CURSOR_LOCKED.with(|c| c.set(locked));
+    if !locked {
+        WINDOW.with_borrow(|w| {
+            if let Some(win) = w.as_ref() {
+                win.set_cursor_visible(true);
+            }
+        });
+    }
+}
+
+fn capture_pointer() {
+    let grabbed = WINDOW.with_borrow(|w| {
+        let Some(win) = w.as_ref() else {
+            return false;
+        };
+        if win.set_cursor_grab(CursorGrabMode::Locked).is_err() {
+            return false;
+        }
+        win.set_cursor_visible(false);
+        true
+    });
+    if grabbed {
+        CURSOR_LOCKED.with(|c| c.set(true));
+    }
+}
+
+fn release_pointer() {
+    CURSOR_LOCKED.with(|c| c.set(false));
+    WINDOW.with_borrow(|w| {
+        if let Some(win) = w.as_ref() {
+            let _ = win.set_cursor_grab(CursorGrabMode::None);
+            win.set_cursor_visible(true);
+        }
+    });
+}
+
+fn level_playing() -> bool {
+    // `GS_LEVEL` is 0. The menu uses the keyboard, so leave the cursor free.
+    unsafe { crate::doom::g_game::gamestate == 0 && crate::doom::m_menu::menuactive == 0 }
+}
+
+fn mouse_bit(button: MouseButton) -> Option<u32> {
+    match button {
+        MouseButton::Left => Some(0),
+        MouseButton::Right => Some(1),
+        MouseButton::Middle => Some(2),
+        MouseButton::Back | MouseButton::Forward | MouseButton::Other(_) => None,
+    }
 }
 
 // ---------------------------------------------------------------------------
