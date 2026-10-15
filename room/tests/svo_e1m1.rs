@@ -62,29 +62,25 @@ fn e1m1_octree_builds() {
         // Texel cells are one map unit: E1M1 is about 58 million of them,
         // which takes a few seconds once per map, not once per frame.
         assert!(ms < 8_000, "octree build took {ms} ms");
-        let frame = scene.svo.take().expect("octree frame");
-        let mut tree = frame.tree.expect("the test keeps the octree");
+        let frame = scene.svo.as_ref().expect("octree frame");
+        assert!(frame.tree.is_some(), "the test keeps the octree");
+        assert!(frame.patch.is_none(), "the first frame should not patch the tree");
+        // A door is a mesh. Moving a ceiling must not touch the octree.
         (*room::doom::p_setup::sectors).ceilingheight += 64 * 65536;
-        let mut scene2 = room::hw::build_scene();
-        let patch = scene2
-            .svo
-            .as_mut()
-            .and_then(|frame| frame.patch.take())
-            .expect("a moved ceiling should splice texels");
         let door = std::time::Instant::now();
-        tree.edit(&patch.remove, &patch.add);
-        tree.prime(patch.eye);
+        let scene2 = room::hw::build_scene();
         let door_ms = door.elapsed().as_millis();
+        let patch = scene2.svo.as_ref().and_then(|frame| frame.patch.as_ref());
         eprintln!(
-            "door splice: {door_ms} ms, remove {}, add {}",
-            patch.remove.len(),
-            patch.add.len()
+            "door mesh: {door_ms} ms, indices {}..{}",
+            scene2.sky_indices, scene2.world_indices
         );
+        assert!(patch.is_none(), "a moving door should stay out of the octree");
         assert!(
-            !patch.remove.is_empty() || !patch.add.is_empty(),
-            "sector 0 produced no texels"
+            scene2.world_indices > scene2.sky_indices,
+            "movers and sprites were not meshed"
         );
-        assert!(door_ms < 150, "door splice took {door_ms} ms");
+        assert!(door_ms < 50, "door mesh took {door_ms} ms");
         room::hw::recycle(scene2);
         room::hw::recycle(scene);
     }

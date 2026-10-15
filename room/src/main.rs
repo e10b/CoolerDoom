@@ -129,18 +129,15 @@ impl ApplicationHandler for App {
     /// Creates the OS window, initialises wgpu, and stores both in the
     /// thread-local platform state so the `DG_*` callbacks can reach them.
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        log::info!(
-            "Creating window ({}×{})",
-            DOOMGENERIC_RESX,
-            DOOMGENERIC_RESY
-        );
+        // The engine's framebuffer stays 640×400. The window is twice that,
+        // so the raytraced view has more pixels and the HUD scales up.
+        let window_w = DOOMGENERIC_RESX as u32 * 2;
+        let window_h = DOOMGENERIC_RESY as u32 * 2;
+        log::info!("Creating window ({window_w}×{window_h})");
 
         let window_attrs = Window::default_attributes()
             .with_title("room")
-            .with_inner_size(LogicalSize::new(
-                DOOMGENERIC_RESX as u32,
-                DOOMGENERIC_RESY as u32,
-            ))
+            .with_inner_size(LogicalSize::new(window_w, window_h))
             .with_resizable(false);
 
         let window = match event_loop.create_window(window_attrs) {

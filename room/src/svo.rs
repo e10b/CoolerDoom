@@ -2,13 +2,25 @@
 //!
 //! Each GPU word keeps a pointer in the top 28 bits and a 4-bit hit counter
 //! in the bottom. A leaf's pointer is `VOXEL_OFFSET` plus a packed colour.
-//! Rays increment the counter. Counters at 4 or more split a leaf; a counter
-//! of 0 folds an internal node back up. The CPU tree supplies the eight child
-//! colours. A moving door restamps only that sector and splices those texels
-//! into the buckets they touch, so the rest of the map stays put.
+//! Rays increment the counter, and each adapt pass decays it by one. A leaf at
+//! 4 or more splits. An internal node at 0 folds, unless it still sits in
+//! front of the camera. Counters stay on the GPU; a structural edit rewrites
+//! only the slots it changed.
 
 use crate::hw::Vertex;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
+
+/// A floor, ceiling, or wall tagged at stamp time so a door can slide those
+/// texels instead of rasterizing the sector again.
+pub fn surface_owner(id: u32, kind: u32) -> u32 {
+    (id << 3) | (kind & 7)
+}
+
+pub const KIND_FLOOR: u32 = 0;
+pub const KIND_CEIL: u32 = 1;
+pub const KIND_UPPER: u32 = 2;
+pub const KIND_LOWER: u32 = 3;
+pub const KIND_MID: u32 = 4;
 
 const VOXEL_OFFSET: u32 = 134_217_728;
 /// One map unit is one texel on Doom's walls and flats. The grid stays a
@@ -27,6 +39,8 @@ pub struct Built {
     /// How many top path digits select a bucket. Zero means one bucket.
     bucket_digits: u32,
     view: View,
+    /// Bucket prefixes that hold each tagged surface.
+    owned: HashMap<u32, Vec<u64>>,
     pub origin: [f32; 3],
     /// World length of the cube. Voxel size is `cube / grid`.
     pub cube: f32,
@@ -34,10 +48,21 @@ pub struct Built {
     changed: bool,
 }
 
-/// Texels to delete and texels to insert. Keys are octree path keys.
+/// One tagged surface sliding by `dy` grid cells.
+///
+/// `clip` keeps only the grid-Y range `[lo, hi)`. `fill` copies a column's
+/// nearest texel into any Y the span gained, which is how a door face grows
+/// by a strip without resampling the texture.
+pub struct Nudge {
+    pub owner: u32,
+    pub dy: i32,
+    pub clip: Option<(i32, i32)>,
+    pub fill: bool,
+}
+
+/// Surfaces to slide. The GPU tree already has the texels.
 pub struct Patch {
-    pub remove: Vec<u64>,
-    pub add: Vec<(u64, u32)>,
+    pub nudges: Vec<Nudge>,
     pub eye: [f32; 3],
 }
 
@@ -119,7 +144,11 @@ impl Built {
                             && born_keys.binary_search(&s.key).is_err()
                     });
                     for (key, color) in born {
-                        solids.push(Solid { key, color });
+                        solids.push(Solid {
+                            key,
+                            color,
+                            owner: 0,
+                        });
                     }
                     solids.sort_unstable_by_key(|s| s.key);
                     solids.dedup_by_key(|s| s.key);
@@ -130,7 +159,11 @@ impl Built {
                     }
                     let solids: Vec<Solid> = born
                         .into_iter()
-                        .map(|(key, color)| Solid { key, color })
+                        .map(|(key, color)| Solid {
+                            key,
+                            color,
+                            owner: 0,
+                        })
                         .collect();
                     self.buckets.insert(i, Bucket { prefix, solids });
                 }
@@ -149,12 +182,23 @@ impl Built {
     }
 
     /// Apply the compute pass's queues. `subdivide` lists leaves whose hit
-    /// counter reached 4. `unsubdivide` lists internal nodes nobody looked at.
-    pub fn apply_hits(&mut self, subdivide: &[u32], unsubdivide: &[u32]) -> bool {
+    /// counter reached 4. `unsubdivide` lists internal nodes at 0.
+    ///
+    /// `gaze` is the camera position and view direction in world space. Nodes
+    /// that still overlap the forward half-space are left open, so backing up
+    /// does not throw away the detail in front of the camera. `None` folds
+    /// every queued node.
+    pub fn apply_hits(
+        &mut self,
+        subdivide: &[u32],
+        unsubdivide: &[u32],
+        gaze: Option<([f32; 3], [f32; 3])>,
+    ) -> bool {
         let mut changed = false;
+        let gaze = gaze.map(|(eye, forward)| (self.oct(eye), unit(forward)));
         let mut made = 0usize;
         for &id in subdivide {
-            if made >= 1_024_000 || self.view.nodes.len() >= 2_000_000 {
+            if made >= 1_024_000 || !self.view.can_split() {
                 break;
             }
             if self.view.subdivide(
@@ -169,10 +213,14 @@ impl Built {
         }
         let mut folded = 0usize;
         for &id in unsubdivide {
-            if folded >= 1_024_000 || self.view.nodes.len() >= 2_000_000 {
+            if folded >= 1_024_000 {
                 break;
             }
-            if self.view.unsubdivide(id as usize) {
+            let idx = id as usize;
+            if gaze.is_some_and(|(eye, forward)| self.view.in_front(idx, eye, forward)) {
+                continue;
+            }
+            if self.view.unsubdivide(idx) {
                 folded += 1;
                 changed = true;
             }
@@ -181,6 +229,156 @@ impl Built {
             self.changed = true;
         }
         changed
+    }
+
+    /// Node words written since the last call. The GPU buffer keeps every
+    /// other slot, including its hit counter.
+    pub fn take_node_edits(&mut self) -> Vec<(u32, u32)> {
+        let mut ids = std::mem::take(&mut self.view.edits);
+        ids.sort_unstable();
+        ids.dedup();
+        ids.into_iter()
+            .filter(|&i| (i as usize) < self.view.nodes.len())
+            .map(|i| (i, self.view.nodes[i as usize]))
+            .collect()
+    }
+
+    pub fn clear_node_edits(&mut self) {
+        self.view.edits.clear();
+    }
+
+    /// Slide tagged texels and reopen only the buckets they leave or enter.
+    pub fn apply_nudges(&mut self, nudges: &[Nudge], eye_world: [f32; 3]) {
+        if nudges.is_empty() {
+            return;
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        let started = std::time::Instant::now();
+        let mut touched = Vec::new();
+        for nudge in nudges {
+            if nudge.owner == 0 || (nudge.dy == 0 && nudge.clip.is_none()) {
+                continue;
+            }
+            touched.extend(self.nudge_solids(nudge));
+        }
+        touched.sort_unstable();
+        touched.dedup();
+        let eye = self.oct(eye_world);
+        let mut open = Vec::new();
+        for prefix in touched {
+            if let Some(idx) = self.view.resync_bucket(
+                &self.buckets,
+                self.bits,
+                self.bucket_digits,
+                prefix,
+            ) {
+                open.push(idx);
+            }
+        }
+        let mut budget = 8_000usize;
+        for idx in open {
+            self.view.open_from(
+                idx,
+                &self.buckets,
+                self.bits,
+                self.bucket_digits,
+                eye,
+                &mut budget,
+            );
+        }
+        self.changed = true;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let ms = started.elapsed().as_millis();
+            if ms >= 8 {
+                log::info!("octree: slid door surfaces in {ms} ms");
+            }
+        }
+    }
+
+    fn nudge_solids(&mut self, nudge: &Nudge) -> Vec<u64> {
+        let Some(prefixes) = self.owned.remove(&nudge.owner) else {
+            return Vec::new();
+        };
+        let mut taken = Vec::new();
+        let mut touched = prefixes.clone();
+        for prefix in &prefixes {
+            let Ok(i) = self.buckets.binary_search_by_key(prefix, |b| b.prefix) else {
+                continue;
+            };
+            let solids = &mut self.buckets[i].solids;
+            let mut keep = Vec::with_capacity(solids.len());
+            for solid in solids.drain(..) {
+                if solid.owner == nudge.owner {
+                    taken.push(solid);
+                } else {
+                    keep.push(solid);
+                }
+            }
+            *solids = keep;
+        }
+        self.buckets.retain(|b| !b.solids.is_empty());
+        let bits_i = self.bits as i32;
+        let limit = 1i32 << bits_i;
+        let mut moved = Vec::with_capacity(taken.len());
+        for solid in taken {
+            let (x, mut y, z) = decode(solid.key, bits_i);
+            y += nudge.dy;
+            if let Some((lo, hi)) = nudge.clip {
+                if hi <= lo || y < lo || y >= hi {
+                    continue;
+                }
+            }
+            if y < 0 || y >= limit {
+                continue;
+            }
+            moved.push(Solid {
+                key: path_key(x, y, z, bits_i),
+                color: solid.color,
+                owner: solid.owner,
+            });
+        }
+        if nudge.fill {
+            if let Some((lo, hi)) = nudge.clip {
+                fill_columns(&mut moved, lo, hi, bits_i);
+            }
+        }
+        moved.sort_unstable_by_key(|s| s.key);
+        moved.dedup_by_key(|s| s.key);
+        let mut fresh = Vec::new();
+        let mut start = 0;
+        while start < moved.len() {
+            let prefix = prefix_of(moved[start].key, self.bits, self.bucket_digits);
+            let mut end = start + 1;
+            while end < moved.len()
+                && prefix_of(moved[end].key, self.bits, self.bucket_digits) == prefix
+            {
+                end += 1;
+            }
+            match self.buckets.binary_search_by_key(&prefix, |b| b.prefix) {
+                Ok(i) => {
+                    self.buckets[i].solids.extend(moved[start..end].iter().cloned());
+                    self.buckets[i].solids.sort_unstable_by_key(|s| s.key);
+                    self.buckets[i].solids.dedup_by_key(|s| s.key);
+                }
+                Err(i) => {
+                    self.buckets.insert(
+                        i,
+                        Bucket {
+                            prefix,
+                            solids: moved[start..end].to_vec(),
+                        },
+                    );
+                }
+            }
+            fresh.push(prefix);
+            touched.push(prefix);
+            start = end;
+        }
+        if !fresh.is_empty() {
+            self.owned.insert(nudge.owner, fresh);
+        }
+        touched
     }
 
     fn oct(&self, world: [f32; 3]) -> [f32; 3] {
@@ -194,6 +392,18 @@ impl Built {
 
 /// Voxelise map triangles into an octree. `indices` cover the whole `verts` slice.
 pub fn build(verts: &[Vertex], indices: &[u32], pixels: &[u8], atlas: i32) -> Option<Built> {
+    build_surfaces(verts, indices, &[], pixels, atlas)
+}
+
+/// Voxelise map triangles. `owners[i]` tags triangle `i` so a later door slide
+/// can find those texels.
+pub fn build_surfaces(
+    verts: &[Vertex],
+    indices: &[u32],
+    owners: &[u32],
+    pixels: &[u8],
+    atlas: i32,
+) -> Option<Built> {
     if verts.is_empty() || indices.len() < 3 {
         return None;
     }
@@ -227,13 +437,14 @@ pub fn build(verts: &[Vertex], indices: &[u32], pixels: &[u8], atlas: i32) -> Op
         .map(|t| [t[0] as usize, t[1] as usize, t[2] as usize])
         .filter(|t| t.iter().all(|i| *i < verts.len()))
         .collect();
-    let solids = voxelize(verts, &tris, min, cell, grid, pixels, atlas);
+    let solids = voxelize(verts, &tris, owners, min, cell, grid, pixels, atlas);
     if solids.is_empty() {
         return None;
     }
     let bits = grid.trailing_zeros();
     let bucket_digits = bucket_digits(bits);
     let buckets = into_buckets(solids, bits, bucket_digits);
+    let owned = index_owners(&buckets);
     let voxels: usize = buckets.iter().map(|b| b.solids.len()).sum();
     log::info!(
         "octree voxels {voxels} grid {grid} cell {cell} buckets {}",
@@ -246,6 +457,7 @@ pub fn build(verts: &[Vertex], indices: &[u32], pixels: &[u8], atlas: i32) -> Op
         bits,
         bucket_digits,
         view,
+        owned,
         origin: min,
         cube,
         grid,
@@ -271,7 +483,7 @@ pub fn stamp_mesh(
         .map(|t| [t[0] as usize, t[1] as usize, t[2] as usize])
         .filter(|t| t.iter().all(|i| *i < verts.len()))
         .collect();
-    voxelize(verts, &tris, origin, cell, grid, pixels, atlas)
+    voxelize(verts, &tris, &[], origin, cell, grid, pixels, atlas)
         .into_iter()
         .map(|s| (s.key, s.color))
         .collect()
@@ -280,13 +492,14 @@ pub fn stamp_mesh(
 fn voxelize(
     verts: &[Vertex],
     tris: &[[usize; 3]],
+    owners: &[u32],
     origin: [f32; 3],
     cell: f32,
     grid: u32,
     pixels: &[u8],
     atlas: i32,
 ) -> Vec<Solid> {
-    let raw = stamp_tris(verts, tris, origin, cell, grid, pixels, atlas);
+    let raw = stamp_tris(verts, tris, owners, origin, cell, grid, pixels, atlas);
     if raw.is_empty() {
         return Vec::new();
     }
@@ -296,6 +509,7 @@ fn voxelize(
         .map(|raw| Solid {
             key: path_key(raw.x as i32, raw.y as i32, raw.z as i32, bits),
             color: raw.color,
+            owner: raw.owner,
         })
         .collect();
     solids.sort_unstable_by_key(|s| s.key);
@@ -308,11 +522,14 @@ struct Raw {
     y: u16,
     z: u16,
     color: u32,
+    owner: u32,
 }
 
+#[derive(Clone)]
 struct Solid {
     key: u64,
     color: u32,
+    owner: u32,
 }
 
 struct Bucket {
@@ -399,9 +616,79 @@ fn bucket_bounds(buckets: &[Bucket], digits: u32, depth: u32, route: u64) -> (us
     (start, end)
 }
 
+fn index_owners(buckets: &[Bucket]) -> HashMap<u32, Vec<u64>> {
+    let mut map: HashMap<u32, Vec<u64>> = HashMap::new();
+    for bucket in buckets {
+        let mut seen = Vec::new();
+        for solid in &bucket.solids {
+            if solid.owner == 0 || seen.contains(&solid.owner) {
+                continue;
+            }
+            seen.push(solid.owner);
+            map.entry(solid.owner).or_default().push(bucket.prefix);
+        }
+    }
+    map
+}
+
+fn decode(key: u64, bits: i32) -> (i32, i32, i32) {
+    let mut x = 0i32;
+    let mut y = 0i32;
+    let mut z = 0i32;
+    for shift in 0..bits {
+        let digit = ((key >> (shift * 3)) & 7) as i32;
+        x |= ((digit >> 2) & 1) << shift;
+        y |= ((digit >> 1) & 1) << shift;
+        z |= (digit & 1) << shift;
+    }
+    (x, y, z)
+}
+
+fn fill_columns(solids: &mut Vec<Solid>, lo: i32, hi: i32, bits: i32) {
+    if solids.is_empty() || hi <= lo || hi - lo > 512 {
+        return;
+    }
+    solids.sort_by_key(|solid| {
+        let (x, y, z) = decode(solid.key, bits);
+        (x, z, y)
+    });
+    let mut extra = Vec::new();
+    let mut i = 0;
+    while i < solids.len() {
+        let (x, _, z) = decode(solids[i].key, bits);
+        let mut j = i + 1;
+        while j < solids.len() {
+            let (x2, _, z2) = decode(solids[j].key, bits);
+            if x2 != x || z2 != z {
+                break;
+            }
+            j += 1;
+        }
+        for y in lo..hi {
+            if solids[i..j].iter().any(|solid| decode(solid.key, bits).1 == y) {
+                continue;
+            }
+            let nearest = solids[i..j].iter().min_by_key(|solid| {
+                let have = decode(solid.key, bits).1;
+                (have - y).abs()
+            });
+            if let Some(nearest) = nearest {
+                extra.push(Solid {
+                    key: path_key(x, y, z, bits),
+                    color: nearest.color,
+                    owner: nearest.owner,
+                });
+            }
+        }
+        i = j;
+    }
+    solids.extend(extra);
+}
+
 fn stamp_tris(
     verts: &[Vertex],
     tris: &[[usize; 3]],
+    owners: &[u32],
     origin: [f32; 3],
     cell: f32,
     grid: u32,
@@ -415,10 +702,12 @@ fn stamp_tris(
     let chunk = tris.len().div_ceil(workers).max(1);
     std::thread::scope(|scope| {
         let mut joins = Vec::new();
-        for part in tris.chunks(chunk) {
+        for (offset, part) in tris.chunks(chunk).enumerate() {
+            let base = offset * chunk;
             joins.push(scope.spawn(move || {
                 let mut out = Vec::new();
-                for tri in part {
+                for (n, tri) in part.iter().enumerate() {
+                    let owner = owners.get(base + n).copied().unwrap_or(0);
                     stamp(
                         &verts[tri[0]],
                         &verts[tri[1]],
@@ -428,6 +717,7 @@ fn stamp_tris(
                         grid,
                         pixels,
                         atlas,
+                        owner,
                         &mut out,
                     );
                 }
@@ -451,6 +741,7 @@ fn stamp(
     grid: u32,
     pixels: &[u8],
     atlas: i32,
+    owner: u32,
     voxels: &mut Vec<Raw>,
 ) {
     let to_grid = |p: [f32; 3]| -> [f32; 3] {
@@ -552,6 +843,7 @@ fn stamp(
                     y: xyz[1] as u16,
                     z: xyz[2] as u16,
                     color,
+                    owner,
                 });
             }
         }
@@ -683,6 +975,11 @@ struct View {
     span: Vec<(u32, u32)>,
     colors: Vec<u32>,
     holes: Vec<usize>,
+    /// Shallowest fine node for a bucket prefix.
+    fine_at: HashMap<u64, usize>,
+    /// Slots whose word changed. The GPU upload writes these and leaves the
+    /// hit counters in every other slot alone.
+    edits: Vec<u32>,
 }
 
 impl View {
@@ -697,6 +994,8 @@ impl View {
             span: Vec::new(),
             colors: Vec::new(),
             holes: Vec::new(),
+            fine_at: HashMap::new(),
+            edits: Vec::new(),
         };
         if bucket_digits == 0 {
             let solids = buckets.first().map(|b| b.solids.as_slice()).unwrap_or(&[]);
@@ -752,17 +1051,66 @@ impl View {
         self.bucket_prefix.push(slot.bucket_prefix);
         self.span.push((slot.start as u32, slot.end as u32));
         self.colors.push(slot.color);
+        let idx = self.nodes.len() - 1;
+        self.edits.push(idx as u32);
+        self.note_fine(idx);
     }
 
     fn write_slot(&mut self, at: usize, slot: Slot) {
-        self.nodes[at] = slot.word;
+        self.set_word(at, slot.word);
         self.positions[at] = slot.pos;
         self.depths[at] = slot.depth;
         self.route[at] = slot.route;
         self.fine[at] = slot.fine;
         self.bucket_prefix[at] = slot.bucket_prefix;
+        if self.fine[at] == 1 {
+            let old = self.bucket_prefix[at];
+            if self.fine_at.get(&old) == Some(&at) {
+                self.fine_at.remove(&old);
+            }
+        }
         self.span[at] = (slot.start as u32, slot.end as u32);
         self.colors[at] = slot.color;
+        self.note_fine(at);
+    }
+
+    fn set_word(&mut self, at: usize, word: u32) {
+        self.nodes[at] = word;
+        self.edits.push(at as u32);
+    }
+
+    /// Stop growing the node vec once it is full and no folded block is free.
+    fn can_split(&self) -> bool {
+        self.nodes.len() < 2_000_000 || !self.holes.is_empty()
+    }
+
+    /// True when this node's box still reaches into the forward half-space.
+    fn in_front(&self, node: usize, eye: [f32; 3], forward: [f32; 3]) -> bool {
+        if node >= self.positions.len() || self.depths[node] == 0 {
+            return false;
+        }
+        let pos = self.positions[node];
+        let cell = 2.0 / (1u32 << self.depths[node].min(24)) as f32;
+        let along = (pos[0] - eye[0]) * forward[0]
+            + (pos[1] - eye[1]) * forward[1]
+            + (pos[2] - eye[2]) * forward[2];
+        along + cell * 0.5 > -0.001
+    }
+
+    fn note_fine(&mut self, idx: usize) {
+        if idx >= self.nodes.len() || self.fine[idx] == 0 || self.depths[idx] == 0 {
+            return;
+        }
+        let prefix = self.bucket_prefix[idx];
+        match self.fine_at.get(&prefix).copied() {
+            Some(old)
+                if old < self.depths.len()
+                    && self.depths[old] != 0
+                    && self.depths[old] <= self.depths[idx] => {}
+            _ => {
+                self.fine_at.insert(prefix, idx);
+            }
+        }
     }
 
     /// Fold one bucket's leaves back together after its texels change.
@@ -774,38 +1122,29 @@ impl View {
         bits: u32,
         bucket_digits: u32,
         prefix: u64,
-    ) {
+    ) -> Option<usize> {
         if bucket_digits == 0 {
             *self = Self::from_root(buckets, bits, 0);
-            return;
+            return None;
         }
         let (color, len) = buckets
             .binary_search_by_key(&prefix, |b| b.prefix)
             .ok()
             .and_then(|i| buckets[i].solids.first().map(|s| (s.color, buckets[i].solids.len())))
             .unwrap_or((0, 0));
-        let found = self.shallowest_fine(prefix);
+        let found = self.fine_at.get(&prefix).copied().filter(|&idx| {
+            idx < self.nodes.len() && self.depths[idx] != 0 && self.bucket_prefix[idx] == prefix
+        });
         if let Some(idx) = found {
             self.install_fine(idx, prefix, color, len as u32);
+            if len > 0 { Some(idx) } else { None }
         } else if len > 0 {
-            if let Some(idx) = self.walk_bucket(buckets, bits, bucket_digits, prefix) {
-                self.install_fine(idx, prefix, color, len as u32);
-            }
+            let idx = self.walk_bucket(buckets, bits, bucket_digits, prefix)?;
+            self.install_fine(idx, prefix, color, len as u32);
+            Some(idx)
+        } else {
+            None
         }
-    }
-
-    fn shallowest_fine(&self, prefix: u64) -> Option<usize> {
-        let mut best: Option<(usize, u32)> = None;
-        for i in 0..self.nodes.len() {
-            if self.depths[i] == 0 || self.fine[i] == 0 || self.bucket_prefix[i] != prefix {
-                continue;
-            }
-            let depth = self.depths[i];
-            if best.map(|(_, d)| depth < d).unwrap_or(true) {
-                best = Some((i, depth));
-            }
-        }
-        best.map(|(i, _)| i)
     }
 
     fn install_fine(&mut self, idx: usize, prefix: u64, color: u32, len: u32) {
@@ -815,11 +1154,60 @@ impl View {
         if (self.nodes[idx] >> 4) < VOXEL_OFFSET {
             self.unsubdivide(idx);
         }
-        self.nodes[idx] = gpu_leaf(color);
+        self.set_word(idx, gpu_leaf(color));
         self.colors[idx] = color;
         self.span[idx] = (0, len);
         self.fine[idx] = 1;
         self.bucket_prefix[idx] = prefix;
+        self.fine_at.insert(prefix, idx);
+    }
+
+    /// Open one folded bucket toward the eye. Nodes outside this subtree stay.
+    fn open_from(
+        &mut self,
+        node: usize,
+        buckets: &[Bucket],
+        bits: u32,
+        bucket_digits: u32,
+        eye: [f32; 3],
+        budget: &mut usize,
+    ) {
+        if *budget == 0 || node >= self.nodes.len() || self.depths[node] == 0 {
+            return;
+        }
+        let ptr = self.nodes[node] >> 4;
+        if ptr < VOXEL_OFFSET {
+            let at = ptr as usize;
+            for k in 0..8 {
+                self.open_from(at + k, buckets, bits, bucket_digits, eye, budget);
+            }
+            return;
+        }
+        let depth = self.depths[node];
+        if depth >= bits {
+            return;
+        }
+        let (start, end) = self.span[node];
+        if self.fine[node] == 1 && start >= end {
+            return;
+        }
+        let pos = self.positions[node];
+        let cell = 2.0 / (1u32 << depth) as f32;
+        let dx = pos[0] - eye[0];
+        let dy = pos[1] - eye[1];
+        let dz = pos[2] - eye[2];
+        let near = (dx * dx + dy * dy + dz * dz).sqrt() <= cell * 1.5;
+        if !(near || depth < bucket_digits.saturating_add(2)) {
+            return;
+        }
+        if !self.subdivide(buckets, bits, bucket_digits, node) {
+            return;
+        }
+        *budget = budget.saturating_sub(1);
+        let at = (self.nodes[node] >> 4) as usize;
+        for k in 0..8 {
+            self.open_from(at + k, buckets, bits, bucket_digits, eye, budget);
+        }
     }
 
     fn walk_bucket(
@@ -974,7 +1362,7 @@ impl View {
         let pos = self.positions[node];
         let route = self.route[node];
         let at = self.alloc_children();
-        self.nodes[node] = (at as u32) << 4;
+        self.set_word(node, (at as u32) << 4);
         for digit in 0..8 {
             let child_route = (route << 3) | digit as u64;
             let (fine, prefix, child_start, child_end, color) =
@@ -1031,7 +1419,7 @@ impl View {
         let pos = self.positions[node];
         let route = self.route[node];
         let at = self.alloc_children();
-        self.nodes[node] = (at as u32) << 4;
+        self.set_word(node, (at as u32) << 4);
         for digit in 0..8 {
             let child_start = edge[digit];
             let child_end = edge[digit + 1];
@@ -1099,7 +1487,7 @@ impl View {
                 self.unsubdivide(child);
             }
         }
-        self.nodes[node] = gpu_leaf(self.colors[node]);
+        self.set_word(node, gpu_leaf(self.colors[node]));
         for k in 0..8 {
             self.depths[at + k] = 0;
         }
@@ -1129,7 +1517,7 @@ impl View {
                 let dz = pos[2] - eye[2];
                 let far = dx * dx + dy * dy + dz * dz > (cell * 14.0) * (cell * 14.0);
                 if kids_are_leaves && depth > 3 && far {
-                    self.nodes[i] = gpu_leaf(self.colors[i]);
+                    self.set_word(i, gpu_leaf(self.colors[i]));
                     for k in 0..8 {
                         self.depths[at + k] = 0;
                     }
@@ -1141,6 +1529,14 @@ impl View {
         }
         changed
     }
+}
+
+fn unit(v: [f32; 3]) -> [f32; 3] {
+    let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+    if len < 1.0e-8 {
+        return [0.0, 0.0, 1.0];
+    }
+    [v[0] / len, v[1] / len, v[2] / len]
 }
 
 fn add3(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
@@ -1292,7 +1688,7 @@ mod tests {
         let mut built = build(&verts, &[0, 1, 2, 0, 2, 3], &[180, 180, 180, 255], 1).expect("octree");
         let before = built.nodes().len();
         let ids: Vec<u32> = (0..before as u32).collect();
-        assert!(built.apply_hits(&ids, &[]), "a looked-at leaf should split");
+        assert!(built.apply_hits(&ids, &[], None), "a looked-at leaf should split");
         assert!(built.nodes().len() > before);
         let internal: Vec<u32> = built
             .nodes()
@@ -1302,7 +1698,99 @@ mod tests {
             .map(|(i, _)| i as u32)
             .collect();
         assert!(!internal.is_empty());
-        assert!(built.apply_hits(&[], &internal), "an unseen node should fold up");
+        assert!(built.apply_hits(&[], &internal, None), "an unseen node should fold up");
+    }
+
+    #[test]
+    fn detail_in_front_of_the_camera_does_not_fold() {
+        let verts = [
+            vert([0.0, 0.0, 0.0]),
+            vert([32.0, 0.0, 0.0]),
+            vert([32.0, 0.0, 32.0]),
+            vert([0.0, 0.0, 32.0]),
+        ];
+        let mut built = build(&verts, &[0, 1, 2, 0, 2, 3], &[180, 180, 180, 255], 1).expect("octree");
+        let ids: Vec<u32> = (0..built.nodes().len() as u32).collect();
+        assert!(built.apply_hits(&ids, &[], None));
+        let internal: Vec<u32> = built
+            .nodes()
+            .iter()
+            .enumerate()
+            .filter(|(_, word)| **word != 0 && (**word >> 4) < VOXEL_OFFSET)
+            .map(|(i, _)| i as u32)
+            .collect();
+        let open = built.nodes().len();
+        // The whole cube is in front of a camera sitting just off its −X face.
+        let eye = [
+            built.origin[0] - built.cube,
+            built.origin[1],
+            built.origin[2],
+        ];
+        assert!(!built.apply_hits(&[], &internal, Some((eye, [1.0, 0.0, 0.0]))));
+        assert_eq!(built.nodes().len(), open);
+        // The same nodes fold once the camera is looking the other way.
+        let behind = [
+            built.origin[0] + built.cube * 2.0,
+            built.origin[1],
+            built.origin[2],
+        ];
+        assert!(built.apply_hits(&[], &internal, Some((behind, [1.0, 0.0, 0.0]))));
+    }
+
+    #[test]
+    fn sliding_a_tagged_floor_moves_its_texels_up() {
+        let verts = [
+            vert([0.0, 0.0, 0.0]),
+            vert([4.0, 0.0, 0.0]),
+            vert([4.0, 0.0, 4.0]),
+            vert([0.0, 0.0, 4.0]),
+        ];
+        let mut built = build_surfaces(
+            &verts,
+            &[0, 1, 2, 0, 2, 3],
+            &[7, 7],
+            &[180, 180, 180, 255],
+            1,
+        )
+        .expect("octree");
+        let bits = built.grid.trailing_zeros() as i32;
+        let before: Vec<(i32, i32, i32, u32)> = built
+            .buckets
+            .iter()
+            .flat_map(|bucket| bucket.solids.iter())
+            .filter(|solid| solid.owner == 7)
+            .map(|solid| {
+                let (x, y, z) = decode(solid.key, bits);
+                (x, y, z, solid.color)
+            })
+            .collect();
+        assert!(!before.is_empty());
+        built.apply_nudges(
+            &[Nudge {
+                owner: 7,
+                dy: 3,
+                clip: None,
+                fill: false,
+            }],
+            [0.0, 1.0, 0.0],
+        );
+        let after: Vec<(i32, i32, i32, u32)> = built
+            .buckets
+            .iter()
+            .flat_map(|bucket| bucket.solids.iter())
+            .filter(|solid| solid.owner == 7)
+            .map(|solid| {
+                let (x, y, z) = decode(solid.key, bits);
+                (x, y, z, solid.color)
+            })
+            .collect();
+        assert_eq!(after.len(), before.len());
+        for (x, y, z, color) in &before {
+            assert!(
+                after.contains(&(*x, *y + 3, *z, *color)),
+                "texel {x},{y},{z} did not slide"
+            );
+        }
     }
 
     #[test]

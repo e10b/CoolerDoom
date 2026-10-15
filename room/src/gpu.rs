@@ -399,7 +399,7 @@ struct Queue {
 };
 
 @group(0) @binding(0) var<uniform> u: AdaptUniform;
-@group(0) @binding(1) var<storage, read> node_words: array<u32>;
+@group(0) @binding(1) var<storage, read_write> node_words: array<u32>;
 @group(0) @binding(2) var<storage, read_write> sub: Queue;
 @group(0) @binding(3) var<storage, read_write> unsub: Queue;
 
@@ -415,6 +415,11 @@ fn cs_adapt(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
     let counter = node & 15u;
     let ptr = node >> 4u;
+    // One frame of looking is not enough to keep a counter forever, and one
+    // missed frame is not enough to drop it. Decay happens after the test.
+    if (counter > 0u) {
+        node_words[id] = node - 1u;
+    }
     if (counter == 0u && ptr < VOXEL_OFFSET) {
         let index = atomicAdd(&unsub.counter, 1u);
         if (index < 1023999u) {
@@ -549,6 +554,8 @@ pub struct GpuState {
     /// CPU octree the hit counters split and merge. Native only uses it.
     octree: Option<crate::svo::Built>,
     octree_dirty: bool,
+    /// Camera for the fold pass: world position and view direction.
+    svo_gaze: Option<([f32; 3], [f32; 3])>,
 }
 
 /// Constructors and frame-time operations for [`GpuState`].
@@ -856,6 +863,7 @@ impl GpuState {
             world: None,
             octree: None,
             octree_dirty: false,
+            svo_gaze: None,
         })
     }
 
@@ -1000,28 +1008,26 @@ impl GpuState {
             .as_ref()
             .map(|(size, rgba)| (*size, rgba.as_slice()));
         if let Some(frame) = scene.svo.as_mut() {
-            if let Some(tree) = frame.tree.take() {
+            self.svo_gaze = Some((frame.eye, frame.forward));
+            if let Some(mut tree) = frame.tree.take() {
+                // The full upload below already carries these words.
+                tree.clear_node_edits();
                 self.octree = Some(tree);
                 self.octree_dirty = true;
             }
             if let Some(patch) = frame.patch.take() {
                 if let Some(tree) = self.octree.as_mut() {
-                    #[cfg(not(target_arch = "wasm32"))]
-                    let started = std::time::Instant::now();
-                    tree.edit(&patch.remove, &patch.add);
-                    tree.prime(patch.eye);
+                    tree.apply_nudges(&patch.nudges, patch.eye);
                     self.octree_dirty = true;
-                    #[cfg(not(target_arch = "wasm32"))]
-                    log::info!(
-                        "octree: door spliced into the live tree in {} ms",
-                        started.elapsed().as_millis()
-                    );
                 }
             }
         }
         let node_upload = if self.octree_dirty {
             self.octree_dirty = false;
-            self.octree.as_ref().map(|tree| tree.nodes().to_vec())
+            self.octree.as_mut().map(|tree| {
+                tree.clear_node_edits();
+                tree.nodes().to_vec()
+            })
         } else {
             None
         };
@@ -1798,7 +1804,9 @@ fn svo_nodes_and_bind(
         let nodes = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("doom_svo_nodes"),
             size: 65_536,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
         let bind = svo_storage_bind(device, layout, uniform, &nodes);
@@ -1820,7 +1828,9 @@ fn upload_svo_nodes(
         let buf = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("doom_svo_nodes"),
             size: cap,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         });
         world.svo_bind = svo_storage_bind(device, &world.svo_layout, &world.svo_uniform, &buf);
@@ -1833,6 +1843,77 @@ fn upload_svo_nodes(
     if let Some(buf) = &world.node_buf {
         queue.write_buffer(buf, 0, bytemuck::cast_slice(nodes));
     }
+}
+
+/// Write the slots a split or fold changed. Every other word keeps the hit
+/// counter the tracer left there. Growing the buffer copies the old counters
+/// across first.
+fn patch_svo_nodes(
+    world: &mut WorldGpu,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    edits: &[(u32, u32)],
+    node_len: usize,
+) {
+    if edits.is_empty() {
+        return;
+    }
+    let need = (node_len as u64).saturating_mul(4).max(4);
+    let fits = world.node_buf.as_ref().is_some_and(|buf| buf.size() >= need);
+    if !fits {
+        let cap = need.next_power_of_two().max(65_536);
+        let buf = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("doom_svo_nodes"),
+            size: cap,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        if let Some(old) = world.node_buf.take() {
+            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("doom_svo_grow"),
+            });
+            encoder.copy_buffer_to_buffer(&old, 0, &buf, 0, old.size().min(cap));
+            queue.submit(std::iter::once(encoder.finish()));
+            let _ = device.poll(wgpu::PollType::wait_indefinitely());
+        }
+        world.svo_bind = svo_storage_bind(device, &world.svo_layout, &world.svo_uniform, &buf);
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(adapt) = world.adapt.as_mut() {
+            adapt.rebind(device, &buf);
+        }
+        world.node_buf = Some(buf);
+    }
+    let Some(buf) = &world.node_buf else {
+        return;
+    };
+    let mut run: Vec<u32> = Vec::new();
+    let mut run_at = 0u64;
+    let flush = |queue: &wgpu::Queue, buf: &wgpu::Buffer, run_at: u64, run: &mut Vec<u32>| {
+        if run.is_empty() {
+            return;
+        }
+        queue.write_buffer(buf, run_at, bytemuck::cast_slice(run));
+        run.clear();
+    };
+    for &(index, word) in edits {
+        let offset = index as u64 * 4;
+        if offset + 4 > buf.size() {
+            continue;
+        }
+        if run.is_empty() {
+            run_at = offset;
+            run.push(word);
+        } else if offset == run_at + (run.len() as u64) * 4 {
+            run.push(word);
+        } else {
+            flush(queue, buf, run_at, &mut run);
+            run_at = offset;
+            run.push(word);
+        }
+    }
+    flush(queue, buf, run_at, &mut run);
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -1849,7 +1930,7 @@ impl SvoAdapt {
             label: Some("doom_svo_adapt_layout"),
             entries: &[
                 storage_layout(0, true, false),
-                storage_layout(1, false, true),
+                storage_layout(1, false, false),
                 storage_layout(2, false, false),
                 storage_layout(3, false, false),
             ],
@@ -2005,16 +2086,18 @@ fn finish_adapt(state: &mut GpuState) {
             map_ids(&device, &adapt.unsub_read),
         )
     };
+    let gaze = state.svo_gaze;
     if let Some(tree) = state.octree.as_mut() {
-        tree.apply_hits(&sub, &unsub);
+        tree.apply_hits(&sub, &unsub, gaze);
     }
-    let Some(words) = state.octree.as_ref().map(|tree| tree.nodes().to_vec()) else {
+    let Some(edits) = state.octree.as_mut().map(|tree| tree.take_node_edits()) else {
         return;
     };
+    let node_len = state.octree.as_ref().map(|tree| tree.nodes().len()).unwrap_or(0);
     let device = state.device.clone();
     let queue = state.queue.clone();
     if let Some(world) = state.world.as_mut() {
-        upload_svo_nodes(world, &device, &queue, &words);
+        patch_svo_nodes(world, &device, &queue, &edits, node_len);
     }
 }
 
