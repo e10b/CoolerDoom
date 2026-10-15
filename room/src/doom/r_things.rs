@@ -1240,6 +1240,56 @@ pub unsafe extern "C" fn R_DrawMasked() {
     }
 }
 
+/// Lump index (relative to `firstspritelump`) and horizontal flip for a world sprite.
+///
+/// Rotation selection matches `R_ProjectSprite`. Returns `None` when the sprite
+/// or frame is not in the loaded tables.
+pub unsafe fn hw_sprite_lump(
+    sprite: c_int,
+    frame: c_int,
+    thing_x: c_int,
+    thing_y: c_int,
+    thing_angle: u32,
+) -> Option<(c_int, bool)> {
+    let sprframe = hw_sprite_frame(sprite, frame)?;
+    let (lump, flip) = if sprframe.rotate == 0 {
+        (sprframe.lump[0], sprframe.flip[0])
+    } else {
+        let ang = R_PointToAngle(thing_x, thing_y);
+        let rot =
+            (ang.wrapping_sub(thing_angle).wrapping_add((ANG45 / 2) * 9) >> 29) as usize;
+        (sprframe.lump[rot], sprframe.flip[rot])
+    };
+    if lump < 0 {
+        None
+    } else {
+        Some((lump as c_int, flip != 0))
+    }
+}
+
+/// Lump index and flip for a weapon overlay. Weapons always use rotation 0.
+pub unsafe fn hw_psprite_lump(sprite: c_int, frame: c_int) -> Option<(c_int, bool)> {
+    let sprframe = hw_sprite_frame(sprite, frame)?;
+    let lump = sprframe.lump[0];
+    if lump < 0 {
+        None
+    } else {
+        Some((lump as c_int, sprframe.flip[0] != 0))
+    }
+}
+
+unsafe fn hw_sprite_frame(sprite: c_int, frame: c_int) -> Option<&'static spriteframe_t> {
+    if sprites.is_null() || sprite < 0 || sprite >= numsprites {
+        return None;
+    }
+    let sprdef = &*(sprites as *mut spritedef_t).add(sprite as usize);
+    let fr = frame & FF_FRAMEMASK;
+    if fr < 0 || fr >= sprdef.numframes || sprdef.spriteframes.is_null() {
+        return None;
+    }
+    Some(&*sprdef.spriteframes.add(fr as usize))
+}
+
 // ---------------------------------------------------------------------------
 // Anchor
 // ---------------------------------------------------------------------------

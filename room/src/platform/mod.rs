@@ -129,13 +129,21 @@ pub extern "C" fn DG_DrawFrame() {
         }
     }
 
-    GPU.with_borrow(|opt| {
-        if let Some(gpu) = opt.as_ref() {
-            if let Err(e) = gpu.render(pixel_bytes) {
-                log::warn!("DG_DrawFrame: render error: {e}");
-            }
-        } else {
+    GPU.with_borrow_mut(|opt| {
+        let Some(gpu) = opt.as_mut() else {
             log::warn!("DG_DrawFrame: GPU state not ready");
+            return;
+        };
+        let result = if crate::hw::active() {
+            let scene = unsafe { crate::hw::build_scene() };
+            let result = gpu.render_world(pixel_bytes, &scene);
+            crate::hw::recycle(scene);
+            result
+        } else {
+            gpu.render(pixel_bytes)
+        };
+        if let Err(e) = result {
+            log::warn!("DG_DrawFrame: render error: {e}");
         }
     });
 }

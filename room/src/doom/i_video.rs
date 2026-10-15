@@ -461,6 +461,17 @@ pub unsafe extern "C" fn I_ReadScreen(scr: *mut u8) {
     std::ptr::copy(I_VideoBuffer, scr, (SCREENWIDTH * SCREENHEIGHT) as usize);
 }
 
+/// Gamma-corrected palette currently used by the software framebuffer.
+///
+/// Each entry is `(r, g, b)`. All zeroes if `I_SetPalette` has not run yet.
+pub unsafe fn hw_palette_rgb() -> [(u8, u8, u8); 256] {
+    let mut out = [(0u8, 0u8, 0u8); 256];
+    for i in 0..256 {
+        out[i] = (COLORS[i].r, COLORS[i].g, COLORS[i].b);
+    }
+    out
+}
+
 /// Apply a new 768-byte (256 x R/G/B) PLAYPAL palette by
 /// gamma-correcting each component through `gammatable[usegamma]`
 /// and storing into `COLORS`. Mirrors `I_SetPalette` from `i_video.c`.

@@ -57,6 +57,7 @@ pub(crate) mod audio;
 pub mod doom;
 pub mod gpu;
 pub mod headless;
+pub mod hw;
 pub mod platform;
 pub mod types;
 #[cfg(target_arch = "wasm32")]

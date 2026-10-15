@@ -640,6 +640,20 @@ pub unsafe extern "C" fn R_GenerateLookup(texnum: c_int) {
     Z_Free(patchcount as *mut c_void);
 }
 
+/// Width and height, in pixels, of wall texture `tex`.
+///
+/// Width comes from `texturewidthmask` (textures are power-of-two wide).
+/// Height is `textureheight` shifted down from 16.16 fixed point.
+/// Returns `(0, 0)` when the texture tables are not ready or `tex` is out of range.
+pub unsafe fn hw_texture_size(tex: c_int) -> (i32, i32) {
+    if texturewidthmask.is_null() || textureheight.is_null() || tex < 0 || tex >= numtextures {
+        return (0, 0);
+    }
+    let w = *texturewidthmask.add(tex as usize) + 1;
+    let h = (*textureheight.add(tex as usize)) >> 16;
+    (w.max(0), h.max(0))
+}
+
 // ---------------------------------------------------------------------------
 // R_GetColumn
 // ---------------------------------------------------------------------------

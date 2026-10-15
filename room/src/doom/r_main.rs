@@ -1074,6 +1074,12 @@ pub unsafe extern "C" fn R_SetupFrame(player: *mut PlayerT) {
 pub unsafe extern "C" fn R_RenderPlayerView(player: *mut PlayerT) {
     R_SetupFrame(player);
 
+    // The hardware path draws the world with triangles. The status bar, menu,
+    // and automap still use this software renderer.
+    if crate::hw::active() {
+        return;
+    }
+
     R_ClearClipSegs();
     R_ClearDrawSegs();
     R_ClearPlanes();
